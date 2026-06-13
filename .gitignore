@@ -4,10 +4,16 @@ runtime/config_cache.json
 logs/*.jsonl
 cache/web/pages/*
 cache/web/index.sqlite*
-workspace/agents/*
-workspace/project/*
-workspace/profiling/*
-workspace/optimization/*
+
+# Everything agents generate at runtime. Nothing under an agent's directory
+# (work/, output/, terminal/, profiling/, .trash/, logs/, ...) is ever tracked.
+workspace/agents/**
+workspace/project/**
+workspace/project_snapshot/**
+workspace/profiling/**
+workspace/optimization/**
+workspace/shared_readonly/**
+# ...but keep the directory placeholders so the tree exists after clone.
 !**/.gitkeep
 
 # Python
