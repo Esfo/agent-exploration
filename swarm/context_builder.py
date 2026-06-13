@@ -33,9 +33,11 @@ COMMON_TOOLS = ["report_progress", "finish"]
 # Spawning + worker tool sets.
 SPAWN_TOOLS = ["spawn_agents"]
 WORKER_TOOLS = ["list_files", "read_file", "write_file", "append_file",
-                "delete_file", "python", "shell"]
+                "delete_file", "python", "shell",
+                "open_terminal", "terminal_command", "close_terminal"]
 RECONCILE_TOOLS = ["request_review", "request_integration", "request_testing", "request_fix"]
 WEB_TOOLS = ["curl", "search_web_cache", "read_cached_page"]
+TERMINAL_TOOLS = ["open_terminal", "terminal_command", "close_terminal"]
 
 # Which tool sets each role gets, beyond COMMON_TOOLS.
 ROLE_TOOLSETS = {
@@ -71,6 +73,9 @@ TOOL_HELP = {
     "curl": '{"url":"https://..","purpose":"..","cache_policy":"reuse_if_fresh","max_age_hours":168}',
     "search_web_cache": '{"query":".."}',
     "read_cached_page": '{"cache_id":"..","max_chars":20000}',
+    "open_terminal": '{"terminal_type":"shell","purpose":".."}',
+    "terminal_command": '{"terminal_id":"terminal_0001","reason":"..","expected_result":"..","destructive_risk_answer":"..","timeout_seconds":30,"command":".."}',
+    "close_terminal": '{"terminal_id":"terminal_0001"}',
 }
 
 
