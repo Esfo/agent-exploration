@@ -17,6 +17,7 @@ from .context_builder import ContextBuilder
 from .model_selector import ModelSelector
 from .checks import run_gate
 from .instructions import parse_instruction_file
+from .transcript import Transcript
 from .token_budget import (ContextLimitReached, _summarize_dropped, ensure_fits,
                            estimate_messages, safe_input_budget, summarize_to_fit)
 
@@ -148,6 +149,13 @@ class AgentRunner:
         inherited = list(inherited_history or [])   # full conversation of the branch
         purpose_text = self._purpose_text(agent_d)  # this agent's unique purpose
         history: list[dict] = []                    # this agent's own working turns
+        tx = Transcript(agent_d)                    # live conversation log in workspace
+        tx.write("purpose", purpose_text)
+
+        def feedback(text: str) -> None:            # append user msg + log it live
+            history.append({"role": "user", "content": text})
+            tx.write("runtime→agent", text)
+
         parse_retries = 0
         last_response = ""
         attempted: list[str] = []
@@ -210,6 +218,7 @@ class AgentRunner:
             db.save_model_call(agent_id, response.telemetry)
             db.save_message(agent_id, "assistant", response.content)
             history.append({"role": "assistant", "content": response.content})
+            tx.write("model", response.content)
             last_response = response.content
 
             calls = tools  # alias
@@ -225,18 +234,16 @@ class AgentRunner:
                     db.update_agent_status(agent_id, "failed")
                     ctx.events.agent_finished(agent_id, result)
                     return result
-                history.append({"role": "user", "content":
-                    "You did not emit a tool block. You MUST respond with a "
-                    "<<tool:tool_name>> ... <</tool>> block. To end, use <<tool:finish>>."})
+                feedback("You did not emit a tool block. You MUST respond with a "
+                    "<<tool:tool_name>> ... <</tool>> block. To end, use <<tool:finish>>.")
                 continue
 
             db.update_agent_status(agent_id, "running")
             resumed = False
             for call in parsed:
                 if not call.ok:
-                    history.append({"role": "user", "content":
-                        f"Your <<tool:{call.name}>> block had invalid JSON ({call.error}). "
-                        "Re-emit it as valid JSON."})
+                    feedback(f"Your <<tool:{call.name}>> block had invalid JSON ({call.error}). "
+                        "Re-emit it as valid JSON.")
                     continue
                 attempted.append(call.name)
                 result, terminal = calls.execute(ctx, agent_id, call.name, call.args)
@@ -246,9 +253,8 @@ class AgentRunner:
                     avail = ", ".join(ctx.builder.available_tools or
                                       __import__("swarm.context_builder", fromlist=["tools_for_role"])
                                       .tools_for_role(agent["role"]))
-                    history.append({"role": "user", "content":
-                        f"There is no tool named '{call.name}'. Use one of these EXACT names: "
-                        f"{avail}. Re-emit a correct <<tool:NAME>> block."})
+                    feedback(f"There is no tool named '{call.name}'. Use one of these EXACT names: "
+                        f"{avail}. Re-emit a correct <<tool:NAME>> block.")
                     continue
 
                 if call.name == "finish":
@@ -269,11 +275,10 @@ class AgentRunner:
                                 db.update_agent_status(agent_id, "blocked")
                                 ctx.events.agent_finished(agent_id, blocked)
                                 return blocked
-                            history.append({"role": "user", "content":
-                                f"Finish blocked by a check in {fname}: \"{fail_text}\" did not pass "
+                            feedback(f"Finish blocked by a check in {fname}: \"{fail_text}\" did not pass "
                                 f"({detail}). Address it now. If resolving it needs a separate agent "
                                 f"swarm, decide and use spawn_agents; if it genuinely cannot be done, "
-                                f"call finish with status \"blocked\" and explain."})
+                                f"call finish with status \"blocked\" and explain.")
                             resumed = True
                             break
                     db.update_agent_status(agent_id, result["status"])
@@ -284,9 +289,8 @@ class AgentRunner:
                 # them to completion, then the parent resumes with their results.
                 if result.get("spawned"):
                     if ctx.control is not None and ctx.control.should_stop_waves():
-                        history.append({"role": "user", "content":
-                            "Stop requested: do not start new sub-agents. Finish with "
-                            "<<tool:finish>> using what you have so far."})
+                        feedback("Stop requested: do not start new sub-agents. Finish with "
+                            "<<tool:finish>> using what you have so far.")
                         continue
                     db.update_agent_status(agent_id, "waiting_for_children")
                     # Children inherit this branch's FULL conversation so far.
@@ -296,17 +300,15 @@ class AgentRunner:
                     if self._needs_summary(agent_d, branch_conversation):
                         branch_conversation = self._summarize_branch(agent_d, branch_conversation)
                     summaries = self._run_children(result.get("spawned", []), branch_conversation)
-                    history.append({"role": "user", "content":
-                        "Your child agents finished. Results:\n" + summaries +
+                    feedback("Your child agents finished. Results:\n" + summaries +
                         "\nIntegrate these results and finish with <<tool:finish>> "
-                        "when your done condition is met."})
+                        "when your done condition is met.")
                     db.update_agent_status(agent_id, "running")
                     resumed = True
                     break  # rebuild messages with the new history
 
                 # Feed the tool result back as a user-list entry; the agent iterates.
-                history.append({"role": "user", "content":
-                    f"Tool {call.name} result: {result}. Continue, or finish."})
+                feedback(f"Tool {call.name} result: {result}. Continue, or finish.")
 
             if resumed:
                 continue

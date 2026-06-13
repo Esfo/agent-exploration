@@ -86,6 +86,18 @@ class ResourceMonitor:
             return None
 
     # ----- disk -----
+    def vram_total_mb(self) -> int | None:
+        if not self._have_nvidia:
+            return None
+        try:
+            out = subprocess.run(
+                ["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
+                capture_output=True, text=True, timeout=5, check=True,
+            ).stdout.strip()
+            return sum(int(x.strip()) for x in out.splitlines() if x.strip())
+        except (subprocess.SubprocessError, ValueError, OSError):
+            return None
+
     def disk_percent(self) -> float:
         try:
             st = os.statvfs(self.disk_path)

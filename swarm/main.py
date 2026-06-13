@@ -12,6 +12,7 @@ from pathlib import Path
 from . import ids
 from .agent_loop import AgentRunner, RuntimeContext
 from .branching import BranchManager
+from .calibration import calibrate
 from .chat_interface import ChatInterface
 from .context_builder import ContextBuilder
 from .control import RunControl
@@ -58,6 +59,9 @@ def build_runtime(settings_path: str = DEFAULT_SETTINGS, client=None):
     executor = select_executor(settings)
     web_cache = WebCache(settings, db)
     monitor = ResourceMonitor(str(settings.root))
+    # Measure GPU/CPU agent concurrency from the machine before building the
+    # scheduler (overrides any MAX_ACTIVE_*=auto in memory).
+    calibrate(settings, probe, monitor, events)
     scheduler = Scheduler(settings, monitor, events)
 
     ctx = RuntimeContext(settings, db, events, selector, client, builder, executor, web_cache)
