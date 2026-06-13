@@ -1,0 +1,18 @@
+MODEL: <PLACEHOLDER_OLLAMA_MODEL>
+PURPOSE: Ordered questions that every proposed command must answer before the runtime executes it.
+001. What is the exact command?
+002. What directory will it run in?
+003. What is the reason for running it?
+004. What output or side effect is expected?
+005. Could this command delete files?
+006. Could this command overwrite files?
+007. Could this command modify files outside the assigned directory?
+008. Could this command access user-private data?
+009. Could this command modify the host operating system?
+010. Could this command install or remove packages?
+011. Could this command make network requests?
+012. Could this command consume excessive CPU, RAM, GPU, disk, or time?
+013. Is this destructive to the user ecosystem?
+014. Is there a narrower safer command?
+015. If the command is safe, provide the command block in the required format.
+016. If the command is risky, explain the risk and request a safer alternative.

@@ -1,0 +1,12 @@
+MODEL: <PLACEHOLDER_OLLAMA_MODEL>
+PURPOSE: Loaded by all agents to constrain risky behavior.
+001. Do not attempt to bypass runtime permissions.
+002. Do not request commands that intentionally leave the assigned directory.
+003. Do not access private network addresses.
+004. Do not use shell commands to modify the host system.
+005. Do not run commands without a timeout.
+006. Do not hide errors.
+007. Do not claim success without verification.
+008. If a safety rule blocks the task, return blocked with the reason.
+009. Prefer narrow, reversible actions.
+010. Answer command-questioning prompts before requesting command execution.

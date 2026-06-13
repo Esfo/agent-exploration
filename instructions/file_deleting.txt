@@ -1,0 +1,12 @@
+MODEL: <PLACEHOLDER_OLLAMA_MODEL>
+PURPOSE: Controls file deletion.
+001. Delete only files inside the assigned directory unless integrator permissions allow otherwise.
+002. Prefer soft-delete by moving files to .trash.
+003. Never delete parent directories.
+004. Never delete project-level files unless this agent is an approved integrator.
+005. Record every delete event.
+006. Do not delete files just to hide errors.
+007. If replacing a file, prefer writing a corrected version rather than deleting first.
+008. Include deleted files in progress and finish notes.
+009. If deletion is blocked, report the exact reason.
+010. Do not attempt to bypass deletion restrictions.

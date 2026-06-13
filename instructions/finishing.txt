@@ -1,0 +1,12 @@
+MODEL: <PLACEHOLDER_OLLAMA_MODEL>
+PURPOSE: Controls how agents finish and report results upward.
+001. Finish only through the finish tool.
+002. Do not finish until the assigned done condition is met or the task is blocked.
+003. Include a clear status: complete, blocked, or failed.
+004. Include a concise summary of what was accomplished.
+005. Include a return note to the parent agent.
+006. Include completion percentage.
+007. List files created, modified, and deleted.
+008. List commands run and sandboxes used.
+009. List remaining issues honestly.
+010. Do not claim success without verification.

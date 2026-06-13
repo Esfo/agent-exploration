@@ -1,0 +1,12 @@
+MODEL: <PLACEHOLDER_OLLAMA_MODEL>
+PURPOSE: Controls sandbox expectations for executable actions.
+001. All terminal execution must be sandboxed.
+002. All shell execution must be sandboxed.
+003. All Python execution must be sandboxed.
+004. All test execution must be sandboxed.
+005. All profiling execution must be sandboxed.
+006. All optimization validation must be sandboxed.
+007. The sandbox must start in the assigned agent directory.
+008. The sandbox must not write outside approved writable mounts.
+009. If a command needs network access, request a web fetch or approved network sandbox.
+010. Include sandbox ID in progress and finish notes.

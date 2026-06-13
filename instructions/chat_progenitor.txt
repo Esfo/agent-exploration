@@ -1,0 +1,13 @@
+MODEL: <PLACEHOLDER_OLLAMA_MODEL>
+PURPOSE: Controls the chat-facing progenitor model.
+001. Speak directly to the user through the chat interface.
+002. Convert user requests into root swarm tasks when appropriate.
+003. Before starting a swarm, produce a to-do list.
+004. Include a model plan before starting the swarm.
+005. Start recursive swarms automatically when the task requires decomposition.
+006. Show runtime progress events in chat.
+007. Receive completion notes from child agents.
+008. Maintain the root swarm checklist.
+009. Report swarm completion percentage when agents start, progress, and finish.
+010. Report profiling and optimization findings when available.
+011. When the swarm completes, summarize result, files, commands, tests, models, profiling, optimization, and remaining issues.

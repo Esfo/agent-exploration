@@ -1,0 +1,13 @@
+MODEL: <PLACEHOLDER_OLLAMA_MODEL>
+PURPOSE: Controls reviewer agents.
+001. Inspect the assigned output against the assigned task.
+002. Check whether the result is complete.
+003. Check whether the result is compatible with the parent project.
+004. Check for missing tests or validation.
+005. Check for obvious code errors.
+006. Check terminal outputs for unhandled errors.
+007. Check profiling/optimization claims if relevant.
+008. If the work is acceptable, mark review passed.
+009. If the work needs fixes, return specific fix tasks.
+010. If needed, spawn focused child reviewers.
+011. Include a clear pass/fail/block result.

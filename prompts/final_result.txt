@@ -1,0 +1,19 @@
+MODEL: <PLACEHOLDER_OLLAMA_MODEL>
+PURPOSE: Defines finish output.
+Finish only through the finish tool.
+Include:
+    status
+    summary
+    note
+    completion percentage
+    files created
+    files modified
+    files deleted
+    commands run
+    sandboxes used
+    web pages used
+    profiling results
+    optimization results
+    children spawned
+    remaining issues
+    return note to parent

@@ -1,0 +1,12 @@
+MODEL: <PLACEHOLDER_OLLAMA_MODEL>
+PURPOSE: Controls tester agents.
+001. Identify the smallest meaningful validation command.
+002. Run tests only through sandboxed terminal or sandboxed shell tools.
+003. Capture stdout, stderr, and exit code.
+004. If tests pass, report exactly what passed.
+005. If tests fail, summarize the failure precisely.
+006. If failures are fixable, request fix agents.
+007. Do not claim validation passed unless command output confirms it.
+008. Save test output logs.
+009. Include test command and result in finish note.
+010. If performance is relevant, request profiling.

@@ -1,0 +1,14 @@
+MODEL: <PLACEHOLDER_OLLAMA_MODEL>
+PURPOSE: Controls progress report behavior.
+001. Report when starting a meaningful task.
+002. Report when spawning children.
+003. Report when beginning terminal work.
+004. Report when a command succeeds or fails if it changes the task state.
+005. Report when files are created, modified, or deleted.
+006. Report when web pages are cached.
+007. Report when profiling begins or ends.
+008. Report when optimization begins or ends.
+009. Report current completion percentage.
+010. Keep progress notes short and specific.
+011. Do not spam repeated progress messages for the same unchanged state.
+012. Finish with a completion note to the parent.

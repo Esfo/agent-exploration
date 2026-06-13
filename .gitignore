@@ -1,0 +1,18 @@
+# Runtime state and generated artifacts
+runtime/state.sqlite*
+runtime/config_cache.json
+logs/*.jsonl
+cache/web/pages/*
+cache/web/index.sqlite*
+workspace/agents/*
+workspace/project/*
+workspace/profiling/*
+workspace/optimization/*
+!**/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/

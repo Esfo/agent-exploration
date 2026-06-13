@@ -1,0 +1,12 @@
+MODEL: <PLACEHOLDER_OLLAMA_MODEL>
+PURPOSE: Controls file reading.
+001. Read only files relevant to the assigned task.
+002. Use the read_file tool for file access.
+003. Do not assume file contents without reading them.
+004. Prefer reading narrow files over dumping large directories.
+005. Read from the assigned directory when working on local output.
+006. Read from project snapshots only when context is needed.
+007. Read from shared web cache only when documentation is relevant.
+008. Track files read if they influence the result.
+009. Include important files read in the progress and finish notes.
+010. If file reading is blocked, report the exact reason.

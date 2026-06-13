@@ -1,0 +1,171 @@
+"""Chat interface + slash commands (spec sections 3, 4).
+
+Reads user input, routes slash commands directly (no LLM call), and turns
+free-text messages into root swarms driven by the progenitor agent.
+"""
+from __future__ import annotations
+
+from . import ids
+from .agent_loop import AgentRunner
+from .progress import subtree_completion
+
+
+class ChatInterface:
+    def __init__(self, ctx, runner: AgentRunner):
+        self.ctx = ctx
+        self.runner = runner
+        self.db = ctx.db
+        self.last_swarm: str | None = None
+
+    # ----- public entry -----
+    def handle(self, text: str) -> bool:
+        """Returns False if the session should end."""
+        text = text.strip()
+        if not text:
+            return True
+        if text.startswith("/"):
+            return self._slash(text)
+        self._start_swarm(text)
+        return True
+
+    # ----- swarm start -----
+    def _start_swarm(self, goal: str) -> None:
+        from .settings import SettingsError
+        from .ollama_client import OllamaError
+        swarm_id = ids.next_id("swarm")
+        self.db.create_swarm(swarm_id, goal)
+        self.last_swarm = swarm_id
+        try:
+            root = self.ctx.create_root(swarm_id, "progenitor", "Root task", goal)
+        except SettingsError as e:
+            self.db.update_swarm(swarm_id, status="failed")
+            self.ctx.events.chat(
+                f"\nCannot start swarm: {e}\n"
+                "Edit settings/main.settings (DEFAULT_MODEL=...) or set MODEL: in the "
+                "relevant instruction file to a model you've pulled in Ollama."
+            )
+            return
+        self.ctx.events.chat(f"\nSwarm started: {swarm_id}\nRoot task:\n    {goal}\nCompletion: 0%")
+        try:
+            result = self.runner.run_agent(root["id"])
+        except OllamaError as e:
+            self.db.update_swarm(swarm_id, status="failed")
+            self.ctx.events.chat(
+                f"\nOllama call failed: {e}\n"
+                "Is `ollama serve` running and the model pulled? Check OLLAMA_*_ENDPOINT "
+                "in settings/main.settings."
+            )
+            return
+        pct = subtree_completion(self.db, root["id"])
+        self.db.update_swarm(swarm_id, status="complete" if result.get("status") == "complete" else "blocked",
+                             completion=pct)
+        self.ctx.events.chat(
+            f"\nSwarm {swarm_id} finished: {result.get('status')}  ({pct:.0f}%)\n"
+            f"Result: {result.get('summary') or result.get('note','')}"
+        )
+
+    # ----- slash commands -----
+    def _slash(self, text: str) -> bool:
+        parts = text.split()
+        cmd, args = parts[0], parts[1:]
+        handler = {
+            "/help": self._help,
+            "/quit": lambda a: False,
+            "/exit": lambda a: False,
+            "/status": self._status,
+            "/progress": self._status,
+            "/agents": self._agents,
+            "/tree": self._tree,
+            "/models": self._models,
+            "/show": self._show,
+            "/show-settings": self._show_settings,
+        }.get(cmd)
+        if handler is None:
+            self.ctx.events.chat(f"Unknown command: {cmd}. Try /help.")
+            return True
+        out = handler(args)
+        return False if out is False else True
+
+    def _help(self, _a) -> None:
+        self.ctx.events.chat(
+            "Commands: /status /progress /agents /tree /models /show <agent_id> "
+            "/show-settings /help /quit\n(Any other text starts a new swarm.)"
+        )
+
+    def _status(self, _a) -> None:
+        if not self.last_swarm:
+            self.ctx.events.chat("No swarm yet.")
+            return
+        sw = self.db.get_swarm(self.last_swarm)
+        agents = self.db.list_swarm_agents(self.last_swarm)
+        by_status: dict[str, int] = {}
+        for a in agents:
+            by_status[a["status"]] = by_status.get(a["status"], 0) + 1
+        breakdown = ", ".join(f"{k}={v}" for k, v in sorted(by_status.items()))
+        self.ctx.events.chat(
+            f"Swarm {sw['id']}: {sw['status']} ({sw['completion_percentage']:.0f}%)\n"
+            f"  Agents: {len(agents)} [{breakdown}]"
+        )
+
+    def _agents(self, _a) -> None:
+        if not self.last_swarm:
+            self.ctx.events.chat("No swarm yet.")
+            return
+        for a in self.db.list_swarm_agents(self.last_swarm):
+            self.ctx.events.chat(
+                f"  {a['id']} d{a['depth']} {a['role']:<11} {a['status']:<18} "
+                f"{a['completion_percentage']:.0f}%  {a['title']}"
+            )
+
+    def _tree(self, _a) -> None:
+        if not self.last_swarm:
+            self.ctx.events.chat("No swarm yet.")
+            return
+        agents = self.db.list_swarm_agents(self.last_swarm)
+        by_parent: dict[str | None, list] = {}
+        for a in agents:
+            by_parent.setdefault(a["parent_agent_id"], []).append(a)
+
+        def walk(pid, indent):
+            for a in by_parent.get(pid, []):
+                self.ctx.events.chat(
+                    f"{'  '*indent}{a['id']} [{a['role']}] {a['status']} "
+                    f"{a['completion_percentage']:.0f}% - {a['title']}"
+                )
+                walk(a["id"], indent + 1)
+
+        walk(None, 0)
+
+    def _models(self, _a) -> None:
+        if not self.last_swarm:
+            self.ctx.events.chat("No swarm yet.")
+            return
+        seen = {}
+        for a in self.db.list_swarm_agents(self.last_swarm):
+            seen.setdefault(a["role"], a["selected_model"])
+        for role, model in seen.items():
+            self.ctx.events.chat(f"  {role}: {model}")
+
+    def _show(self, args) -> None:
+        if not args:
+            self.ctx.events.chat("Usage: /show <agent_id>")
+            return
+        a = self.db.get_agent(args[0])
+        if not a:
+            self.ctx.events.chat(f"No such agent: {args[0]}")
+            return
+        res = self.db.get_agent_result(a["id"])
+        self.ctx.events.chat(
+            f"{a['id']} [{a['role']}] {a['status']} {a['completion_percentage']:.0f}%\n"
+            f"  Model: {a['selected_model']} ({a['model_source']}, {a['execution_class']}, ctx={a['num_ctx']})\n"
+            f"  Task: {a['task']}\n"
+            f"  Dir: {a['assigned_directory']}\n"
+            f"  Result: {res['summary'] if res else '(unfinished)'}"
+        )
+
+    def _show_settings(self, _a) -> None:
+        s = self.ctx.settings
+        keys = ["RUNTIME_NAME", "RUNTIME_VERSION", "DEFAULT_MODEL", "MAX_RECURSION_DEPTH",
+                "MAX_TOTAL_AGENTS_PER_SWARM", "MAX_AUTO_NUM_CTX", "SANDBOX_BACKEND"]
+        for k in keys:
+            self.ctx.events.chat(f"  {k}={s.get(k)}")

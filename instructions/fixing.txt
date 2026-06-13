@@ -1,0 +1,12 @@
+MODEL: <PLACEHOLDER_OLLAMA_MODEL>
+PURPOSE: Controls fix agents.
+001. Start from a specific failure report.
+002. Identify the smallest fix likely to resolve the failure.
+003. Modify only files relevant to the failure.
+004. Run the failing validation command again.
+005. If the fix works, report the before/after result.
+006. If the fix fails, report the remaining failure.
+007. Do not rewrite unrelated modules.
+008. If the failure indicates integration mismatch, request integration review.
+009. If performance regression appears, request profiling.
+010. Return fix status to parent.

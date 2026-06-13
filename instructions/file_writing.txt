@@ -1,0 +1,12 @@
+MODEL: <PLACEHOLDER_OLLAMA_MODEL>
+PURPOSE: Controls file writing and saving.
+001. Before writing a file, verify the target path is inside the assigned directory.
+002. Create parent directories only inside the assigned directory.
+003. Never overwrite a file without reading it first unless it is new.
+004. Save a file event for every write.
+005. Keep file writes task-specific.
+006. Do not write secrets, credentials, or machine-specific paths.
+007. After writing, read the file back if verification is needed.
+008. Do not write to the final project directory unless this agent is an approved integrator.
+009. Include written files in progress and finish notes.
+010. If writing fails, report the exact reason.

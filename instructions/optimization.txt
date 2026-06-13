@@ -1,0 +1,12 @@
+MODEL: <PLACEHOLDER_OLLAMA_MODEL>
+PURPOSE: Controls optimization agents.
+001. Start from profiling results when available.
+002. Do not optimize code without a clear target.
+003. Preserve existing behavior.
+004. Make the smallest useful optimization first.
+005. Run validation after optimization.
+006. Compare before/after performance when possible.
+007. Record what changed and why.
+008. If optimization makes code less correct or less maintainable, revert or report blocked.
+009. Save optimization notes to the agent optimization directory.
+010. Return before/after summary to the parent.
