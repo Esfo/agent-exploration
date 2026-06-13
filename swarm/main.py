@@ -11,9 +11,11 @@ from pathlib import Path
 
 from . import ids
 from .agent_loop import AgentRunner, RuntimeContext
+from .branching import BranchManager
 from .chat_interface import ChatInterface
 from .context_builder import ContextBuilder
 from .db import DB
+from .memory import MemoryStore
 from .model_probe import ProbeCache
 from .model_selector import ModelSelector
 from .ollama_client import OllamaClient
@@ -59,6 +61,8 @@ def build_runtime(settings_path: str = DEFAULT_SETTINGS, client=None):
 
     ctx = RuntimeContext(settings, db, events, selector, client, builder, executor, web_cache)
     ctx.scheduler = scheduler
+    ctx.memory = MemoryStore(db)
+    ctx.branch = BranchManager(db)
     runner = AgentRunner(ctx)
     return ctx, runner
 

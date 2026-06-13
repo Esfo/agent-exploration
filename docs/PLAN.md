@@ -39,17 +39,17 @@ that deviate from or sharpen the spec.
 - [x] profile tool (cProfile wrap, baseline runtime, top bottlenecks)
 - [x] optimize tool (before/after, sandboxed validation, requires profiling first)
 
-### Prototype 5 — scheduler + routing + richer chat 🟦 (partial)
+### Prototype 5 — scheduler + routing + richer chat ✅
 - [x] CPU/GPU routing per role (model_selector + endpoints)
-- [x] Richer slash commands (/active /failed /terminals /sandboxes /profile
-      /optimization /show-cache) + spec-33 final summary
-- [ ] Resource scheduler: RAM/CPU/VRAM sampling, queueing, backpressure
-- [ ] Async/parallel agent execution (currently in-process, depth-first)
+- [x] Richer slash commands + spec-33 final summary
+- [x] Resource monitor: RAM/CPU/VRAM/disk sampling (stdlib) + pressure checks
+- [x] Scheduler: GPU/CPU inference slots + backpressure (queue under pressure)
+- [x] Parallel agent execution (thread-per-child) + thread-safe shared DB
 
-### Prototype 6 — branching + memory + summarization ⬜
-- [ ] Conversation/swarm branching
-- [ ] Memory store + per-call enable/relevance toggles
-- [ ] Context summarization when over token budget
+### Prototype 6 — branching + memory + summarization ✅
+- [x] Context summarization when over token budget (keep head + recent, condense middle)
+- [x] Memory store + enable/relevance toggles, injected into context
+- [x] Conversation/swarm branching (copy goal + root messages, independent future)
 
 ## Design decisions / deviations from spec
 

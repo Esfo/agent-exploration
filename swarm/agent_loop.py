@@ -15,7 +15,7 @@ import threading
 from . import ids, tools
 from .context_builder import ContextBuilder
 from .model_selector import ModelSelector
-from .token_budget import ContextLimitReached, ensure_fits
+from .token_budget import ContextLimitReached, ensure_fits, summarize_to_fit
 
 AGENT_SUBDIRS = ["input", "output", "work", "terminal", "profiling", "optimization", ".trash", "logs"]
 
@@ -32,6 +32,8 @@ class RuntimeContext:
         self.executor = executor
         self.web_cache = web_cache
         self.scheduler = scheduler
+        self.memory = None
+        self.branch = None
         self.swarm_id: str | None = None
         self.root_goal: str = ""
 
@@ -123,16 +125,25 @@ class AgentRunner:
         history: list[dict] = []
         parse_retries = 0
 
+        memories_text = ""
+        if ctx.memory is not None:
+            mems = ctx.memory.relevant(role=agent["role"], swarm_id=agent["swarm_id"],
+                                       task=agent["task"])
+            memories_text = ctx.memory.render(mems)
+
         for _ in range(self.max_iterations):
             messages = ctx.builder.build_messages(
-                agent_d, ctx.root_goal, parent_task, siblings, history
+                agent_d, ctx.root_goal, parent_task, siblings, history, memories_text
             )
+            num_ctx_i = int(agent["num_ctx"] or 8192)
+            num_predict_i = int(agent["num_predict"] or 2048)
+            margin = ctx.settings.get_int("TOKEN_SAFETY_MARGIN", 256) or 256
             try:
-                ensure_fits(
-                    messages, int(agent["num_ctx"] or 8192),
-                    int(agent["num_predict"] or 2048),
-                    ctx.settings.get_int("TOKEN_SAFETY_MARGIN", 256) or 256,
-                )
+                if ctx.settings.get_bool("SUMMARIZE_CONTEXT_WHEN_OVER_BUDGET", True):
+                    messages = summarize_to_fit(
+                        messages, num_ctx_i, num_predict_i, margin,
+                        ctx.settings.get_int("MAX_CONTEXT_SUMMARY_TOKENS", 2048) or 2048)
+                ensure_fits(messages, num_ctx_i, num_predict_i, margin)
             except ContextLimitReached as e:
                 result = {"status": "blocked", "failure": "context_limit_reached",
                           "note": str(e), "completion_percentage": 0}

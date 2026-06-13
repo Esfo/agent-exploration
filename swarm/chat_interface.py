@@ -116,6 +116,11 @@ class ChatInterface:
             "/profile": self._profile,
             "/optimization": self._optimization,
             "/show-cache": self._show_cache,
+            "/memories": self._memories,
+            "/remember": self._remember,
+            "/forget": self._forget,
+            "/branch": self._branch,
+            "/branches": self._branches,
         }.get(cmd)
         if handler is None:
             self.ctx.events.chat(f"Unknown command: {cmd}. Try /help.")
@@ -127,6 +132,7 @@ class ChatInterface:
         self.ctx.events.chat(
             "Commands: /status /progress /agents /tree /active /failed /models "
             "/terminals /sandboxes /profile /optimization /show-cache "
+            "/memories /remember <text> /forget <id> /branch <swarm_id> /branches "
             "/show <agent_id> /show-settings /help /quit\n"
             "(Any other text starts a new swarm.)"
         )
@@ -184,6 +190,58 @@ class ChatInterface:
             self.ctx.events.chat(
                 f"  {r['id']} {r['target']} {r['before_runtime_ms']}→{r['after_runtime_ms']}ms "
                 f"({r['improvement']})")
+
+    def _memories(self, _a) -> None:
+        if self.ctx.memory is None:
+            self.ctx.events.chat("Memory not enabled.")
+            return
+        mems = self.ctx.memory.all()
+        if not mems:
+            self.ctx.events.chat("No memories.")
+            return
+        for m in mems:
+            flag = "on " if m["enabled"] else "off"
+            self.ctx.events.chat(f"  [{flag}] {m['id']} ({m['scope']}) {m['text']}")
+
+    def _remember(self, args) -> None:
+        if self.ctx.memory is None or not args:
+            self.ctx.events.chat("Usage: /remember <text>   (optionally start with scope= )")
+            return
+        scope = "global"
+        if args and args[0].startswith("scope="):
+            scope = args[0].split("=", 1)[1]
+            args = args[1:]
+        mid = self.ctx.memory.add(" ".join(args), scope=scope)
+        self.ctx.events.chat(f"Remembered {mid} (scope={scope}).")
+
+    def _forget(self, args) -> None:
+        if self.ctx.memory is None or not args:
+            self.ctx.events.chat("Usage: /forget <memory_id>   (disables it)")
+            return
+        ok = self.ctx.memory.set_enabled(args[0], False)
+        self.ctx.events.chat(f"Disabled {args[0]}." if ok else f"No such memory {args[0]}.")
+
+    def _branch(self, args) -> None:
+        if self.ctx.branch is None or not args:
+            self.ctx.events.chat("Usage: /branch <swarm_id> [note...]")
+            return
+        note = " ".join(args[1:]) if len(args) > 1 else ""
+        res = self.ctx.branch.branch(args[0], note=note)
+        if res["status"] == "ok":
+            self.ctx.events.chat(
+                f"Branched {args[0]} -> {res['branch_swarm_id']} "
+                f"({res['copied_messages']} messages copied).")
+        else:
+            self.ctx.events.chat(f"Branch failed: {res.get('detail')}")
+
+    def _branches(self, _a) -> None:
+        if self.ctx.branch is None:
+            self.ctx.events.chat("Branching not enabled.")
+            return
+        for b in self.ctx.branch.list_branches():
+            self.ctx.events.chat(
+                f"  {b['id']} [{b['status']}] {b['completion_percentage']:.0f}% "
+                f"- {b['user_goal'][:60]}")
 
     def _show_cache(self, _a) -> None:
         rows = self.db.conn.execute(

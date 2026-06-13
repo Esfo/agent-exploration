@@ -147,13 +147,13 @@ class ContextBuilder:
         return "\n".join(lines)
 
     def build_messages(self, agent: dict, root_goal: str, parent_task: str | None,
-                       sibling_tasks: list[str], history: list[dict] | None = None) -> list[dict]:
+                       sibling_tasks: list[str], history: list[dict] | None = None,
+                       memories_text: str = "") -> list[dict]:
         messages = [{"role": "system", "content": self.system_prompt(agent["role"])}]
-        messages.append({
-            "role": "user",
-            "content": self.context_packet(agent, root_goal, parent_task, sibling_tasks)
-            + "\n\nBegin working on your CURRENT TASK now.",
-        })
+        packet = self.context_packet(agent, root_goal, parent_task, sibling_tasks)
+        if memories_text:
+            packet += "\n\n" + memories_text
+        messages.append({"role": "user", "content": packet + "\n\nBegin working on your CURRENT TASK now."})
         if history:
             messages.extend(history)
         return messages

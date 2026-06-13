@@ -38,8 +38,19 @@ Implemented and tested offline (mock model, no Ollama required):
 - **Profiling/optimization:** `profile` (cProfile + baseline) and `optimize`
   (sandboxed before/after validation).
 
-Not yet built: resource scheduler/backpressure, parallel execution, and
-conversation branching + memory toggles (Prototypes 5–6).
+**Prototypes 5–6 added:**
+- **Scheduler/resources:** stdlib resource monitor (RAM/CPU/VRAM/disk) +
+  GPU/CPU inference slots with backpressure; **parallel agent execution**
+  (thread-per-child) over a thread-safe shared SQLite connection.
+- **Context summarization:** when a prompt exceeds the model's budget, keep the
+  system prompt + context packet + most recent turns and condense the middle.
+- **Memory:** `/remember`/`/forget`/`/memories` — enabled, scope-relevant
+  memories are injected into the prompt.
+- **Branching:** `/branch <swarm_id>` forks a swarm (copies goal + root
+  messages) with an independent future.
+
+All prototypes in [`docs/PLAN.md`](docs/PLAN.md) are now implemented. Remaining
+work is hardening, real-model tuning, and instruction-file authoring.
 
 ## Configure your models
 
