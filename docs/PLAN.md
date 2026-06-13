@@ -60,6 +60,32 @@ that deviate from or sharpen the spec.
 - [x] Memory store + enable/relevance toggles, injected into context
 - [x] Conversation/swarm branching (copy goal + root messages, independent future)
 
+## Beyond the spec — owner design corrections
+
+The spec framed some things in ways the system owner later corrected. These are
+now the canonical behaviors (see linked docs):
+
+### User-lists are finish-gate checks ✅ — see [`CHECKS.md`](CHECKS.md)
+- Each `instructions/*.txt` is an ordered list of **checks** for its named
+  process, not just prose. Before an agent finishes "complete", the runtime
+  verifies its role's checks **one-by-one**: deterministic where tagged
+  `[[auto:KEY]]`, model-judged otherwise. First failure blocks the finish; the
+  agent fixes it, spawns to divide, or finishes "blocked". (`swarm/checks.py`)
+- Instruction loading unified: an agent loads (and is gated by) global + safety
+  + progress + finishing + its role file + one file per usable tool.
+
+### Conversation inheritance + unique purpose ✅ — see [`CONTEXT.md`](CONTEXT.md)
+- Each recursive agent inherits the **full conversation** of the branch it was
+  spawned from (including the parent's model outputs), then receives its own
+  **unique purpose**. Only the purpose is unique; the history is shared.
+  (`swarm/context_builder.build_messages`, `agent_loop._purpose_text`)
+
+### Spawn-inherit overflow → summarizer agent ✅ — see [`CONTEXT.md`](CONTEXT.md)
+- If a branch conversation is too large to inherit, a **summarizer agent** (own
+  role + `instructions/summarizing.txt`) compresses the first `SUMMARIZE_FRACTION`
+  (60%); the briefing is prepended to the rest for the children.
+  (`agent_loop._run_summarizer`)
+
 ## Design decisions / deviations from spec
 
 1. **Tool protocol:** keeping the spec's free-text `<<tool:>>` blocks, but the
@@ -77,9 +103,12 @@ that deviate from or sharpen the spec.
    command questionnaire is guidance; the real boundary (Prototype 2) is the
    sandbox + `command_guard`. The model's self-assessment is never trusted as a
    security control.
-5. **Execution is mostly sequential** on one GPU (`MAX_ACTIVE_GPU_AGENTS=1`).
-   Prototype 1 runs agents in-process, depth-first; the async scheduler is
-   Prototype 5.
+5. **Parallel agents on one GPU.** Inference is gated by GPU/CPU semaphores
+   (`MAX_ACTIVE_GPU_AGENTS` / `MAX_ACTIVE_CPU_AGENTS`); children run thread-per-
+   child over a thread-safe shared SQLite connection. With one GPU slot the
+   GPU-routed work serializes while CPU agents run alongside.
+6. **No hardcoded anti-loop / divide-or-defer.** That behavior lives in the
+   user-list checks (the model decides to split or defer), not in Python.
 
 ## Runtime has no third-party dependencies
 Pure stdlib (`urllib`, `sqlite3`, `json`). `pytest` is dev-only.
