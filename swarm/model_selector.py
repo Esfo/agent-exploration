@@ -40,6 +40,7 @@ ROLE_PRIMARY_FILE = {
     "profiler": ("INSTRUCTION_PROFILING", "PROFILING"),
     "optimizer": ("INSTRUCTION_OPTIMIZATION", "OPTIMIZATION"),
     "finisher": ("INSTRUCTION_FINISHING", "FINISH"),
+    "summarizer": ("INSTRUCTION_SUMMARIZING", "SUMMARIZER"),
 }
 
 # role -> DEFAULT_<X>_MODEL settings key
@@ -62,6 +63,7 @@ ROLE_DEFAULT_KEY = {
     "profiler": "DEFAULT_PROFILING_MODEL",
     "optimizer": "DEFAULT_OPTIMIZATION_MODEL",
     "finisher": "DEFAULT_FINISH_MODEL",
+    "summarizer": "DEFAULT_SUMMARIZER_MODEL",
 }
 
 # Roles routed to GPU (setting ROUTE_<X>_TO_GPU=true). Default CPU otherwise.

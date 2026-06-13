@@ -16,7 +16,9 @@ from . import ids, tools
 from .context_builder import ContextBuilder
 from .model_selector import ModelSelector
 from .checks import run_gate
-from .token_budget import ContextLimitReached, ensure_fits, summarize_to_fit
+from .instructions import parse_instruction_file
+from .token_budget import (ContextLimitReached, _summarize_dropped, ensure_fits,
+                           estimate_messages, safe_input_budget, summarize_to_fit)
 
 AGENT_SUBDIRS = ["input", "output", "work", "terminal", "profiling", "optimization", ".trash", "logs"]
 
@@ -291,6 +293,8 @@ class AgentRunner:
                     branch_conversation = (inherited
                                            + [{"role": "user", "content": purpose_text}]
                                            + history)
+                    if self._needs_summary(agent_d, branch_conversation):
+                        branch_conversation = self._summarize_branch(agent_d, branch_conversation)
                     summaries = self._run_children(result.get("spawned", []), branch_conversation)
                     history.append({"role": "user", "content":
                         "Your child agents finished. Results:\n" + summaries +
@@ -320,6 +324,81 @@ class AgentRunner:
         db.update_agent_status(agent_id, "blocked")
         ctx.events.agent_finished(agent_id, result)
         return result
+
+    # ----- spawn-inherit overflow: summarize the first fraction via an agent -----
+    def _needs_summary(self, agent, conversation: list[dict]) -> bool:
+        s = self.ctx.settings
+        if not s.get_bool("SUMMARIZE_ON_SPAWN_OVERFLOW", True):
+            return False
+        cap = s.get_int("SUMMARIZE_SPAWN_MAX_TOKENS", 0) or 0
+        if cap <= 0:  # derive from the parent's context budget
+            cap = safe_input_budget(int(agent["num_ctx"] or 8192),
+                                    int(agent["num_predict"] or 2048),
+                                    s.get_int("TOKEN_SAFETY_MARGIN", 256) or 256)
+        return estimate_messages(conversation) > max(1, cap)
+
+    def _summarize_branch(self, parent, conversation: list[dict]) -> list[dict]:
+        frac = self.ctx.settings.get_float("SUMMARIZE_FRACTION", 0.6) or 0.6
+        k = max(1, int(len(conversation) * frac))
+        to_sum, keep = conversation[:k], conversation[k:]
+        summary = self._run_summarizer(parent, to_sum)
+        prefix = {"role": "user",
+                  "content": "[SUMMARY OF EARLIER CONVERSATION]\n" + summary}
+        return [prefix] + keep
+
+    def _run_summarizer(self, parent, to_sum: list[dict]) -> str:
+        """Spawn a summarizer agent (its own role + instruction file) to compress
+        the earlier conversation. Falls back to a deterministic recap if the model
+        is unavailable, so a spawn never fails on summarization."""
+        ctx = self.ctx
+        max_summary = ctx.settings.get_int("MAX_CONTEXT_SUMMARY_TOKENS", 2048) or 2048
+        child = ctx.create_child(
+            parent=parent, title="Summarize earlier branch context",
+            task="Summarize the earlier part of this branch conversation into a compact "
+                 "briefing so a newly spawned agent can inherit the essential context.",
+            role="summarizer", done_condition="", suggested_model=None, priority=1)
+        ctx.events.agent_started(dict(child))
+
+        rel = ctx.settings.get("INSTRUCTION_SUMMARIZING")
+        sys_txt = "Summarize the conversation into a compact briefing."
+        if rel and (ctx.settings.root / rel).exists():
+            sys_txt = parse_instruction_file(ctx.settings.root / rel).render() or sys_txt
+        conv_text = "\n\n".join(f"[{m.get('role','?')}] {m.get('content','')}" for m in to_sum)
+        nctx, npred = int(child["num_ctx"] or 8192), int(child["num_predict"] or 1024)
+        margin = ctx.settings.get_int("TOKEN_SAFETY_MARGIN", 256) or 256
+        msgs = [{"role": "system", "content": sys_txt},
+                {"role": "user", "content":
+                 "Summarize the earlier conversation below into a compact briefing.\n\n" + conv_text}]
+        try:
+            msgs = summarize_to_fit(msgs, nctx, npred, margin, max_summary)
+        except ContextLimitReached:
+            pass
+
+        summary = ""
+        try:
+            opts = {"num_ctx": nctx, "num_predict": npred,
+                    "temperature": float(child["temperature"] or 0.2)}
+            if ctx.scheduler is not None:
+                with ctx.scheduler.inference_slot(child["execution_class"], child["id"]):
+                    resp = ctx.client.chat(endpoint=child["ollama_endpoint"],
+                                           model=child["selected_model"], messages=msgs, options=opts)
+            else:
+                resp = ctx.client.chat(endpoint=child["ollama_endpoint"],
+                                       model=child["selected_model"], messages=msgs, options=opts)
+            summary = (resp.content or "").strip()
+            ctx.db.save_model_call(child["id"], resp.telemetry)
+        except Exception:  # noqa: BLE001 - fall back, never break the spawn
+            summary = ""
+        if not summary:
+            summary = _summarize_dropped(to_sum, max_summary)
+
+        result = {"status": "complete", "summary": "summarized earlier context",
+                  "note": summary[:500], "completion_percentage": 100}
+        ctx.db.save_agent_result(child["id"], result)
+        ctx.db.update_agent_completion(child["id"], 100)
+        ctx.db.update_agent_status(child["id"], "complete")
+        ctx.events.agent_finished(child["id"], result)
+        return summary
 
     def _run_children(self, spawned: list[dict], conversation: list[dict]) -> str:
         """Run children concurrently, each inheriting the branch conversation.

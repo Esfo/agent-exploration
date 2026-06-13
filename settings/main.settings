@@ -92,6 +92,19 @@ TOKEN_SAFETY_MARGIN=256
 SUMMARIZE_CONTEXT_WHEN_OVER_BUDGET=true
 MAX_CONTEXT_SUMMARY_TOKENS=2048
 
+# Spawn-inherit overflow: if a branch conversation is too large for a child to
+# inherit, spawn a summarizer agent to compress the first SUMMARIZE_FRACTION of
+# it; the summary is prepended to the rest and handed to the children.
+SUMMARIZE_ON_SPAWN_OVERFLOW=true
+SUMMARIZE_FRACTION=0.6
+# 0 = derive the trigger from the parent's context budget; >0 = explicit token cap.
+SUMMARIZE_SPAWN_MAX_TOKENS=0
+DEFAULT_SUMMARIZER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
+SUMMARIZER_NUM_CTX=auto
+SUMMARIZER_NUM_PREDICT=1024
+SUMMARIZER_TEMPERATURE=0.2
+INSTRUCTION_SUMMARIZING=instructions/summarizing.txt
+
 # Temperatures
 PROGENITOR_TEMPERATURE=0.4
 PLANNER_TEMPERATURE=0.3

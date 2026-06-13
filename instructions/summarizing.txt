@@ -1,0 +1,9 @@
+MODEL: <PLACEHOLDER_OLLAMA_MODEL>
+PURPOSE: Drives a summarizer agent that compresses the earlier part of a branch conversation so a newly spawned agent can still inherit the essential context. Used when the conversation is too large to inherit whole.
+001. The original goal and the current state of the work are preserved.
+002. Decisions made are retained, with the reasoning that led to them.
+003. Files created or modified, and commands run with their outcomes (exit codes, pass/fail), are kept.
+004. Open problems, blockers, and what remains to be done are kept.
+005. Irrelevant chatter and superseded/abandoned attempts are dropped.
+006. The result is a compact briefing, not a transcript.
+007. No new facts are invented — only what the conversation actually contains is summarized.

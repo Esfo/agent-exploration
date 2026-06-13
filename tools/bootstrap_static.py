@@ -347,6 +347,15 @@ INSTRUCTIONS: dict[str, str] = {
         "If a command needs network access, request a web fetch or approved network sandbox.",
         "Include sandbox ID in progress and finish notes.",
     ]),
+    "summarizing.txt": instruction(PH, "Drives a summarizer agent that compresses earlier conversation so a spawn can inherit essential context.", [
+        "The original goal and current state of the work are preserved.",
+        "Decisions made are retained, with the reasoning behind them.",
+        "Files created/modified and commands run (with outcomes) are kept.",
+        "Open problems, blockers, and remaining work are kept.",
+        "Irrelevant chatter and abandoned attempts are dropped.",
+        "The result is a compact briefing, not a transcript.",
+        "No new facts are invented.",
+    ]),
     "safety.txt": instruction(PH, "Loaded by all agents to constrain risky behavior.", [
         "Do not attempt to bypass runtime permissions.",
         "Do not request commands that intentionally leave the assigned directory.",
@@ -526,6 +535,17 @@ MAX_GATE_ATTEMPTS=3
 TOKEN_SAFETY_MARGIN=256
 SUMMARIZE_CONTEXT_WHEN_OVER_BUDGET=true
 MAX_CONTEXT_SUMMARY_TOKENS=2048
+
+# Spawn-inherit overflow: summarize the first SUMMARIZE_FRACTION of an
+# over-large branch conversation via a summarizer agent before children inherit.
+SUMMARIZE_ON_SPAWN_OVERFLOW=true
+SUMMARIZE_FRACTION=0.6
+SUMMARIZE_SPAWN_MAX_TOKENS=0
+DEFAULT_SUMMARIZER_MODEL={PH}
+SUMMARIZER_NUM_CTX=auto
+SUMMARIZER_NUM_PREDICT=1024
+SUMMARIZER_TEMPERATURE=0.2
+INSTRUCTION_SUMMARIZING=instructions/summarizing.txt
 
 # Temperatures
 PROGENITOR_TEMPERATURE=0.4
