@@ -115,16 +115,37 @@ class AgentRunner:
             return []
         return [c["title"] for c in self.ctx.db.list_children(pid) if c["id"] != agent["id"]]
 
-    def run_agent(self, agent_id: str) -> dict:
+    def _purpose_text(self, agent) -> str:
+        """The agent's unique purpose, layered on top of the inherited conversation."""
+        pid = agent["parent_agent_id"]
+        adir = agent.get("assigned_directory", "?")
+        if not pid:
+            return (f"This is your purpose: ROLE: {agent['role']}. You are the root agent. "
+                    "Handle the following request and return a complete result to the user:\n\n"
+                    f"\"{agent['task']}\"\n\n"
+                    "Decide for yourself whether to answer directly or to spawn a swarm. "
+                    f"Work in {adir}. Follow your instruction checks below to drive your steps.")
+        sibs = self.ctx.db.list_children(pid)
+        idx = next((i + 1 for i, c in enumerate(sibs) if c["id"] == agent["id"]), None)
+        num = f"#{idx} " if idx else ""
+        return (f"This is your purpose: ROLE: {agent['role']}. You are an individual agent "
+                f"({agent['id']}) working on {num}within the context of the conversation above. "
+                "Your specific task:\n\n"
+                f"\"{agent['task']}\"\n\n"
+                f"It is your job to complete this and return your result to your parent branch "
+                f"({pid}). Work only in {adir}. Now follow your instruction checks below to "
+                "drive your next steps.")
+
+    def run_agent(self, agent_id: str, inherited_history: list[dict] | None = None) -> dict:
         db, ctx = self.ctx.db, self.ctx
         agent = db.get_agent(agent_id)
         agent_d = dict(agent)
         db.update_agent_status(agent_id, "started")
         ctx.events.agent_started(agent_d)
 
-        parent_task = self._parent_task(agent)
-        siblings = self._sibling_tasks(agent)
-        history: list[dict] = []
+        inherited = list(inherited_history or [])   # full conversation of the branch
+        purpose_text = self._purpose_text(agent_d)  # this agent's unique purpose
+        history: list[dict] = []                    # this agent's own working turns
         parse_retries = 0
         last_response = ""
         attempted: list[str] = []
@@ -151,7 +172,7 @@ class AgentRunner:
                     return result
 
             messages = ctx.builder.build_messages(
-                agent_d, ctx.root_goal, parent_task, siblings, history, memories_text
+                agent_d, purpose_text, inherited, history, memories_text
             )
             num_ctx_i = int(agent["num_ctx"] or 8192)
             num_predict_i = int(agent["num_predict"] or 2048)
@@ -266,7 +287,11 @@ class AgentRunner:
                             "<<tool:finish>> using what you have so far."})
                         continue
                     db.update_agent_status(agent_id, "waiting_for_children")
-                    summaries = self._run_children(result.get("spawned", []))
+                    # Children inherit this branch's FULL conversation so far.
+                    branch_conversation = (inherited
+                                           + [{"role": "user", "content": purpose_text}]
+                                           + history)
+                    summaries = self._run_children(result.get("spawned", []), branch_conversation)
                     history.append({"role": "user", "content":
                         "Your child agents finished. Results:\n" + summaries +
                         "\nIntegrate these results and finish with <<tool:finish>> "
@@ -296,17 +321,17 @@ class AgentRunner:
         ctx.events.agent_finished(agent_id, result)
         return result
 
-    def _run_children(self, spawned: list[dict]) -> str:
-        """Run children concurrently. The scheduler's GPU/CPU semaphores bound
-        actual inference; thread-per-child avoids pool-exhaustion deadlock when a
-        child itself spawns grandchildren."""
+    def _run_children(self, spawned: list[dict], conversation: list[dict]) -> str:
+        """Run children concurrently, each inheriting the branch conversation.
+        The scheduler's GPU/CPU semaphores bound actual inference; thread-per-child
+        avoids pool-exhaustion deadlock when a child itself spawns grandchildren."""
         if not spawned:
             return "(no children completed)"
 
         results: dict[str, dict] = {}
 
         def _run(child):
-            results[child["id"]] = self.run_agent(child["id"])
+            results[child["id"]] = self.run_agent(child["id"], conversation)
 
         if self.ctx.scheduler is None or len(spawned) == 1:
             for child in spawned:

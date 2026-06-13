@@ -166,34 +166,26 @@ class ContextBuilder:
         )
         return "\n\n".join(p for p in parts if p)
 
-    def context_packet(self, agent: dict, root_goal: str,
-                       parent_task: str | None, sibling_tasks: list[str],
-                       resource_state: str = "ok") -> str:
-        lines = [
-            "=== CONTEXT PACKET ===",
-            f"AGENT ID: {agent['id']}",
-            f"ROLE: {agent['role']}",
-            f"SELECTED MODEL: {agent.get('selected_model','?')} ({agent.get('model_source','?')})",
-            f"ROOT TASK: {root_goal}",
-            f"PARENT TASK: {parent_task or '(none - you are root)'}",
-            f"CURRENT TASK: {agent['task']}",
-            f"SIBLING TASKS: {', '.join(sibling_tasks) if sibling_tasks else '(none)'}",
-            f"ASSIGNED DIRECTORY: {agent.get('assigned_directory','?')}",
-            f"DEPTH: {agent.get('depth',0)}",
-            f"RESOURCE STATE: {resource_state}",
-            "COMPLETION RULE: finish only when your done condition is met or you are blocked.",
-            "=== END CONTEXT PACKET ===",
-        ]
-        return "\n".join(lines)
-
-    def build_messages(self, agent: dict, root_goal: str, parent_task: str | None,
-                       sibling_tasks: list[str], history: list[dict] | None = None,
+    def build_messages(self, agent: dict, purpose_text: str,
+                       inherited_history: list[dict] | None = None,
+                       working_history: list[dict] | None = None,
                        memories_text: str = "") -> list[dict]:
+        """Assemble the prompt for an agent.
+
+        Layout: [system (role checks)] + the full INHERITED conversation of the
+        branch this agent was spawned from + this agent's unique PURPOSE + this
+        agent's own working turns. Children inherit the whole conversation; only
+        the purpose is unique. The purpose is placed right before the agent's own
+        work so it reads as 'here is the conversation… now, your job is…'.
+        """
         messages = [{"role": "system", "content": self.system_prompt(agent["role"])}]
-        packet = self.context_packet(agent, root_goal, parent_task, sibling_tasks)
+        if inherited_history:
+            messages.extend(inherited_history)
+        purpose = purpose_text
         if memories_text:
-            packet += "\n\n" + memories_text
-        messages.append({"role": "user", "content": packet + "\n\nBegin working on your CURRENT TASK now."})
-        if history:
-            messages.extend(history)
+            purpose += "\n\n" + memories_text
+        messages.append({"role": "user", "content": purpose})
+        if working_history:
+            messages.extend(working_history)
         return messages
+

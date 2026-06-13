@@ -88,4 +88,8 @@ def summarize_to_fit(messages: list[dict], num_ctx: int, num_predict: int,
     if not dropped:
         return messages  # nothing to drop; shouldn't happen given the over-budget check
     summary = {"role": "user", "content": _summarize_dropped(dropped, max_summary_tokens)}
-    return head + [summary] + kept_tail
+    # An agent must never lose its purpose: retain any purpose message that fell
+    # in the dropped middle, placed just before the recent tail.
+    pinned = [m for m in dropped
+              if str(m.get("content", "")).startswith("This is your purpose")]
+    return head + [summary] + pinned + kept_tail
