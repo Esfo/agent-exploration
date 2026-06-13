@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import threading
+
 from . import ids, tools
 from .context_builder import ContextBuilder
 from .model_selector import ModelSelector
@@ -20,7 +22,7 @@ AGENT_SUBDIRS = ["input", "output", "work", "terminal", "profiling", "optimizati
 
 class RuntimeContext:
     def __init__(self, settings, db, events, selector: ModelSelector, client,
-                 builder: ContextBuilder, executor=None, web_cache=None):
+                 builder: ContextBuilder, executor=None, web_cache=None, scheduler=None):
         self.settings = settings
         self.db = db
         self.events = events
@@ -29,6 +31,7 @@ class RuntimeContext:
         self.builder = builder
         self.executor = executor
         self.web_cache = web_cache
+        self.scheduler = scheduler
         self.swarm_id: str | None = None
         self.root_goal: str = ""
 
@@ -138,16 +141,20 @@ class AgentRunner:
                 ctx.events.agent_finished(agent_id, result)
                 return result
 
-            response = ctx.client.chat(
-                endpoint=agent["ollama_endpoint"],
-                model=agent["selected_model"],
-                messages=messages,
-                options={
-                    "num_ctx": int(agent["num_ctx"] or 8192),
-                    "num_predict": int(agent["num_predict"] or 2048),
-                    "temperature": float(agent["temperature"] or 0.2),
-                },
-            )
+            options = {
+                "num_ctx": int(agent["num_ctx"] or 8192),
+                "num_predict": int(agent["num_predict"] or 2048),
+                "temperature": float(agent["temperature"] or 0.2),
+            }
+            if ctx.scheduler is not None:
+                with ctx.scheduler.inference_slot(agent["execution_class"], agent_id):
+                    response = ctx.client.chat(
+                        endpoint=agent["ollama_endpoint"], model=agent["selected_model"],
+                        messages=messages, options=options)
+            else:
+                response = ctx.client.chat(
+                    endpoint=agent["ollama_endpoint"], model=agent["selected_model"],
+                    messages=messages, options=options)
             db.save_model_call(agent_id, response.telemetry)
             db.save_message(agent_id, "assistant", response.content)
             history.append({"role": "assistant", "content": response.content})
@@ -216,11 +223,32 @@ class AgentRunner:
         return result
 
     def _run_children(self, spawned: list[dict]) -> str:
+        """Run children concurrently. The scheduler's GPU/CPU semaphores bound
+        actual inference; thread-per-child avoids pool-exhaustion deadlock when a
+        child itself spawns grandchildren."""
+        if not spawned:
+            return "(no children completed)"
+
+        results: dict[str, dict] = {}
+
+        def _run(child):
+            results[child["id"]] = self.run_agent(child["id"])
+
+        if self.ctx.scheduler is None or len(spawned) == 1:
+            for child in spawned:
+                _run(child)
+        else:
+            threads = [threading.Thread(target=_run, args=(c,), daemon=True) for c in spawned]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+
         lines = []
         for child in spawned:
-            res = self.run_agent(child["id"])
+            res = results.get(child["id"], {"status": "unknown"})
             lines.append(
                 f"- {child['id']} ({child.get('role','?')}) [{res.get('status')}]: "
                 f"{res.get('return_note') or res.get('note') or res.get('summary','')}"
             )
-        return "\n".join(lines) if lines else "(no children completed)"
+        return "\n".join(lines)

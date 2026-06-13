@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -15,14 +16,45 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+class _LockedConn:
+    """Serializes all access to a shared sqlite connection across agent threads.
+
+    Parallel agents share one connection; every execute/commit/script acquires a
+    single reentrant lock so concurrent writes can't corrupt or 'database is
+    locked' each other. WAL mode keeps readers from blocking the writer.
+    """
+
+    def __init__(self, conn: sqlite3.Connection, lock: threading.RLock):
+        self._conn = conn
+        self._lock = lock
+
+    def execute(self, sql, params=()):
+        with self._lock:
+            return self._conn.execute(sql, params)
+
+    def executescript(self, script):
+        with self._lock:
+            return self._conn.executescript(script)
+
+    def commit(self):
+        with self._lock:
+            return self._conn.commit()
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
 class DB:
     def __init__(self, path: str | Path, schema_path: str | Path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.conn = sqlite3.connect(str(self.path))
-        self.conn.row_factory = sqlite3.Row
-        self.conn.execute("PRAGMA journal_mode=WAL;")
-        self.conn.execute("PRAGMA foreign_keys=ON;")
+        raw = sqlite3.connect(str(self.path), check_same_thread=False)
+        raw.row_factory = sqlite3.Row
+        raw.execute("PRAGMA journal_mode=WAL;")
+        raw.execute("PRAGMA foreign_keys=ON;")
+        raw.execute("PRAGMA busy_timeout=5000;")
+        self.lock = threading.RLock()
+        self.conn = _LockedConn(raw, self.lock)
         self._init_schema(schema_path)
 
     def _init_schema(self, schema_path: str | Path) -> None:

@@ -18,7 +18,9 @@ from .model_probe import ProbeCache
 from .model_selector import ModelSelector
 from .ollama_client import OllamaClient
 from .progress import EventBus
+from .resources import ResourceMonitor
 from .sandbox import select_executor
+from .scheduler import Scheduler
 from .settings import Settings
 from .web_cache import WebCache
 
@@ -52,8 +54,11 @@ def build_runtime(settings_path: str = DEFAULT_SETTINGS, client=None):
     builder = ContextBuilder(settings)
     executor = select_executor(settings)
     web_cache = WebCache(settings, db)
+    monitor = ResourceMonitor(str(settings.root))
+    scheduler = Scheduler(settings, monitor, events)
 
     ctx = RuntimeContext(settings, db, events, selector, client, builder, executor, web_cache)
+    ctx.scheduler = scheduler
     runner = AgentRunner(ctx)
     return ctx, runner
 
