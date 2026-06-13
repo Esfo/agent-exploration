@@ -14,6 +14,7 @@ from . import python_exec as _python
 from . import reconcile as _reconcile
 from . import shell_exec as _shell
 from . import spawn_agents as _spawn
+from . import web as _web
 
 # name -> (handler, terminal?) where terminal means "stop the agent loop after".
 REGISTRY = {
@@ -31,6 +32,9 @@ REGISTRY = {
     "request_integration": (_reconcile.request_integration, True),
     "request_testing": (_reconcile.request_testing, True),
     "request_fix": (_reconcile.request_fix, True),
+    "curl": (_web.curl, False),
+    "search_web_cache": (_web.search_web_cache, False),
+    "read_cached_page": (_web.read_cached_page, False),
 }
 
 

@@ -20,7 +20,7 @@ AGENT_SUBDIRS = ["input", "output", "work", "terminal", "profiling", "optimizati
 
 class RuntimeContext:
     def __init__(self, settings, db, events, selector: ModelSelector, client,
-                 builder: ContextBuilder, executor=None):
+                 builder: ContextBuilder, executor=None, web_cache=None):
         self.settings = settings
         self.db = db
         self.events = events
@@ -28,6 +28,7 @@ class RuntimeContext:
         self.client = client
         self.builder = builder
         self.executor = executor
+        self.web_cache = web_cache
         self.swarm_id: str | None = None
         self.root_goal: str = ""
 

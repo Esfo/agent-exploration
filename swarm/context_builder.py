@@ -35,19 +35,21 @@ SPAWN_TOOLS = ["spawn_agents"]
 WORKER_TOOLS = ["list_files", "read_file", "write_file", "append_file",
                 "delete_file", "python", "shell"]
 RECONCILE_TOOLS = ["request_review", "request_integration", "request_testing", "request_fix"]
+WEB_TOOLS = ["curl", "search_web_cache", "read_cached_page"]
 
 # Which tool sets each role gets, beyond COMMON_TOOLS.
 ROLE_TOOLSETS = {
     "progenitor": SPAWN_TOOLS + WORKER_TOOLS + RECONCILE_TOOLS,
     "planner": SPAWN_TOOLS,
     "spawner": SPAWN_TOOLS,
-    "code": WORKER_TOOLS + ["request_review", "request_testing", "request_integration"],
+    "code": WORKER_TOOLS + ["request_review", "request_testing", "request_integration"] + WEB_TOOLS,
     "fixer": WORKER_TOOLS + ["request_testing"],
     "tester": WORKER_TOOLS + ["request_fix"],
     "reviewer": WORKER_TOOLS,
     "integrator": SPAWN_TOOLS + WORKER_TOOLS + ["request_testing", "request_review"],
     "optimizer": WORKER_TOOLS,
     "profiler": WORKER_TOOLS,
+    "researcher": WEB_TOOLS,
 }
 
 # Concise argument hints so small models emit the right JSON keys.
@@ -66,6 +68,9 @@ TOOL_HELP = {
     "request_integration": '{"target":"outputs to integrate","context":".."}',
     "request_testing": '{"target":"what to test","context":".."}',
     "request_fix": '{"target":"the specific failure","context":".."}',
+    "curl": '{"url":"https://..","purpose":"..","cache_policy":"reuse_if_fresh","max_age_hours":168}',
+    "search_web_cache": '{"query":".."}',
+    "read_cached_page": '{"cache_id":"..","max_chars":20000}',
 }
 
 

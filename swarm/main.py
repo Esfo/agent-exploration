@@ -20,6 +20,7 @@ from .ollama_client import OllamaClient
 from .progress import EventBus
 from .sandbox import select_executor
 from .settings import Settings
+from .web_cache import WebCache
 
 DEFAULT_SETTINGS = "settings/main.settings"
 
@@ -50,8 +51,9 @@ def build_runtime(settings_path: str = DEFAULT_SETTINGS, client=None):
     client = client or OllamaClient()
     builder = ContextBuilder(settings)
     executor = select_executor(settings)
+    web_cache = WebCache(settings, db)
 
-    ctx = RuntimeContext(settings, db, events, selector, client, builder, executor)
+    ctx = RuntimeContext(settings, db, events, selector, client, builder, executor, web_cache)
     runner = AgentRunner(ctx)
     return ctx, runner
 
