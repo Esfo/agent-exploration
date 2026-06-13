@@ -16,10 +16,17 @@ class ChatInterface:
         self.runner = runner
         self.db = ctx.db
         self.last_swarm: str | None = None
+        self.talk_history: list[dict] = []
 
     # ----- public entry -----
     def handle(self, text: str) -> bool:
-        """Returns False if the session should end."""
+        """Returns False if the session should end.
+
+        Bare text goes to the progenitor agent, which decides for itself —
+        following its instruction files — whether to just answer or to spawn a
+        swarm. The runtime never force-spawns. /ask gives a raw, tool-less line
+        to the model for testing.
+        """
         text = text.strip()
         if not text:
             return True
@@ -27,6 +34,33 @@ class ChatInterface:
             return self._slash(text)
         self._start_swarm(text)
         return True
+
+    # ----- raw direct line to the model (testing; no tools, no agent loop) -----
+    def _talk(self, text: str) -> None:
+        from .ollama_client import OllamaError
+        from .settings import SettingsError
+        try:
+            cfg = self.ctx.selector.resolve("progenitor")
+        except SettingsError as e:
+            self.ctx.events.chat(f"Cannot reach a model: {e}")
+            return
+        system = ("You are a local model answering the user directly in a test "
+                  "console. Reply conversationally and concisely. Do not emit tool blocks.")
+        messages = [{"role": "system", "content": system}, *self.talk_history,
+                    {"role": "user", "content": text}]
+        try:
+            resp = self.ctx.client.chat(
+                endpoint=cfg.endpoint, model=cfg.selected_model, messages=messages,
+                options={"num_ctx": cfg.num_ctx, "num_predict": cfg.num_predict,
+                         "temperature": cfg.temperature})
+        except OllamaError as e:
+            self.ctx.events.chat(f"Ollama error: {e}\nIs `ollama serve` running with "
+                                 f"{cfg.selected_model} pulled?")
+            return
+        self.talk_history.append({"role": "user", "content": text})
+        self.talk_history.append({"role": "assistant", "content": resp.content})
+        self.talk_history = self.talk_history[-12:]  # keep recent turns
+        self.ctx.events.chat(resp.content)
 
     # ----- swarm start -----
     def _start_swarm(self, goal: str) -> None:
@@ -107,6 +141,8 @@ class ChatInterface:
             "/agents": self._agents,
             "/tree": self._tree,
             "/models": self._models,
+            "/ask": self._ask,
+            "/set": self._set,
             "/show": self._show,
             "/show-log": self._show_log,
             "/show-settings": self._show_settings,
@@ -131,11 +167,12 @@ class ChatInterface:
 
     def _help(self, _a) -> None:
         self.ctx.events.chat(
-            "Commands: /status /progress /agents /tree /active /failed /models "
-            "/terminals /sandboxes /profile /optimization /show-cache "
-            "/memories /remember <text> /forget <id> /branch <swarm_id> /branches "
-            "/show <agent_id> /show-settings /help /quit\n"
-            "(Any other text starts a new swarm.)"
+            "Type to send to the progenitor (it decides whether to answer or spawn). "
+            "/ask <msg> = raw model line for testing.\n"
+            "Commands: /ask /set KEY VALUE /status /progress /agents /tree /active "
+            "/failed /models /terminals /sandboxes /profile /optimization /show-cache "
+            "/memories /remember /forget /branch /branches /show <id> /show-log <id> "
+            "/show-settings /help /quit"
         )
 
     def _by_status(self, statuses) -> None:
@@ -324,6 +361,21 @@ class ChatInterface:
             f"  Dir: {a['assigned_directory']}\n"
             f"  Result: {res['summary'] if res else '(unfinished)'}"
         )
+
+    def _ask(self, args) -> None:
+        """One-off raw question to the model — no tools, no agent loop."""
+        if not args:
+            self.ctx.events.chat("Usage: /ask <message>")
+            return
+        self._talk(" ".join(args))
+
+    def _set(self, args) -> None:
+        if len(args) < 2:
+            self.ctx.events.chat("Usage: /set KEY VALUE")
+            return
+        key, value = args[0], " ".join(args[1:])
+        self.ctx.settings._v[key] = value  # live, in-memory override
+        self.ctx.events.chat(f"set {key}={value} (in-memory; edit settings/main.settings to persist)")
 
     def _show_log(self, args) -> None:
         """Dump an agent's raw model output + tool calls — for debugging what

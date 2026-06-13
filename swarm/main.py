@@ -73,8 +73,9 @@ def main(argv: list[str] | None = None) -> int:
     chat = ChatInterface(ctx, runner)
 
     ctx.events.chat(
-        f"recursive_local_swarm {ctx.settings.get('RUNTIME_VERSION')} ready. "
-        "Type a goal, or /help. Ctrl-D to exit."
+        f"recursive_local_swarm {ctx.settings.get('RUNTIME_VERSION')} ready.\n"
+        "Type to talk to the progenitor — it decides (per its instructions) whether "
+        "to just answer or spawn a swarm. /ask <msg> for a raw model line. /help for more."
     )
 
     if argv:
