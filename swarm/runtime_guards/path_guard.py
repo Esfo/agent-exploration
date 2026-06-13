@@ -26,6 +26,33 @@ def is_within(target: Path, root: Path) -> bool:
     return target == root or root in target.parents
 
 
+def confine(name: str | Path, jail_root: str | Path) -> Path:
+    """Force a caller-supplied name INTO the jail directory (spec section 18).
+
+    The agent never decides where a file lands — Python does. Any leading
+    slashes, drive letters, and '..' segments are stripped, the remainder is
+    joined under jail_root, and the result is hard-asserted to be inside the
+    jail. This cannot escape; it can only clamp. Used for all writes/deletes.
+    """
+    jail = Path(jail_root).resolve()
+    parts: list[str] = []
+    for part in Path(str(name)).parts:
+        if part in ("/", "\\", "..", "."):
+            continue
+        if len(part) > 1 and part.endswith(":"):  # drive letter like C:
+            continue
+        parts.append(part)
+    if not parts:
+        raise PathDenied(f"empty/invalid filename after sanitization: {name!r}")
+    target = jail.joinpath(*parts).resolve()
+    if not is_within(target, jail):
+        # Last-ditch: collapse to a basename inside the jail.
+        target = (jail / Path(str(name)).name).resolve()
+    if not is_within(target, jail):  # must never happen; hard guarantee
+        raise PathDenied(f"could not confine {name!r} within {jail}")
+    return target
+
+
 def check(candidate: str | Path, *, base: Path, allowed_roots: list[Path],
           op: str = "access") -> Path:
     """Return the resolved path if it is inside an allowed root, else raise."""

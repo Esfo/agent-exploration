@@ -196,7 +196,7 @@ class AgentRunner:
                     resumed = True
                     break  # rebuild messages with the new history
 
-                # non-terminal tool (report_progress): keep going
+                # Feed the tool result back as a user-list entry; the agent iterates.
                 history.append({"role": "user", "content":
                     f"Tool {call.name} result: {result}. Continue, or finish."})
 

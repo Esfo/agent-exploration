@@ -81,12 +81,18 @@ def test_write_and_read_file(project):
     assert r["status"] == "ok" and "print('hi')" in r["content"]
 
 
-def test_write_outside_dir_denied(project):
+def test_write_escape_is_jailed_not_denied(project):
+    """Python owns placement: an attempted escape is clamped INTO the work dir,
+    never written outside it (spec section 18)."""
     ctx, _ = make_runtime(project, MockClient(lambda *_: ""))
     from swarm.tools import files
     agent = _root_agent(ctx)
+    work = Path(agent["assigned_directory"]).resolve()
     w = files.write_file(ctx, agent["id"], {"path": "../../escape.py", "content": "x"})
-    assert w["status"] == "error" and w["failure"] == "path_denied"
+    assert w["status"] == "ok"
+    written = Path(w["path"]).resolve()
+    assert str(written).startswith(str(work))      # jailed inside work dir
+    assert not (work.parent.parent / "escape.py").exists()  # did NOT escape
 
 
 def test_soft_delete(project):

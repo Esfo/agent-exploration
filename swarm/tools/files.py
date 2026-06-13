@@ -70,16 +70,16 @@ def read_file(ctx, agent_id: str, args: dict) -> dict:
 def write_file(ctx, agent_id: str, args: dict) -> dict:
     agent = _agent(ctx, agent_id)
     base = _base(agent)
-    rel = args.get("path", "")
+    rel = args.get("path", "") or args.get("filename", "")
     content = args.get("content", "")
     if not rel:
         return {"status": "error", "failure": "invalid_tool_args", "detail": "missing 'path'"}
+    # Python owns placement: the name is force-jailed into the agent dir. It can
+    # only be clamped, never escape — so writes "never go wrong" (spec section 18).
     try:
-        target = path_guard.check(rel, base=base,
-                                  allowed_roots=path_guard.writable_roots(ctx.settings, agent),
-                                  op="write")
+        target = path_guard.confine(rel, base)
     except path_guard.PathDenied as e:
-        return {"status": "error", "failure": "path_denied", "detail": str(e)}
+        return {"status": "error", "failure": "invalid_tool_args", "detail": str(e)}
 
     max_mb = ctx.settings.get_int("MAX_FILE_WRITE_MB", 5) or 5
     if len(content.encode("utf-8")) > max_mb * 1024 * 1024:
@@ -105,14 +105,14 @@ def write_file(ctx, agent_id: str, args: dict) -> dict:
 def append_file(ctx, agent_id: str, args: dict) -> dict:
     agent = _agent(ctx, agent_id)
     base = _base(agent)
-    rel = args.get("path", "")
+    rel = args.get("path", "") or args.get("filename", "")
     content = args.get("content", "")
+    if not rel:
+        return {"status": "error", "failure": "invalid_tool_args", "detail": "missing 'path'"}
     try:
-        target = path_guard.check(rel, base=base,
-                                  allowed_roots=path_guard.writable_roots(ctx.settings, agent),
-                                  op="append")
+        target = path_guard.confine(rel, base)
     except path_guard.PathDenied as e:
-        return {"status": "error", "failure": "path_denied", "detail": str(e)}
+        return {"status": "error", "failure": "invalid_tool_args", "detail": str(e)}
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("a", encoding="utf-8") as f:
@@ -130,13 +130,13 @@ def append_file(ctx, agent_id: str, args: dict) -> dict:
 def delete_file(ctx, agent_id: str, args: dict) -> dict:
     agent = _agent(ctx, agent_id)
     base = _base(agent)
-    rel = args.get("path", "")
+    rel = args.get("path", "") or args.get("filename", "")
+    if not rel:
+        return {"status": "error", "failure": "invalid_tool_args", "detail": "missing 'path'"}
     try:
-        target = path_guard.check(rel, base=base,
-                                  allowed_roots=path_guard.writable_roots(ctx.settings, agent),
-                                  op="delete")
+        target = path_guard.confine(rel, base)
     except path_guard.PathDenied as e:
-        return {"status": "error", "failure": "path_denied", "detail": str(e)}
+        return {"status": "error", "failure": "invalid_tool_args", "detail": str(e)}
     if not target.exists():
         return {"status": "error", "failure": "not_found", "detail": str(target)}
     if target.is_dir():
