@@ -25,16 +25,21 @@ Implemented and tested offline (mock model, no Ollama required):
   (`swarm/agent_loop.py`)
 - Chat REPL with slash commands (`swarm/chat_interface.py`, `swarm/main.py`)
 
-**Prototype 2 (execution, option A) added:** path + command guards, file tools
-(list/read/write/append/delete with soft-delete), and sandboxed `python`/`shell`
-via a subprocess backend (rlimits + timeouts + output caps) behind a swappable
-`Executor` interface. Worker agents now write real files and verify them. The
-subprocess backend is isolation-by-convention, not a container — the Docker
-backend (real isolation, same interface) is next.
+**Prototypes 2–4 added** (see [`docs/PLAN.md`](docs/PLAN.md)):
+- **Execution:** path/command/cwd guards; file tools (Python force-jails every
+  write into the agent dir — the agent never picks the location); sandboxed
+  `python`/`shell`; **subprocess and Docker** backends behind one `Executor`
+  interface (Docker auto-selected when the daemon is up); persistent
+  `open_terminal`/`terminal_command` sessions with enforced cwd.
+- **Web:** `curl`/`search_web_cache`/`read_cached_page` with an SSRF guard
+  (blocks localhost/private/metadata) and on-disk freshness-based cache.
+- **Reconciliation:** `request_review`/`request_integration`/`request_testing`/
+  `request_fix` spawn the matching agent role.
+- **Profiling/optimization:** `profile` (cProfile + baseline) and `optimize`
+  (sandboxed before/after validation).
 
-Not yet built (later prototypes): Docker sandbox backend, persistent terminals,
-web cache, profiling/optimization, review/integration agents, resource scheduler,
-branching/memory. See [`docs/PLAN.md`](docs/PLAN.md).
+Not yet built: resource scheduler/backpressure, parallel execution, and
+conversation branching + memory toggles (Prototypes 5–6).
 
 ## Configure your models
 

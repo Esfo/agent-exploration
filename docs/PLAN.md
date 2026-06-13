@@ -21,23 +21,35 @@ that deviate from or sharpen the spec.
 - [x] Progress/event bus + weighted completion
 - [x] Chat REPL + slash commands
 
-### Prototype 2 — execution (option A: subprocess) 🟦 (in progress)
-- [x] `runtime_guards`: path_guard, command_guard
+### Prototype 2 — execution ✅
+- [x] `runtime_guards`: path_guard (force-jail placement), command_guard, cwd_guard
 - [x] Command questioning enforcement (hard Python checks, not model self-report)
 - [x] Executor interface + subprocess backend (rlimits, timeout, output caps)
-- [x] File tools: list/read/write/append/delete (path-guarded, soft delete)
+- [x] Docker backend behind the same Executor interface (real isolation)
+- [x] File tools: list/read/write/append/delete (jailed by Python, soft delete)
 - [x] Sandboxed `python` + `shell` tools
-- [x] Worker roles get file/exec tools; prompt steers model to write+verify
-- [ ] Docker backend behind the same Executor interface (option B, real isolation)
-- [ ] Persistent `open_terminal` / `terminal_command` sessions + cwd_guard
+- [x] Persistent `open_terminal` / `terminal_command` / `close_terminal` + cwd_guard
 
-### Prototype 3 — web + reconciliation ⬜
-- [ ] Web fetch/cache tool + guards
-- [ ] Review / integration / tester / fixer agents
+### Prototype 3 — web + reconciliation ✅
+- [x] Web fetch/cache tool + web_guard (SSRF/private-IP/metadata blocking)
+- [x] curl / search_web_cache / read_cached_page
+- [x] review / integration / tester / fixer roles via request_* tools
 
-### Prototype 4 — profiling + optimization ⬜
-### Prototype 5 — scheduler + CPU/GPU routing + richer /progress + /tree ⬜
-### Prototype 6 — branching + memory toggles + context summarization ⬜
+### Prototype 4 — profiling + optimization ✅
+- [x] profile tool (cProfile wrap, baseline runtime, top bottlenecks)
+- [x] optimize tool (before/after, sandboxed validation, requires profiling first)
+
+### Prototype 5 — scheduler + routing + richer chat 🟦 (partial)
+- [x] CPU/GPU routing per role (model_selector + endpoints)
+- [x] Richer slash commands (/active /failed /terminals /sandboxes /profile
+      /optimization /show-cache) + spec-33 final summary
+- [ ] Resource scheduler: RAM/CPU/VRAM sampling, queueing, backpressure
+- [ ] Async/parallel agent execution (currently in-process, depth-first)
+
+### Prototype 6 — branching + memory + summarization ⬜
+- [ ] Conversation/swarm branching
+- [ ] Memory store + per-call enable/relevance toggles
+- [ ] Context summarization when over token budget
 
 ## Design decisions / deviations from spec
 

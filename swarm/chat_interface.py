@@ -59,9 +59,39 @@ class ChatInterface:
         pct = subtree_completion(self.db, root["id"])
         self.db.update_swarm(swarm_id, status="complete" if result.get("status") == "complete" else "blocked",
                              completion=pct)
+        self._final_summary(swarm_id, root["id"], result, pct)
+
+    def _final_summary(self, swarm_id, root_id, result, pct) -> None:
+        """Spec section 33: roll up files, commands, models, profiling, etc."""
+        db = self.db
+        agents = db.list_swarm_agents(swarm_id)
+        files = db.conn.execute(
+            "SELECT action, COUNT(*) c FROM file_events WHERE agent_id IN "
+            "(SELECT id FROM agents WHERE swarm_id=?) GROUP BY action", (swarm_id,)).fetchall()
+        file_summary = ", ".join(f"{r['action']}={r['c']}" for r in files) or "none"
+        cmds = db.conn.execute(
+            "SELECT COUNT(*) c FROM terminal_commands WHERE agent_id IN "
+            "(SELECT id FROM agents WHERE swarm_id=?)", (swarm_id,)).fetchone()["c"]
+        models = sorted({a["selected_model"] for a in agents})
+        sandboxes = db.conn.execute(
+            "SELECT COUNT(*) c FROM sandboxes WHERE agent_id IN "
+            "(SELECT id FROM agents WHERE swarm_id=?)", (swarm_id,)).fetchone()["c"]
+        webpages = db.conn.execute("SELECT COUNT(*) c FROM web_cache").fetchone()["c"]
+        profs = db.conn.execute(
+            "SELECT COUNT(*) c FROM profiling_reports WHERE agent_id IN "
+            "(SELECT id FROM agents WHERE swarm_id=?)", (swarm_id,)).fetchone()["c"]
         self.ctx.events.chat(
-            f"\nSwarm {swarm_id} finished: {result.get('status')}  ({pct:.0f}%)\n"
-            f"Result: {result.get('summary') or result.get('note','')}"
+            f"\nSwarm complete: {swarm_id}\nCompletion: {pct:.0f}%  (root status: {result.get('status')})\n"
+            f"\nResult:\n    {result.get('summary') or result.get('note','')}\n"
+            f"\nAgents: {len(agents)}\n"
+            f"Models used: {', '.join(models)}\n"
+            f"Files: {file_summary}\n"
+            f"Terminal commands: {cmds}\n"
+            f"Sandboxes used: {sandboxes}\n"
+            f"Cached web pages: {webpages}\n"
+            f"Profiling reports: {profs}\n"
+            f"Remaining issues: {', '.join(result.get('remaining_issues', [])) or 'none reported'}\n"
+            f"Output location: workspace/agents/<id>/work  (integrated: workspace/project)"
         )
 
     # ----- slash commands -----
@@ -79,6 +109,13 @@ class ChatInterface:
             "/models": self._models,
             "/show": self._show,
             "/show-settings": self._show_settings,
+            "/terminals": self._terminals,
+            "/sandboxes": self._sandboxes,
+            "/failed": lambda a: self._by_status(("failed", "blocked")),
+            "/active": lambda a: self._by_status(("running", "started", "waiting_for_children")),
+            "/profile": self._profile,
+            "/optimization": self._optimization,
+            "/show-cache": self._show_cache,
         }.get(cmd)
         if handler is None:
             self.ctx.events.chat(f"Unknown command: {cmd}. Try /help.")
@@ -88,9 +125,75 @@ class ChatInterface:
 
     def _help(self, _a) -> None:
         self.ctx.events.chat(
-            "Commands: /status /progress /agents /tree /models /show <agent_id> "
-            "/show-settings /help /quit\n(Any other text starts a new swarm.)"
+            "Commands: /status /progress /agents /tree /active /failed /models "
+            "/terminals /sandboxes /profile /optimization /show-cache "
+            "/show <agent_id> /show-settings /help /quit\n"
+            "(Any other text starts a new swarm.)"
         )
+
+    def _by_status(self, statuses) -> None:
+        if not self.last_swarm:
+            self.ctx.events.chat("No swarm yet.")
+            return
+        rows = [a for a in self.db.list_swarm_agents(self.last_swarm) if a["status"] in statuses]
+        if not rows:
+            self.ctx.events.chat("(none)")
+            return
+        for a in rows:
+            self.ctx.events.chat(f"  {a['id']} [{a['role']}] {a['status']} - {a['title']}")
+
+    def _terminals(self, _a) -> None:
+        rows = self.db.conn.execute(
+            "SELECT id, agent_id, status, current_cwd FROM terminals ORDER BY created_at DESC LIMIT 30"
+        ).fetchall()
+        if not rows:
+            self.ctx.events.chat("No terminals.")
+            return
+        for r in rows:
+            self.ctx.events.chat(f"  {r['id']} ({r['agent_id']}) {r['status']} cwd={r['current_cwd']}")
+
+    def _sandboxes(self, _a) -> None:
+        rows = self.db.conn.execute(
+            "SELECT id, agent_id, backend, status FROM sandboxes ORDER BY created_at DESC LIMIT 30"
+        ).fetchall()
+        if not rows:
+            self.ctx.events.chat("No sandboxes.")
+            return
+        for r in rows:
+            self.ctx.events.chat(f"  {r['id']} ({r['agent_id']}) {r['backend']} {r['status']}")
+
+    def _profile(self, _a) -> None:
+        rows = self.db.conn.execute(
+            "SELECT id, target, baseline_runtime_ms FROM profiling_reports ORDER BY created_at DESC LIMIT 20"
+        ).fetchall()
+        if not rows:
+            self.ctx.events.chat("No profiling reports.")
+            return
+        for r in rows:
+            self.ctx.events.chat(f"  {r['id']} {r['target']} baseline={r['baseline_runtime_ms']}ms")
+
+    def _optimization(self, _a) -> None:
+        rows = self.db.conn.execute(
+            "SELECT id, target, improvement, before_runtime_ms, after_runtime_ms"
+            " FROM optimization_reports ORDER BY created_at DESC LIMIT 20"
+        ).fetchall()
+        if not rows:
+            self.ctx.events.chat("No optimization reports.")
+            return
+        for r in rows:
+            self.ctx.events.chat(
+                f"  {r['id']} {r['target']} {r['before_runtime_ms']}→{r['after_runtime_ms']}ms "
+                f"({r['improvement']})")
+
+    def _show_cache(self, _a) -> None:
+        rows = self.db.conn.execute(
+            "SELECT id, url, fetched_at FROM web_cache ORDER BY fetched_at DESC LIMIT 30"
+        ).fetchall()
+        if not rows:
+            self.ctx.events.chat("Web cache empty.")
+            return
+        for r in rows:
+            self.ctx.events.chat(f"  {r['id'][:12]} {r['url']} ({r['fetched_at']})")
 
     def _status(self, _a) -> None:
         if not self.last_swarm:
