@@ -108,6 +108,7 @@ class ChatInterface:
             "/tree": self._tree,
             "/models": self._models,
             "/show": self._show,
+            "/show-log": self._show_log,
             "/show-settings": self._show_settings,
             "/terminals": self._terminals,
             "/sandboxes": self._sandboxes,
@@ -323,6 +324,31 @@ class ChatInterface:
             f"  Dir: {a['assigned_directory']}\n"
             f"  Result: {res['summary'] if res else '(unfinished)'}"
         )
+
+    def _show_log(self, args) -> None:
+        """Dump an agent's raw model output + tool calls — for debugging what
+        the model actually emitted."""
+        if not args:
+            self.ctx.events.chat("Usage: /show-log <agent_id>")
+            return
+        aid = args[0]
+        msgs = self.db.get_messages(aid)
+        if not msgs:
+            self.ctx.events.chat(f"No messages for {aid}.")
+            return
+        for m in msgs:
+            if m["role"] == "assistant":
+                self.ctx.events.chat(f"\n--- model output ---\n{m['content']}")
+            else:
+                self.ctx.events.chat(f"\n--- fed back to model ---\n{m['content'][:600]}")
+        calls = self.db.conn.execute(
+            "SELECT tool_name, status, result_json FROM tool_calls WHERE agent_id=? ORDER BY id", (aid,)
+        ).fetchall()
+        self.ctx.events.chat("\n--- tool calls ---")
+        for c in calls:
+            self.ctx.events.chat(f"  {c['tool_name']} -> {c['status']}: {(c['result_json'] or '')[:200]}")
+        if not calls:
+            self.ctx.events.chat("  (no tool calls executed)")
 
     def _show_settings(self, _a) -> None:
         s = self.ctx.settings

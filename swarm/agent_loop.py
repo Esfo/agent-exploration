@@ -124,6 +124,8 @@ class AgentRunner:
         siblings = self._sibling_tasks(agent)
         history: list[dict] = []
         parse_retries = 0
+        last_response = ""
+        attempted: list[str] = []
 
         memories_text = ""
         if ctx.memory is not None:
@@ -169,6 +171,7 @@ class AgentRunner:
             db.save_model_call(agent_id, response.telemetry)
             db.save_message(agent_id, "assistant", response.content)
             history.append({"role": "assistant", "content": response.content})
+            last_response = response.content
 
             calls = tools  # alias
             from .tool_parser import parse
@@ -196,8 +199,18 @@ class AgentRunner:
                         f"Your <<tool:{call.name}>> block had invalid JSON ({call.error}). "
                         "Re-emit it as valid JSON."})
                     continue
+                attempted.append(call.name)
                 result, terminal = calls.execute(ctx, agent_id, call.name, call.args)
                 db.save_tool_call(agent_id, call.name, call.args, result.get("status", "ok"), result)
+
+                if result.get("failure") == "unknown_tool":
+                    avail = ", ".join(ctx.builder.available_tools or
+                                      __import__("swarm.context_builder", fromlist=["tools_for_role"])
+                                      .tools_for_role(agent["role"]))
+                    history.append({"role": "user", "content":
+                        f"There is no tool named '{call.name}'. Use one of these EXACT names: "
+                        f"{avail}. Re-emit a correct <<tool:NAME>> block."})
+                    continue
 
                 if call.name == "finish":
                     db.update_agent_status(agent_id, result["status"])
@@ -224,9 +237,14 @@ class AgentRunner:
             if resumed:
                 continue
 
-        # Ran out of iterations without finishing.
+        # Ran out of iterations without finishing. Surface what the model did so
+        # the failure is diagnosable instead of opaque.
+        tools_seen = ", ".join(attempted) or "(none parsed)"
+        snippet = " ".join(last_response.split())[:400] or "(empty response)"
         result = {"status": "blocked", "failure": "max_iterations",
-                  "note": "agent did not finish within iteration budget",
+                  "note": (f"Did not finish within {self.max_iterations} steps. "
+                           f"Tools it tried: {tools_seen}. "
+                           f"Last model output: {snippet}"),
                   "completion_percentage": float(agent["completion_percentage"] or 0)}
         db.save_agent_result(agent_id, result)
         db.update_agent_status(agent_id, "blocked")
