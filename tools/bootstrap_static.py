@@ -17,6 +17,9 @@ ROOT = Path(__file__).resolve().parent.parent
 # Placeholder token: a MODEL line set to this means "fall back to settings".
 PH = "<PLACEHOLDER_OLLAMA_MODEL>"
 
+# Concrete default model baked into settings so the system runs with one pull.
+DEFAULT_MODEL_TAG = "qwen2.5-coder:7b"
+
 DIRS = [
     "settings",
     "instructions",
@@ -440,10 +443,11 @@ RUNTIME_VERSION=0.1
 
 # Ollama endpoints
 OLLAMA_GPU_ENDPOINT=http://localhost:11434
-OLLAMA_CPU_ENDPOINT=http://localhost:11435
+OLLAMA_CPU_ENDPOINT=http://localhost:11434
 
-# Default fallback models. Replace {PH} with a concrete tag, e.g. qwen2.5-coder:7b
-DEFAULT_MODEL={PH}
+# Default model. Every role falls back to this unless overridden below or in an
+# instruction file's MODEL: line, so you only need one model pulled to start.
+DEFAULT_MODEL={DEFAULT_MODEL_TAG}
 DEFAULT_PROGENITOR_MODEL={PH}
 DEFAULT_PLANNER_MODEL={PH}
 DEFAULT_SPAWNER_MODEL={PH}

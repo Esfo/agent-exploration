@@ -45,7 +45,7 @@ def project(tmp_path):
 
     sp = tmp_path / "settings" / "main.settings"
     text = sp.read_text(encoding="utf-8").replace(
-        "DEFAULT_MODEL=<PLACEHOLDER_OLLAMA_MODEL>", "DEFAULT_MODEL=mock-model:latest"
+        "DEFAULT_MODEL=qwen2.5-coder:7b", "DEFAULT_MODEL=mock-model:latest"
     )
     sp.write_text(text, encoding="utf-8")
     return tmp_path

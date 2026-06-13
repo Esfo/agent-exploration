@@ -7,10 +7,11 @@ RUNTIME_VERSION=0.1
 
 # Ollama endpoints
 OLLAMA_GPU_ENDPOINT=http://localhost:11434
-OLLAMA_CPU_ENDPOINT=http://localhost:11435
+OLLAMA_CPU_ENDPOINT=http://localhost:11434
 
-# Default fallback models. Replace <PLACEHOLDER_OLLAMA_MODEL> with a concrete tag, e.g. qwen2.5-coder:7b
-DEFAULT_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
+# Default model. Every role falls back to this unless overridden below or in an
+# instruction file's MODEL: line, so you only need one model pulled to start.
+DEFAULT_MODEL=qwen2.5-coder:7b
 DEFAULT_PROGENITOR_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
 DEFAULT_PLANNER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
 DEFAULT_SPAWNER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
