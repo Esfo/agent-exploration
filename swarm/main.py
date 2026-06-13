@@ -14,6 +14,7 @@ from .agent_loop import AgentRunner, RuntimeContext
 from .branching import BranchManager
 from .chat_interface import ChatInterface
 from .context_builder import ContextBuilder
+from .control import RunControl
 from .db import DB
 from .memory import MemoryStore
 from .model_probe import ProbeCache
@@ -21,7 +22,7 @@ from .model_selector import ModelSelector
 from .ollama_client import OllamaClient
 from .progress import EventBus
 from .resources import ResourceMonitor
-from .sandbox import select_executor
+from .sandbox import docker_preflight, select_executor
 from .scheduler import Scheduler
 from .settings import Settings
 from .web_cache import WebCache
@@ -63,6 +64,8 @@ def build_runtime(settings_path: str = DEFAULT_SETTINGS, client=None):
     ctx.scheduler = scheduler
     ctx.memory = MemoryStore(db)
     ctx.branch = BranchManager(db)
+    ctx.control = RunControl()
+    docker_preflight(settings, events)
     runner = AgentRunner(ctx)
     return ctx, runner
 

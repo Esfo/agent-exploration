@@ -46,6 +46,15 @@ that deviate from or sharpen the spec.
 - [x] Scheduler: GPU/CPU inference slots + backpressure (queue under pressure)
 - [x] Parallel agent execution (thread-per-child) + thread-safe shared DB
 
+### Control / chat completeness ✅
+- [x] Background-threaded swarm execution; REPL stays responsive
+- [x] Live control: /pause /resume /cancel [agent_id] /stop-after-current-wave
+      (cooperative checkpoints in the agent loop)
+- [x] Full slash command set incl. /queued /completed /blocked and
+      /show-files /show-checklist /show-terminal /show-sandbox /show-log
+- [x] /ask raw model line; /set live override
+- [x] Docker image preflight (checks/pull on startup, non-fatal fallback)
+
 ### Prototype 6 — branching + memory + summarization ✅
 - [x] Context summarization when over token budget (keep head + recent, condense middle)
 - [x] Memory store + enable/relevance toggles, injected into context

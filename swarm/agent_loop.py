@@ -34,6 +34,7 @@ class RuntimeContext:
         self.scheduler = scheduler
         self.memory = None
         self.branch = None
+        self.control = None
         self.swarm_id: str | None = None
         self.root_goal: str = ""
 
@@ -134,6 +135,18 @@ class AgentRunner:
             memories_text = ctx.memory.render(mems)
 
         for _ in range(self.max_iterations):
+            # Cooperative pause/cancel checkpoint (live control commands).
+            if ctx.control is not None:
+                ctx.control.wait_if_paused(agent_id)
+                if ctx.control.is_cancelled(agent_id):
+                    result = {"status": "cancelled", "failure": "cancelled_by_user",
+                              "note": "cancelled by user",
+                              "completion_percentage": float(agent["completion_percentage"] or 0)}
+                    db.save_agent_result(agent_id, result)
+                    db.update_agent_status(agent_id, "cancelled")
+                    ctx.events.agent_finished(agent_id, result)
+                    return result
+
             messages = ctx.builder.build_messages(
                 agent_d, ctx.root_goal, parent_task, siblings, history, memories_text
             )
@@ -220,6 +233,11 @@ class AgentRunner:
                 # Any tool that spawned children (spawn_agents, request_*) runs
                 # them to completion, then the parent resumes with their results.
                 if result.get("spawned"):
+                    if ctx.control is not None and ctx.control.should_stop_waves():
+                        history.append({"role": "user", "content":
+                            "Stop requested: do not start new sub-agents. Finish with "
+                            "<<tool:finish>> using what you have so far."})
+                        continue
                     db.update_agent_status(agent_id, "waiting_for_children")
                     summaries = self._run_children(result.get("spawned", []))
                     history.append({"role": "user", "content":

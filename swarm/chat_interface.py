@@ -5,6 +5,8 @@ free-text messages into root swarms driven by the progenitor agent.
 """
 from __future__ import annotations
 
+import threading
+
 from . import ids
 from .agent_loop import AgentRunner
 from .progress import subtree_completion
@@ -17,6 +19,7 @@ class ChatInterface:
         self.db = ctx.db
         self.last_swarm: str | None = None
         self.talk_history: list[dict] = []
+        self.active_threads: list[threading.Thread] = []
 
     # ----- public entry -----
     def handle(self, text: str) -> bool:
@@ -65,7 +68,6 @@ class ChatInterface:
     # ----- swarm start -----
     def _start_swarm(self, goal: str) -> None:
         from .settings import SettingsError
-        from .ollama_client import OllamaError
         swarm_id = ids.next_id("swarm")
         self.db.create_swarm(swarm_id, goal)
         self.last_swarm = swarm_id
@@ -79,21 +81,30 @@ class ChatInterface:
                 "relevant instruction file to a model you've pulled in Ollama."
             )
             return
-        self.ctx.events.chat(f"\nSwarm started: {swarm_id}\nRoot task:\n    {goal}\nCompletion: 0%")
+        if self.ctx.control is not None:
+            self.ctx.control.reset()  # clear any pause/cancel from a prior swarm
+        self.ctx.events.chat(f"\nSwarm started: {swarm_id}\nRoot task:\n    {goal}\nCompletion: 0%"
+                             "\n(swarm runs in the background — try /status, /pause, /cancel)")
+        # Run in a background thread so the REPL stays responsive for control commands.
+        t = threading.Thread(target=self._run_swarm, args=(swarm_id, root["id"]), daemon=True)
+        t.start()
+        self.active_threads.append(t)
+
+    def _run_swarm(self, swarm_id, root_id) -> None:
+        from .ollama_client import OllamaError
         try:
-            result = self.runner.run_agent(root["id"])
+            result = self.runner.run_agent(root_id)
         except OllamaError as e:
             self.db.update_swarm(swarm_id, status="failed")
             self.ctx.events.chat(
                 f"\nOllama call failed: {e}\n"
                 "Is `ollama serve` running and the model pulled? Check OLLAMA_*_ENDPOINT "
-                "in settings/main.settings."
-            )
+                "in settings/main.settings.")
             return
-        pct = subtree_completion(self.db, root["id"])
-        self.db.update_swarm(swarm_id, status="complete" if result.get("status") == "complete" else "blocked",
-                             completion=pct)
-        self._final_summary(swarm_id, root["id"], result, pct)
+        pct = subtree_completion(self.db, root_id)
+        status = {"complete": "complete", "cancelled": "cancelled"}.get(result.get("status"), "blocked")
+        self.db.update_swarm(swarm_id, status=status, completion=pct)
+        self._final_summary(swarm_id, root_id, result, pct)
 
     def _final_summary(self, swarm_id, root_id, result, pct) -> None:
         """Spec section 33: roll up files, commands, models, profiling, etc."""
@@ -143,6 +154,17 @@ class ChatInterface:
             "/models": self._models,
             "/ask": self._ask,
             "/set": self._set,
+            "/pause": self._pause,
+            "/resume": self._resume,
+            "/cancel": self._cancel,
+            "/stop-after-current-wave": self._stop_after_wave,
+            "/queued": lambda a: self._by_status(("created", "queued")),
+            "/completed": lambda a: self._by_status(("complete",)),
+            "/blocked": lambda a: self._by_status(("blocked", "failed", "cancelled", "deferred")),
+            "/show-checklist": self._show_checklist,
+            "/show-files": self._show_files,
+            "/show-terminal": self._show_terminal,
+            "/show-sandbox": self._show_sandbox,
             "/show": self._show,
             "/show-log": self._show_log,
             "/show-settings": self._show_settings,
@@ -169,10 +191,13 @@ class ChatInterface:
         self.ctx.events.chat(
             "Type to send to the progenitor (it decides whether to answer or spawn). "
             "/ask <msg> = raw model line for testing.\n"
-            "Commands: /ask /set KEY VALUE /status /progress /agents /tree /active "
-            "/failed /models /terminals /sandboxes /profile /optimization /show-cache "
-            "/memories /remember /forget /branch /branches /show <id> /show-log <id> "
-            "/show-settings /help /quit"
+            "Control: /pause /resume /cancel [agent_id] /stop-after-current-wave\n"
+            "Status: /status /progress /agents /tree /active /queued /completed "
+            "/failed /blocked /models /terminals /sandboxes /profile /optimization /show-cache\n"
+            "Detail: /show <id> /show-log <id> /show-files <id> /show-checklist <id> "
+            "/show-terminal <id> /show-sandbox <id> /show-settings\n"
+            "Memory/branch: /memories /remember /forget /branch /branches\n"
+            "Other: /ask /set KEY VALUE /help /quit"
         )
 
     def _by_status(self, statuses) -> None:
@@ -376,6 +401,90 @@ class ChatInterface:
         key, value = args[0], " ".join(args[1:])
         self.ctx.settings._v[key] = value  # live, in-memory override
         self.ctx.events.chat(f"set {key}={value} (in-memory; edit settings/main.settings to persist)")
+
+    # ----- live control -----
+    def _pause(self, _a) -> None:
+        if self.ctx.control is None:
+            self.ctx.events.chat("Control not enabled.")
+            return
+        self.ctx.control.pause()
+        self.ctx.events.chat("Paused. Running agents will hold before their next step. /resume to continue.")
+
+    def _resume(self, _a) -> None:
+        if self.ctx.control is None:
+            return
+        self.ctx.control.resume()
+        self.ctx.events.chat("Resumed.")
+
+    def _cancel(self, args) -> None:
+        if self.ctx.control is None:
+            return
+        if args:
+            self.ctx.control.cancel(args[0])
+            self.ctx.events.chat(f"Cancelling {args[0]} at its next checkpoint.")
+        else:
+            self.ctx.control.cancel()
+            self.ctx.events.chat("Cancelling the active swarm at the next checkpoint.")
+
+    def _stop_after_wave(self, _a) -> None:
+        if self.ctx.control is None:
+            return
+        self.ctx.control.stop_after_wave()
+        self.ctx.events.chat("Will stop spawning new sub-agents; running ones finish.")
+
+    # ----- detailed show commands -----
+    def _show_checklist(self, args) -> None:
+        if not args:
+            self.ctx.events.chat("Usage: /show-checklist <agent_id>")
+            return
+        items = self.db.get_checklist_items(args[0])
+        if not items:
+            self.ctx.events.chat("(no checklist)")
+            return
+        for it in items:
+            box = "x" if it["status"] in ("done", "complete") else " "
+            self.ctx.events.chat(f"  [{box}] {it['text']}")
+
+    def _show_files(self, args) -> None:
+        if not args:
+            self.ctx.events.chat("Usage: /show-files <agent_id>")
+            return
+        rows = self.db.conn.execute(
+            "SELECT action, path FROM file_events WHERE agent_id=? ORDER BY id", (args[0],)
+        ).fetchall()
+        if not rows:
+            self.ctx.events.chat("(no file events)")
+            return
+        for r in rows:
+            self.ctx.events.chat(f"  {r['action']}: {r['path']}")
+
+    def _show_terminal(self, args) -> None:
+        if not args:
+            self.ctx.events.chat("Usage: /show-terminal <terminal_id>")
+            return
+        rows = self.db.conn.execute(
+            "SELECT command, exit_code, cwd_after, cwd_guard_passed FROM terminal_commands"
+            " WHERE terminal_id=? ORDER BY id", (args[0],)
+        ).fetchall()
+        if not rows:
+            self.ctx.events.chat("(no commands for that terminal)")
+            return
+        for r in rows:
+            self.ctx.events.chat(
+                f"  $ {r['command']}  -> exit {r['exit_code']} cwd={r['cwd_after']} "
+                f"guard={'ok' if r['cwd_guard_passed'] else 'FAIL'}")
+
+    def _show_sandbox(self, args) -> None:
+        if not args:
+            self.ctx.events.chat("Usage: /show-sandbox <sandbox_id>")
+            return
+        r = self.db.conn.execute("SELECT * FROM sandboxes WHERE id=?", (args[0],)).fetchone()
+        if not r:
+            self.ctx.events.chat(f"No sandbox {args[0]}.")
+            return
+        self.ctx.events.chat(
+            f"  {r['id']} agent={r['agent_id']} backend={r['backend']} "
+            f"status={r['status']} network={r['network_mode']}")
 
     def _show_log(self, args) -> None:
         """Dump an agent's raw model output + tool calls — for debugging what
