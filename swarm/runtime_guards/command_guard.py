@@ -50,10 +50,14 @@ class GuardResult:
 REQUIRED_FIELDS = ("reason", "expected_result", "destructive_risk_answer")
 
 
-def check_command(command: str, args: dict, *, network_enabled: bool,
-                  require_fields: bool = True) -> GuardResult:
+def check_command(command: str, args: dict | None = None, *,
+                  require_fields: bool = True, **_ignored) -> GuardResult:
+    """Hard safety check: required command-questioning fields + catastrophic-host
+    patterns. Network is governed by the sandbox (SANDBOX_NETWORK_DEFAULT), not
+    by a per-tool flag, so there is no network check here."""
     reasons: list[str] = []
     missing: list[str] = []
+    args = args or {}
 
     if require_fields:
         for f in REQUIRED_FIELDS:
@@ -64,12 +68,6 @@ def check_command(command: str, args: dict, *, network_enabled: bool,
     for pat, why in BLOCKED_PATTERNS:
         if re.search(pat, cmd, re.IGNORECASE):
             reasons.append(why)
-
-    if not network_enabled:
-        for pat in NETWORK_PATTERNS:
-            if re.search(pat, cmd, re.IGNORECASE):
-                reasons.append(f"network command while network disabled: {pat}")
-                break
 
     if reasons or missing:
         return GuardResult("block", reasons, missing)

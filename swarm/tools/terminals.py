@@ -14,6 +14,7 @@ from pathlib import Path
 from .. import ids
 from ..runtime_guards import cwd_guard
 from ..runtime_guards.command_guard import check_command
+from ..sandbox.executor import DEFAULT_EXEC_TIMEOUT
 
 _MARK = re.compile(r"__CWD__(.*?)__END__", re.DOTALL)
 
@@ -68,8 +69,7 @@ def terminal_command(ctx, agent_id: str, args: dict) -> dict:
     if not command.strip():
         return {"status": "error", "failure": "invalid_tool_args", "detail": "missing 'command'"}
 
-    guard = check_command(command, args,
-                          network_enabled=ctx.settings.get_bool("SHELL_NETWORK_ENABLED", False))
+    guard = check_command(command, args)
     if not guard.allowed:
         return {"status": "blocked", "failure": "command_guard_blocked",
                 "reasons": guard.reasons, "missing_fields": guard.missing_fields}
@@ -83,9 +83,7 @@ def terminal_command(ctx, agent_id: str, args: dict) -> dict:
     composed = (f'cd "{start}" 2>/dev/null || cd .; '
                 f'{{ {command}; }}; __rc=$?; printf "__CWD__%s__END__" "$(pwd)"; exit $__rc')
 
-    default_t = ctx.settings.get_int("SHELL_DEFAULT_TIMEOUT_SECONDS", 30) or 30
-    max_t = ctx.settings.get_int("SHELL_MAX_TIMEOUT_SECONDS", 300) or 300
-    timeout = min(int(args.get("timeout_seconds", default_t)), max_t)
+    timeout = int(args.get("timeout_seconds", DEFAULT_EXEC_TIMEOUT))
 
     res = ctx.executor.run_shell(composed, Path(agent["assigned_directory"]), timeout)
 

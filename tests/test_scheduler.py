@@ -38,9 +38,7 @@ def test_under_pressure_uses_snapshot(project):
 # ---------- scheduler slots ----------
 def test_inference_slot_limits_concurrency(project):
     s = _settings(project)
-    # force gpu slots = 1
-    sp = project / "settings" / "main.settings"
-    sp.write_text(sp.read_text().replace("MAX_ACTIVE_GPU_AGENTS=1", "MAX_ACTIVE_GPU_AGENTS=1"))
+    s._v["MAX_ACTIVE_GPU_AGENTS"] = "1"  # force a single GPU slot for this test
     sched = Scheduler(s, ResourceMonitor())
 
     active = {"n": 0, "max": 0}

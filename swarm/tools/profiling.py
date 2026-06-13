@@ -42,8 +42,7 @@ def execute(ctx, agent_id: str, args: dict) -> dict:
     if not command.strip():
         return {"status": "error", "failure": "invalid_tool_args", "detail": "missing 'command'"}
 
-    guard = check_command(command, args,
-                          network_enabled=ctx.settings.get_bool("SHELL_NETWORK_ENABLED", False))
+    guard = check_command(command, args)
     if not guard.allowed:
         return {"status": "blocked", "failure": "command_guard_blocked",
                 "reasons": guard.reasons, "missing_fields": guard.missing_fields}
@@ -55,8 +54,7 @@ def execute(ctx, agent_id: str, args: dict) -> dict:
         run_cmd = _PY_PREFIX.sub("python -m cProfile -s tottime", command, count=1)
         cprofile = True
 
-    timeout = min(int(args.get("timeout_seconds", 120)),
-                  ctx.settings.get_int("SHELL_MAX_TIMEOUT_SECONDS", 300) or 300)
+    timeout = int(args.get("timeout_seconds", 120))
     res = ctx.executor.run_shell(run_cmd, Path(agent["assigned_directory"]), timeout)
 
     top = _parse_cprofile_top(res.stdout) if cprofile else []

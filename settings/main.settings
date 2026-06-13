@@ -130,21 +130,21 @@ CHILD_AGENTS_MAY_SPAWN_CHILDREN=true
 USER_MANUAL_SUBTASK_ASSIGNMENT_REQUIRED=false
 
 # Recursion controls.
-# Spec allows "unlimited"; during bring-up these conservative ceilings prevent
-# runaway swarms from weak planner models. Set to "unlimited" to remove a ceiling.
-MAX_RECURSION_DEPTH=3
-MAX_TOTAL_AGENTS_PER_SWARM=20
-MAX_CHILDREN_PER_AGENT=6
-MAX_SPAWN_CALLS_PER_AGENT=3
+# Agents are meant to go DEEPER, not retreat. No ceilings by default.
+MAX_RECURSION_DEPTH=unlimited
+MAX_TOTAL_AGENTS_PER_SWARM=unlimited
+MAX_CHILDREN_PER_AGENT=unlimited
+MAX_SPAWN_CALLS_PER_AGENT=unlimited
 
-# Resource behavior
-MAX_ACTIVE_AGENTS_TOTAL=8
-MAX_ACTIVE_GPU_AGENTS=1
-MAX_ACTIVE_CPU_AGENTS=4
-MAX_ACTIVE_SANDBOXES=8
-MAX_ACTIVE_TERMINALS=8
-MAX_ACTIVE_PYTHON_COMMANDS=4
-MAX_ACTIVE_SHELL_COMMANDS=4
+# Resource behavior.
+# GPU/CPU agent concurrency is MEASURED at startup by a calibration test-run
+# (VRAM-per-model and core count), not set by hand. Leave these = auto; the
+# calibration overrides them in-memory. A number forces a fixed value.
+MAX_ACTIVE_AGENTS_TOTAL=auto
+MAX_ACTIVE_GPU_AGENTS=auto
+MAX_ACTIVE_CPU_AGENTS=auto
+MAX_ACTIVE_SANDBOXES=auto
+MAX_ACTIVE_TERMINALS=auto
 MAX_ACTIVE_WEB_FETCHES=2
 MAX_RAM_PERCENT=80
 MAX_CPU_PERCENT=85
@@ -153,6 +153,9 @@ MAX_DISK_USAGE_PERCENT=90
 RESOURCE_SAMPLE_INTERVAL_SECONDS=2
 RESOURCE_PRESSURE_ACTION=queue_new_agents
 COOLDOWN_SECONDS_AFTER_OOM=60
+# Fraction of detected VRAM/cores the calibration may use for agent concurrency.
+CALIBRATION_VRAM_FRACTION=0.9
+CALIBRATION_CPU_FRACTION=1.0
 
 # Routing
 ROUTE_PROGENITOR_TO_GPU=true
@@ -218,19 +221,9 @@ SOFT_DELETE=true
 MAX_FILE_WRITE_MB=5
 MAX_AGENT_DIR_MB=200
 
-# Python execution
-PYTHON_EXECUTION_ENABLED=true
-PYTHON_DEFAULT_TIMEOUT_SECONDS=30
-PYTHON_MAX_TIMEOUT_SECONDS=300
-PYTHON_NETWORK_ENABLED=false
-PYTHON_MAX_OUTPUT_KB=512
-
-# Shell execution
-SHELL_EXECUTION_ENABLED=true
-SHELL_DEFAULT_TIMEOUT_SECONDS=30
-SHELL_MAX_TIMEOUT_SECONDS=300
-SHELL_NETWORK_ENABLED=false
-SHELL_MAX_OUTPUT_KB=512
+# Python and shell execution are always available. Timeouts come from the agent's
+# tool call (guided by its instruction files), NOT from hard-coded settings.
+# Network is governed by the sandbox (SANDBOX_NETWORK_DEFAULT), not per-tool flags.
 
 # Command questioning
 COMMAND_QUESTIONING_ENABLED=true

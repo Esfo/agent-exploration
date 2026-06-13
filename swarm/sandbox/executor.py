@@ -4,6 +4,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# Code-level execution defaults (NOT user settings). The agent supplies the
+# timeout in its tool call; this is only the fallback when it omits one.
+DEFAULT_EXEC_TIMEOUT = 60
+MAX_OUTPUT_KB = 512
+# Generous CPU-time rlimit ceiling so a runaway sandbox can't peg a core forever;
+# this is a safety stop, not a user-facing limit.
+CPU_RLIMIT_SECONDS = 1800
+
 
 @dataclass
 class ExecResult:

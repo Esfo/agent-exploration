@@ -18,7 +18,7 @@ import time
 from pathlib import Path
 
 from .. import ids
-from .executor import ExecResult, Executor
+from .executor import MAX_OUTPUT_KB, ExecResult, Executor
 
 DEFAULT_IMAGE = "python:3.12-slim"
 
@@ -78,8 +78,7 @@ class DockerExecutor(Executor):
 
     # ----- execution -----
     def _truncate(self, text: str, kind: str) -> tuple[str, bool]:
-        key = "PYTHON_MAX_OUTPUT_KB" if kind == "python" else "SHELL_MAX_OUTPUT_KB"
-        limit = (self.s.get_int(key, 512) or 512) * 1024
+        limit = MAX_OUTPUT_KB * 1024
         if len(text) <= limit:
             return text, False
         return text[:limit] + f"\n...[truncated, {len(text)-limit} more bytes]", True

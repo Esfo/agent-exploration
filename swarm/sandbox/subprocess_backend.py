@@ -20,7 +20,7 @@ import time
 from pathlib import Path
 
 from .. import ids
-from .executor import ExecResult, Executor
+from .executor import CPU_RLIMIT_SECONDS, MAX_OUTPUT_KB, ExecResult, Executor
 
 
 class SubprocessExecutor(Executor):
@@ -29,7 +29,7 @@ class SubprocessExecutor(Executor):
     def __init__(self, settings):
         self.s = settings
         self.mem_mb = settings.get_int("SANDBOX_MEMORY_MB", 2048) or 2048
-        self.cpu_secs_cap = settings.get_int("PYTHON_MAX_TIMEOUT_SECONDS", 300) or 300
+        self.cpu_secs_cap = CPU_RLIMIT_SECONDS
         self.max_file_mb = settings.get_int("MAX_FILE_WRITE_MB", 5) or 5
 
     # ----- limits -----
@@ -47,9 +47,7 @@ class SubprocessExecutor(Executor):
             pass
 
     def _truncate(self, text: str, kind: str) -> tuple[str, bool]:
-        key = "PYTHON_MAX_OUTPUT_KB" if kind == "python" else "SHELL_MAX_OUTPUT_KB"
-        max_kb = self.s.get_int(key, 512) or 512
-        limit = max_kb * 1024
+        limit = MAX_OUTPUT_KB * 1024
         if len(text) <= limit:
             return text, False
         return text[:limit] + f"\n...[truncated, {len(text)-limit} more bytes]", True

@@ -58,7 +58,7 @@ def test_recursion_depth_ceiling(project):
     ids._counters.clear()
     # Force a low ceiling by editing settings in place.
     sp = project / "settings" / "main.settings"
-    sp.write_text(sp.read_text().replace("MAX_RECURSION_DEPTH=3", "MAX_RECURSION_DEPTH=1"))
+    sp.write_text(sp.read_text().replace("MAX_RECURSION_DEPTH=unlimited", "MAX_RECURSION_DEPTH=1"))
 
     def script(last_user, model, n):
         if "child agents finished" in last_user or "blocked" in last_user.lower():

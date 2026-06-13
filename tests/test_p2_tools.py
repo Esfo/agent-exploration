@@ -41,31 +41,26 @@ def test_path_guard_blocks_absolute(tmp_path):
 # ---------- command guard ----------
 def test_command_guard_blocks_rm_rf_root():
     r = check_command("rm -rf /", {"reason": "x", "expected_result": "y",
-                                   "destructive_risk_answer": "z"}, network_enabled=False)
+                                   "destructive_risk_answer": "z"})
     assert not r.allowed and r.reasons
 
 
 def test_command_guard_blocks_sudo():
     r = check_command("sudo rm file", {"reason": "x", "expected_result": "y",
-                                       "destructive_risk_answer": "z"}, network_enabled=False)
+                                       "destructive_risk_answer": "z"})
     assert not r.allowed
 
 
 def test_command_guard_requires_fields():
-    r = check_command("ls", {}, network_enabled=False)
+    r = check_command("ls", {})
     assert not r.allowed
     assert "reason" in r.missing_fields
 
 
-def test_command_guard_network_when_disabled():
-    r = check_command("curl http://x", {"reason": "a", "expected_result": "b",
-                                        "destructive_risk_answer": "c"}, network_enabled=False)
-    assert not r.allowed
-
-
 def test_command_guard_allows_safe():
+    # network is governed by the sandbox, not the command guard, so curl is allowed here
     r = check_command("python -m pytest", {"reason": "run tests", "expected_result": "pass",
-                                           "destructive_risk_answer": "none"}, network_enabled=False)
+                                           "destructive_risk_answer": "none"})
     assert r.allowed
 
 
