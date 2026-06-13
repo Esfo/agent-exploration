@@ -18,6 +18,7 @@ from .model_probe import ProbeCache
 from .model_selector import ModelSelector
 from .ollama_client import OllamaClient
 from .progress import EventBus
+from .sandbox import select_executor
 from .settings import Settings
 
 DEFAULT_SETTINGS = "settings/main.settings"
@@ -48,8 +49,9 @@ def build_runtime(settings_path: str = DEFAULT_SETTINGS, client=None):
     selector = ModelSelector(settings, probe)
     client = client or OllamaClient()
     builder = ContextBuilder(settings)
+    executor = select_executor(settings)
 
-    ctx = RuntimeContext(settings, db, events, selector, client, builder)
+    ctx = RuntimeContext(settings, db, events, selector, client, builder, executor)
     runner = AgentRunner(ctx)
     return ctx, runner
 

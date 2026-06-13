@@ -60,6 +60,8 @@ def make_runtime(project_dir, client):
     probe = ProbeCache(project_dir / "runtime" / "config_cache.json")
     selector = ModelSelector(settings, probe)
     builder = ContextBuilder(settings)
-    ctx = RuntimeContext(settings, db, events, selector, client, builder)
+    from swarm.sandbox import SubprocessExecutor
+    executor = SubprocessExecutor(settings)
+    ctx = RuntimeContext(settings, db, events, selector, client, builder, executor)
     runner = AgentRunner(ctx)
     return ctx, runner

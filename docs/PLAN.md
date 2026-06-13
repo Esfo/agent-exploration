@@ -21,11 +21,15 @@ that deviate from or sharpen the spec.
 - [x] Progress/event bus + weighted completion
 - [x] Chat REPL + slash commands
 
-### Prototype 2 — sandboxed execution ⬜
-- [ ] Sandbox manager + Docker backend + mount policies
-- [ ] `runtime_guards`: cwd_guard, path_guard, command_guard
-- [ ] Command questioning enforcement (hard Python checks, not model self-report)
-- [ ] Tools: `open_terminal`, `terminal_command`, `python`, `shell`, file tools
+### Prototype 2 — execution (option A: subprocess) 🟦 (in progress)
+- [x] `runtime_guards`: path_guard, command_guard
+- [x] Command questioning enforcement (hard Python checks, not model self-report)
+- [x] Executor interface + subprocess backend (rlimits, timeout, output caps)
+- [x] File tools: list/read/write/append/delete (path-guarded, soft delete)
+- [x] Sandboxed `python` + `shell` tools
+- [x] Worker roles get file/exec tools; prompt steers model to write+verify
+- [ ] Docker backend behind the same Executor interface (option B, real isolation)
+- [ ] Persistent `open_terminal` / `terminal_command` sessions + cwd_guard
 
 ### Prototype 3 — web + reconciliation ⬜
 - [ ] Web fetch/cache tool + guards

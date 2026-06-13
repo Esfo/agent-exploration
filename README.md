@@ -25,9 +25,16 @@ Implemented and tested offline (mock model, no Ollama required):
   (`swarm/agent_loop.py`)
 - Chat REPL with slash commands (`swarm/chat_interface.py`, `swarm/main.py`)
 
-Not yet built (later prototypes): sandbox manager, terminals, file/python/shell
-execution tools, web cache, profiling/optimization, review/integration agents,
-resource scheduler, branching/memory. See [`docs/PLAN.md`](docs/PLAN.md).
+**Prototype 2 (execution, option A) added:** path + command guards, file tools
+(list/read/write/append/delete with soft-delete), and sandboxed `python`/`shell`
+via a subprocess backend (rlimits + timeouts + output caps) behind a swappable
+`Executor` interface. Worker agents now write real files and verify them. The
+subprocess backend is isolation-by-convention, not a container — the Docker
+backend (real isolation, same interface) is next.
+
+Not yet built (later prototypes): Docker sandbox backend, persistent terminals,
+web cache, profiling/optimization, review/integration agents, resource scheduler,
+branching/memory. See [`docs/PLAN.md`](docs/PLAN.md).
 
 ## Configure your models
 

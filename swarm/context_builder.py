@@ -28,14 +28,49 @@ ROLE_INSTRUCTION_KEYS = {
     "optimizer": ["INSTRUCTION_OPTIMIZATION"],
 }
 
-# Tools available in Prototype 1.
-P1_TOOLS = ["spawn_agents", "report_progress", "finish"]
+# Tools common to every agent.
+COMMON_TOOLS = ["report_progress", "finish"]
+# Spawning + worker tool sets.
+SPAWN_TOOLS = ["spawn_agents"]
+WORKER_TOOLS = ["list_files", "read_file", "write_file", "append_file",
+                "delete_file", "python", "shell"]
+
+# Which tool sets each role gets, beyond COMMON_TOOLS.
+ROLE_TOOLSETS = {
+    "progenitor": SPAWN_TOOLS + WORKER_TOOLS,
+    "planner": SPAWN_TOOLS,
+    "spawner": SPAWN_TOOLS,
+    "code": WORKER_TOOLS,
+    "fixer": WORKER_TOOLS,
+    "tester": WORKER_TOOLS,
+    "integrator": SPAWN_TOOLS + WORKER_TOOLS,
+    "optimizer": WORKER_TOOLS,
+    "profiler": WORKER_TOOLS,
+}
+
+# Concise argument hints so small models emit the right JSON keys.
+TOOL_HELP = {
+    "spawn_agents": '{"children":[{"title":"..","task":"..","role":"code","done_condition":".."}]}',
+    "report_progress": '{"message":"..","completion_percentage":50,"current_step":".."}',
+    "finish": '{"status":"complete|blocked|failed","summary":"..","note":"..","files_created":[".."]}',
+    "list_files": '{"path":"."}',
+    "read_file": '{"path":"relative/file.py"}',
+    "write_file": '{"path":"relative/file.py","content":"..full file contents.."}',
+    "append_file": '{"path":"relative/file.py","content":".."}',
+    "delete_file": '{"path":"relative/file.py","reason":".."}',
+    "python": '{"reason":"..","expected_result":"..","destructive_risk_answer":"..","timeout_seconds":30,"code":".."}',
+    "shell": '{"reason":"..","expected_result":"..","destructive_risk_answer":"..","timeout_seconds":30,"command":".."}',
+}
+
+
+def tools_for_role(role: str) -> list[str]:
+    return COMMON_TOOLS + ROLE_TOOLSETS.get(role, [])
 
 
 class ContextBuilder:
     def __init__(self, settings, available_tools=None):
         self.s = settings
-        self.available_tools = available_tools or P1_TOOLS
+        self.available_tools = available_tools
 
     def _render_instruction(self, key: str) -> str | None:
         rel = self.s.get(key)
@@ -63,8 +98,12 @@ class ContextBuilder:
             rendered = self._render_instruction(key)
             if rendered:
                 parts.append(rendered)
+        tools = self.available_tools or tools_for_role(role)
+        tool_lines = "\n".join(f"  <<tool:{t}>>{TOOL_HELP.get(t, '{...}')}<</tool>>" for t in tools)
         parts.append(
-            "AVAILABLE TOOLS: " + ", ".join(self.available_tools) + "\n"
+            "AVAILABLE TOOLS (emit exactly one JSON object per block):\n" + tool_lines + "\n"
+            "Write real files with write_file and run/verify them with python or shell — "
+            "do NOT claim a file exists or a test passed unless a tool result confirms it. "
             "When the task is done (or blocked), you MUST emit a <<tool:finish>> block."
         )
         return "\n\n".join(p for p in parts if p)
