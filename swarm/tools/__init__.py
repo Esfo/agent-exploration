@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from . import files as _files
 from . import finish as _finish
+from . import optimization as _optimization
+from . import profiling as _profiling
 from . import progress as _progress
 from . import python_exec as _python
 from . import reconcile as _reconcile
@@ -39,6 +41,8 @@ REGISTRY = {
     "open_terminal": (_terminals.open_terminal, False),
     "terminal_command": (_terminals.terminal_command, False),
     "close_terminal": (_terminals.close_terminal, False),
+    "profile": (_profiling.execute, False),
+    "optimize": (_optimization.execute, False),
 }
 
 

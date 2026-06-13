@@ -49,8 +49,8 @@ ROLE_TOOLSETS = {
     "tester": WORKER_TOOLS + ["request_fix"],
     "reviewer": WORKER_TOOLS,
     "integrator": SPAWN_TOOLS + WORKER_TOOLS + ["request_testing", "request_review"],
-    "optimizer": WORKER_TOOLS,
-    "profiler": WORKER_TOOLS,
+    "optimizer": WORKER_TOOLS + ["optimize", "profile"],
+    "profiler": WORKER_TOOLS + ["profile"],
     "researcher": WEB_TOOLS,
 }
 
@@ -76,6 +76,8 @@ TOOL_HELP = {
     "open_terminal": '{"terminal_type":"shell","purpose":".."}',
     "terminal_command": '{"terminal_id":"terminal_0001","reason":"..","expected_result":"..","destructive_risk_answer":"..","timeout_seconds":30,"command":".."}',
     "close_terminal": '{"terminal_id":"terminal_0001"}',
+    "profile": '{"target":"..","language":"python","reason":"..","expected_result":"..","destructive_risk_answer":"..","command":"python scan.py"}',
+    "optimize": '{"target":"..","profiling_report_id":"..","goal":"..","validation_command":"python -m pytest","reason":"..","expected_result":"..","destructive_risk_answer":".."}',
 }
 
 
