@@ -34,16 +34,18 @@ COMMON_TOOLS = ["report_progress", "finish"]
 SPAWN_TOOLS = ["spawn_agents"]
 WORKER_TOOLS = ["list_files", "read_file", "write_file", "append_file",
                 "delete_file", "python", "shell"]
+RECONCILE_TOOLS = ["request_review", "request_integration", "request_testing", "request_fix"]
 
 # Which tool sets each role gets, beyond COMMON_TOOLS.
 ROLE_TOOLSETS = {
-    "progenitor": SPAWN_TOOLS + WORKER_TOOLS,
+    "progenitor": SPAWN_TOOLS + WORKER_TOOLS + RECONCILE_TOOLS,
     "planner": SPAWN_TOOLS,
     "spawner": SPAWN_TOOLS,
-    "code": WORKER_TOOLS,
-    "fixer": WORKER_TOOLS,
-    "tester": WORKER_TOOLS,
-    "integrator": SPAWN_TOOLS + WORKER_TOOLS,
+    "code": WORKER_TOOLS + ["request_review", "request_testing", "request_integration"],
+    "fixer": WORKER_TOOLS + ["request_testing"],
+    "tester": WORKER_TOOLS + ["request_fix"],
+    "reviewer": WORKER_TOOLS,
+    "integrator": SPAWN_TOOLS + WORKER_TOOLS + ["request_testing", "request_review"],
     "optimizer": WORKER_TOOLS,
     "profiler": WORKER_TOOLS,
 }
@@ -60,6 +62,10 @@ TOOL_HELP = {
     "delete_file": '{"path":"relative/file.py","reason":".."}',
     "python": '{"reason":"..","expected_result":"..","destructive_risk_answer":"..","timeout_seconds":30,"code":".."}',
     "shell": '{"reason":"..","expected_result":"..","destructive_risk_answer":"..","timeout_seconds":30,"command":".."}',
+    "request_review": '{"target":"what to review","context":".."}',
+    "request_integration": '{"target":"outputs to integrate","context":".."}',
+    "request_testing": '{"target":"what to test","context":".."}',
+    "request_fix": '{"target":"the specific failure","context":".."}',
 }
 
 

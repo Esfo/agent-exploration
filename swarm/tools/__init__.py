@@ -11,6 +11,7 @@ from . import files as _files
 from . import finish as _finish
 from . import progress as _progress
 from . import python_exec as _python
+from . import reconcile as _reconcile
 from . import shell_exec as _shell
 from . import spawn_agents as _spawn
 
@@ -26,6 +27,10 @@ REGISTRY = {
     "delete_file": (_files.delete_file, False),
     "python": (_python.execute, False),
     "shell": (_shell.execute, False),
+    "request_review": (_reconcile.request_review, True),
+    "request_integration": (_reconcile.request_integration, True),
+    "request_testing": (_reconcile.request_testing, True),
+    "request_fix": (_reconcile.request_fix, True),
 }
 
 

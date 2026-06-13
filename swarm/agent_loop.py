@@ -185,7 +185,9 @@ class AgentRunner:
                     ctx.events.agent_finished(agent_id, result)
                     return result
 
-                if call.name == "spawn_agents":
+                # Any tool that spawned children (spawn_agents, request_*) runs
+                # them to completion, then the parent resumes with their results.
+                if result.get("spawned"):
                     db.update_agent_status(agent_id, "waiting_for_children")
                     summaries = self._run_children(result.get("spawned", []))
                     history.append({"role": "user", "content":
