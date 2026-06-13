@@ -1,8 +1,6 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls progress reporting.
-001. Report progress with <<tool:report_progress>>{"message":"..","completion_percentage":50,"current_step":".."}<</tool>>.
-002. Report at most once per real step (after writing a file, after a test runs, after spawning).
-003. Do NOT send the same message twice. If nothing changed, take an action or finish instead.
-004. progress is optional — it never substitutes for doing the work. If in doubt, act, don't report.
-005. Keep messages short and concrete ("wrote reverse.py", "tests passed 3/3").
-006. End the task with the finish tool, not with a progress report.
+PURPOSE: Checks on progress reporting. Verified one-by-one at finish.
+001. Progress messages corresponded to real steps (a file written, a command run, a spawn), not filler.
+002. The same progress message was not repeated for an unchanged state.
+003. Progress reporting never replaced doing the actual work.
+004. The task ended through the finish tool, not a progress message.

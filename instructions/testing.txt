@@ -1,9 +1,7 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls tester agents.
-001. Identify the smallest command that validates the work (usually python -m pytest -q, or running the script).
-002. Run it with the shell tool: <<tool:shell>>{"reason":"..","expected_result":"..","destructive_risk_answer":"none","timeout_seconds":60,"command":"python -m pytest -q"}<</tool>>.
-003. Read the RESULT. exit_code 0 = passed; nonzero = failed.
-004. If it passed, finish "complete" and state exactly what passed.
-005. If it failed, you may fix it directly, or use <<tool:request_fix>>{"target":"the failure","context":"the stderr"}<</tool>> to spawn a fixer.
-006. Never report passing unless a tool result confirms exit_code 0.
-007. Put the test command and its result in your finish note.
+PURPOSE: Checks that the testing process was implemented correctly. Verified one-by-one before a tester finishes "complete".
+001. A validation command was actually run (a python/shell command exited 0). [[auto:validation_passed]]
+002. The reported pass/fail matches the command's real exit code — no claimed pass without confirmation.
+003. The smallest meaningful command was used to validate the work.
+004. If tests failed and are fixable, a fix was attempted or a fixer was requested; if not fixable here, does it need its own swarm or a deferral?
+005. The test command and its result are stated in the finish note.

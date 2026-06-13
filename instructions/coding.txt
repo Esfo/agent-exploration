@@ -1,12 +1,9 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls code-writing agents.
-001. If editing existing code, read it first with <<tool:read_file>>{"path":".."}<</tool>>.
-002. Write each file with <<tool:write_file>>{"path":"name.py","content":"..full file.."}. Give a relative name; the runtime places it in your directory.
-003. Write complete, runnable files — not snippets or diffs.
-004. Keep modules small with clear function names and docstrings.
-005. When you create behavior, also write a test file (e.g. test_name.py).
-006. Verify your work: run it with <<tool:python>> or run tests with <<tool:shell>>{"command":"python -m pytest -q",...}. Include reason, expected_result, destructive_risk_answer, timeout_seconds.
-007. Read the tool RESULT. If exit_code is not 0, read stderr and fix the file, then re-run.
-008. Do not finish until your own validation command has actually passed (exit_code 0).
-009. If you cannot get it passing, finish with status "blocked" and paste the exact failure.
-010. List the files you created in the finish note.
+PURPOSE: Checks that the coding process was implemented correctly. Each line is verified one-by-one before a code agent may finish "complete".
+001. At least one file was created or modified for the deliverable. [[auto:created_a_file]]
+002. The work was validated by actually running it — a python or shell command exited 0. [[auto:validation_passed]]
+003. The code is scoped to the assigned task and not sprawling into unrelated areas.
+004. New behavior has a corresponding test, or there is a clear reason none is needed.
+005. Existing files were read before being changed, rather than blindly overwritten.
+006. No success was claimed that a tool result does not actually confirm.
+007. If the task cannot be completed correctly, does this require a separate agent swarm, or should it be deferred? Decide and act rather than faking completion.

@@ -1,11 +1,7 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls recursive spawning and the divide-or-defer decision.
-001. Spawn with: <<tool:spawn_agents>>{"children":[{"title":"..","task":"..","role":"code","done_condition":".."}]}<</tool>>.
-002. Spawn only when a piece can be done independently. Give each child exactly one task and a done condition.
-003. Put the context the child needs inside its "task" string; children do not see your conversation.
-004. Do not spawn duplicate children for the same deliverable.
-005. Valid roles: code, tester, reviewer, integrator, fixer, profiler, optimizer, researcher.
-006. If sibling outputs must work together, after they finish use request_integration (or spawn an integrator) to combine them.
-007. DIVIDE-OR-DEFER: if you are stuck and a task is too big to finish directly, split it with spawn_agents instead of looping.
-008. If a task is not solvable yet given what you know, finish with status "blocked" and state exactly what is missing — do not keep retrying.
-009. Children run on their own; you will receive a summary of their results when they complete.
+PURPOSE: Checks on the spawning process. Verified one-by-one at finish.
+001. Children were spawned only for pieces that can be done independently.
+002. Each spawned child received exactly one task, a done condition, and the context it needs (children do not see this conversation).
+003. No two children were spawned for the same deliverable.
+004. Where sibling outputs must combine, an integration or review pass was arranged after they finished.
+005. When stuck, the choice between "split into a new swarm" and "defer as blocked" was made deliberately, instead of looping.

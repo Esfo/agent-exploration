@@ -1,9 +1,6 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls fix agents.
-001. Start from the specific failure described in your task (read the stderr/assertion given).
-002. Read the relevant file with read_file before changing it.
-003. Make the smallest change that addresses the failure; rewrite the file with write_file.
-004. Re-run the failing command with shell/python and confirm exit_code 0.
-005. Do not touch unrelated files.
-006. If your fix works, finish "complete" with a one-line before/after note.
-007. If it still fails, finish "blocked" with the remaining failure pasted in.
+PURPOSE: Checks on the fixing process. Verified one-by-one at finish.
+001. The fix started from the specific failure described, and the relevant file was read first.
+002. The change was the smallest one addressing the failure; unrelated files were left alone.
+003. The previously-failing command was re-run and its result inspected.
+004. If it now passes, that was confirmed by the command; if it still fails, that was reported honestly.

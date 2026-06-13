@@ -1,9 +1,6 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls the python tool.
-001. Run Python with: <<tool:python>>{"reason":"..","expected_result":"..","destructive_risk_answer":"..","timeout_seconds":30,"code":".."}<</tool>>.
-002. All four of reason, expected_result, destructive_risk_answer, and timeout_seconds are REQUIRED or the run is blocked.
-003. The code runs sandboxed in your assigned directory; files you wrote there are importable.
-004. Do not assume the code ran — read the RESULT: exit_code, stdout, stderr.
-005. Use python to verify behavior, inspect data, or run quick checks.
-006. Keep snippets short and specific to the current step.
-007. If exit_code is not 0, read stderr, fix the cause, and run again.
+PURPOSE: Checks on python tool use. Verified one-by-one at finish (lenient if python was not used).
+001. Each python run carried a reason, expected result, destructive-risk answer, and timeout.
+002. Results (exit code, stdout, stderr) were inspected — nothing was assumed to have run.
+003. When a run failed, the cause was addressed and re-run rather than ignored.
+004. Python was used for real validation/inspection, not as a substitute for writing files.

@@ -12,10 +12,17 @@ ignored (but do not reset ordering).
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from .settings import PLACEHOLDER_MODEL
+
+# A check line may carry a machine-check tag, e.g.
+#   003. A file was created for the deliverable. [[auto:created_a_file]]
+# The tag names a deterministic check in swarm/checks.py; untagged lines are
+# judged by the model. The tag is stripped from the text shown to the model.
+_AUTO_TAG = re.compile(r"\s*\[\[auto:([a-zA-Z0-9_]+)\]\]\s*$")
 
 
 class InstructionError(Exception):
@@ -23,11 +30,19 @@ class InstructionError(Exception):
 
 
 @dataclass
+class Check:
+    position: int
+    text: str
+    auto_key: str | None = None
+
+
+@dataclass
 class InstructionFile:
     path: Path
     model: str
     purpose: str
-    lines: list[str] = field(default_factory=list)
+    lines: list[str] = field(default_factory=list)        # check text, tag-stripped
+    checks: list[Check] = field(default_factory=list)      # ordered checks w/ optional auto_key
     # Non-numbered free text (used by prompt files like agent_base.txt).
     body: list[str] = field(default_factory=list)
 
@@ -55,6 +70,7 @@ def parse_instruction_file(path: str | Path) -> InstructionFile:
     model: str | None = None
     purpose = ""
     numbered: list[str] = []
+    checks: list[Check] = []
     body: list[str] = []
 
     for raw in raw_lines:
@@ -74,16 +90,24 @@ def parse_instruction_file(path: str | Path) -> InstructionFile:
         if stripped.startswith("PURPOSE:"):
             purpose = stripped[len("PURPOSE:"):].strip()
             continue
-        # Numbered instruction line: "NNN. text"
+        # Numbered check line: "NNN. text [[auto:key]]"
         head, sep, rest = stripped.partition(".")
         if sep and head.strip().isdigit():
-            numbered.append(rest.strip())
+            rest = rest.strip()
+            auto_key = None
+            m = _AUTO_TAG.search(rest)
+            if m:
+                auto_key = m.group(1)
+                rest = _AUTO_TAG.sub("", rest).rstrip()
+            numbered.append(rest)
+            checks.append(Check(position=int(head.strip()), text=rest, auto_key=auto_key))
         else:
             body.append(raw.rstrip())
 
     if model is None:
         raise InstructionError(f"{path}: no MODEL: line found")
-    return InstructionFile(path=path, model=model, purpose=purpose, lines=numbered, body=body)
+    return InstructionFile(path=path, model=model, purpose=purpose, lines=numbered,
+                           checks=checks, body=body)
 
 
 def load_all(settings, keys: list[str]) -> dict[str, InstructionFile]:

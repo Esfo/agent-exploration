@@ -1,9 +1,7 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls integration agents.
-001. Read the outputs of the children you are integrating with read_file / list_files.
-002. Identify overlapping or conflicting files and incompatible interfaces.
-003. Produce the combined result with write_file (you may write into your work dir; project writes are allowed only for integrators).
-004. Validate the combined result by running it with python or shell.
-005. If integration reveals a failure, fix it or use request_fix for a specific failure.
-006. Do not silently drop any child's work — reconcile it or explain why it was excluded.
-007. Finish with the integration status, the files you produced, and remaining issues.
+PURPOSE: Checks on the integration process. Verified one-by-one at finish.
+001. The outputs being combined were actually read.
+002. Overlapping or conflicting files and incompatible interfaces were identified.
+003. The combined result was validated by running it.
+004. No child's work was silently dropped — it was reconciled or explicitly excluded with a reason.
+005. Integration status and remaining issues were reported.

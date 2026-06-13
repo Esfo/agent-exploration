@@ -1,8 +1,7 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls profiling agents.
-001. Profile a workload with <<tool:profile>>{"target":"..","language":"python","reason":"..","expected_result":"..","destructive_risk_answer":"none","command":"python script.py"}<</tool>>.
-002. For python, the tool wraps the command in cProfile and reports the top time-consuming functions and a baseline runtime.
-003. Identify the single biggest bottleneck from the RESULT's top_bottlenecks.
-004. Record the baseline runtime; it is needed for optimization comparison.
-005. Do not propose optimizations before you have a measured bottleneck.
-006. Finish with the baseline, the bottleneck, and the profiling_report_id so an optimizer can use it.
+PURPOSE: Checks on the profiling process. Verified one-by-one at finish.
+001. The exact workload being profiled was identified and actually run.
+002. A baseline runtime was recorded.
+003. The top bottleneck was identified from real profiling output, not guessed.
+004. No optimization was proposed before a measured bottleneck existed.
+005. The baseline and profiling_report_id were returned for an optimizer to use.

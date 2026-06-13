@@ -1,8 +1,6 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls file deletion.
-001. Delete with <<tool:delete_file>>{"path":"name.py","reason":".."}<</tool>>.
-002. Deletion is a soft delete: the file moves to a .trash folder, it is not destroyed.
-003. Only delete files you created inside your directory.
-004. Prefer rewriting a wrong file with write_file over deleting it.
-005. Never delete files just to hide an error.
-006. The RESULT confirms the deletion and where it was moved.
+PURPOSE: Checks on file deletion. Verified one-by-one at finish (lenient if nothing was deleted).
+001. Only files inside the assigned directory were deleted.
+002. No file was deleted merely to hide an error.
+003. Where a file needed correcting, it was rewritten rather than deleted-then-recreated when that was simpler.
+004. Any blocked deletion was reported with its reason.

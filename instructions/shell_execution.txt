@@ -1,10 +1,6 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls the shell tool.
-001. Run shell with: <<tool:shell>>{"reason":"..","expected_result":"..","destructive_risk_answer":"..","timeout_seconds":30,"command":".."}<</tool>>.
-002. reason, expected_result, destructive_risk_answer, and timeout_seconds are REQUIRED or the command is blocked.
-003. The command runs sandboxed in your assigned directory.
-004. Prefer narrow commands: run tests, list files, lint. Do not use sudo or commands that change the host system.
-005. Read the RESULT: exit_code, stdout, stderr. exit_code 0 means success.
-006. Common check: {"command":"python -m pytest -q"} to run tests.
-007. If a command is blocked, the result lists the reason or missing fields — fix and resend.
-008. If a command fails, fix the cause and re-run, or finish blocked with the failure.
+PURPOSE: Checks on shell tool use. Verified one-by-one at finish (lenient if shell was not used).
+001. Each shell command carried a reason, expected result, destructive-risk answer, and timeout.
+002. Commands were narrow rather than broad, and never used sudo or host-modifying actions.
+003. Exit code, stdout, and stderr were inspected before the next step.
+004. A failed command was fixed and re-run, or the failure was reported — not ignored.

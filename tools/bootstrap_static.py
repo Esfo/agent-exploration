@@ -514,6 +514,14 @@ PROFILING_NUM_PREDICT=2048
 OPTIMIZATION_NUM_PREDICT=4096
 FINISH_NUM_PREDICT=2048
 
+# Finish-gate checks (user-list design): each instruction file is an ordered
+# list of checks for its named process. Before an agent finishes "complete" the
+# runtime walks the role's checks one-by-one; auto-tagged lines are checked
+# deterministically, the rest by the model. See docs/CHECKS.md.
+CHECK_GATE_ENABLED=true
+CHECK_GATE_MODEL_EVAL=true
+MAX_GATE_ATTEMPTS=3
+
 # Token budgeting
 TOKEN_SAFETY_MARGIN=256
 SUMMARIZE_CONTEXT_WHEN_OVER_BUDGET=true

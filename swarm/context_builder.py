@@ -8,11 +8,13 @@ from __future__ import annotations
 
 from .instructions import parse_instruction_file
 
-# Instruction files every agent loads, plus role-specific ones.
+# Instruction files every agent loads (and is gated by), plus role-specific and
+# tool-derived ones. Each is a user-list of checks for its named process.
 GLOBAL_INSTRUCTION_KEYS = [
     "INSTRUCTION_GLOBAL",
     "INSTRUCTION_SAFETY",
     "INSTRUCTION_PROGRESS",
+    "INSTRUCTION_FINISHING",
 ]
 
 ROLE_INSTRUCTION_KEYS = {
@@ -27,6 +29,40 @@ ROLE_INSTRUCTION_KEYS = {
     "profiler": ["INSTRUCTION_PROFILING"],
     "optimizer": ["INSTRUCTION_OPTIMIZATION"],
 }
+
+# Tool -> the process instruction file whose checks apply when the agent can use
+# that tool. This is what makes python_execution.txt / file_writing.txt / etc.
+# actually load and gate, instead of being dead files.
+TOOL_INSTRUCTION_KEYS = {
+    "write_file": "INSTRUCTION_FILE_WRITING",
+    "append_file": "INSTRUCTION_FILE_WRITING",
+    "read_file": "INSTRUCTION_FILE_READING",
+    "list_files": "INSTRUCTION_FILE_READING",
+    "delete_file": "INSTRUCTION_FILE_DELETING",
+    "python": "INSTRUCTION_PYTHON",
+    "shell": "INSTRUCTION_SHELL",
+    "terminal_command": "INSTRUCTION_TERMINAL",
+    "curl": "INSTRUCTION_CURL",
+    "profile": "INSTRUCTION_PROFILING",
+    "optimize": "INSTRUCTION_OPTIMIZATION",
+    "spawn_agents": "INSTRUCTION_SPAWNING",
+}
+
+
+def instruction_keys_for(role: str) -> list[str]:
+    """Ordered, de-duped instruction-file keys for an agent of this role:
+    global + role-specific + one per tool the role can use."""
+    keys = list(GLOBAL_INSTRUCTION_KEYS) + ROLE_INSTRUCTION_KEYS.get(role, [])
+    for tool in tools_for_role(role):
+        k = TOOL_INSTRUCTION_KEYS.get(tool)
+        if k:
+            keys.append(k)
+    seen, ordered = set(), []
+    for k in keys:
+        if k not in seen:
+            seen.add(k)
+            ordered.append(k)
+    return ordered
 
 # Tools common to every agent.
 COMMON_TOOLS = ["report_progress", "finish"]
@@ -111,7 +147,11 @@ class ContextBuilder:
 
     def system_prompt(self, role: str) -> str:
         parts = [self._render_prompt("PROMPT_BASE"), self._render_prompt("PROMPT_TOOL_FORMAT")]
-        keys = GLOBAL_INSTRUCTION_KEYS + ROLE_INSTRUCTION_KEYS.get(role, [])
+        parts.append(
+            "The numbered lines in the files below are CHECKS. Before you may finish "
+            "\"complete\", the runtime verifies them one-by-one; if any check fails you "
+            "are sent back to fix it. Work so that every check is true.")
+        keys = instruction_keys_for(role)
         for key in keys:
             rendered = self._render_instruction(key)
             if rendered:

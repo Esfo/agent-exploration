@@ -46,7 +46,7 @@ def project(tmp_path):
     sp = tmp_path / "settings" / "main.settings"
     text = sp.read_text(encoding="utf-8").replace(
         "DEFAULT_MODEL=qwen2.5-coder:7b", "DEFAULT_MODEL=mock-model:latest"
-    )
+    ).replace("CHECK_GATE_ENABLED=true", "CHECK_GATE_ENABLED=false")
     sp.write_text(text, encoding="utf-8")
     return tmp_path
 

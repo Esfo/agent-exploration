@@ -1,9 +1,7 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls persistent terminals.
-001. Open a terminal with <<tool:open_terminal>>{"terminal_type":"shell","purpose":".."}<</tool>>. The result gives a terminal_id.
-002. Run commands with <<tool:terminal_command>>{"terminal_id":"terminal_0001","reason":"..","expected_result":"..","destructive_risk_answer":"..","timeout_seconds":30,"command":".."}<</tool>>.
-003. reason, expected_result, destructive_risk_answer, and timeout_seconds are REQUIRED.
-004. The terminal starts and stays in your assigned directory; the runtime resets the working directory after each command.
-005. For a single one-off command, prefer the shell tool instead of opening a terminal.
-006. Read each RESULT (exit_code, stdout, stderr) before the next command.
-007. Close the terminal with <<tool:close_terminal>>{"terminal_id":".."}<</tool>> when done.
+PURPOSE: Checks that terminal use was correct. Verified one-by-one at finish.
+001. Every terminal command stayed inside the assigned directory. [[auto:cwd_clean]]
+002. Each terminal command carried a reason, an expected result, a destructive-risk answer, and a timeout.
+003. Each command's output (exit code, stdout, stderr) was inspected before the next step.
+004. No command tried to modify the host system or leave the jail on purpose.
+005. Terminals that were opened were used and then closed.

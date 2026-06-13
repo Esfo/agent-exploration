@@ -1,12 +1,10 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Loaded by all agents to constrain risky behavior.
-001. Do not attempt to bypass runtime permissions.
-002. Do not request commands that intentionally leave the assigned directory.
-003. Do not access private network addresses.
-004. Do not use shell commands to modify the host system.
-005. Do not run commands without a timeout.
-006. Do not hide errors.
-007. Do not claim success without verification.
-008. If a safety rule blocks the task, return blocked with the reason.
-009. Prefer narrow, reversible actions.
-010. Answer command-questioning prompts before requesting command execution.
+PURPOSE: Safety checks applied to every agent. Verified one-by-one at finish.
+001. No attempt was made to bypass runtime permissions.
+002. No command intentionally tried to leave the assigned directory.
+003. No private or internal network addresses were accessed.
+004. No command modified the host system.
+005. Every command carried a timeout.
+006. Errors were surfaced, not hidden.
+007. No success was claimed without verification.
+008. Actions taken were narrow and reversible where possible.

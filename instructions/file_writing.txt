@@ -1,9 +1,6 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls file writing.
-001. Write with <<tool:write_file>>{"path":"name.py","content":"..full contents.."}<</tool>>.
-002. Give a simple relative name (or subdir/name). The runtime always places the file inside your assigned directory — you cannot choose elsewhere and you cannot write outside it.
-003. Write the complete file contents, not a diff or a fragment.
-004. To extend a file use <<tool:append_file>>{"path":"..","content":".."}<</tool>>.
-005. Do not put secrets, credentials, or absolute machine paths in files.
-006. The RESULT confirms the action ("created"/"modified") and the path. Trust that, not your assumption.
-007. List files you wrote in your finish note.
+PURPOSE: Checks on file writing. Verified one-by-one at finish (lenient if no files were written).
+001. Any file written was created with the write_file tool, with complete contents (not a diff).
+002. No file write was assumed to have happened without a confirming tool result.
+003. No secrets, credentials, or absolute machine paths were written into files.
+004. Files written are relevant to the task, not stray artifacts.
