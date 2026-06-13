@@ -1,12 +1,10 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls shell execution.
-001. Use shell commands only through the shell or sandboxed terminal tool.
-002. Prefer narrow commands over broad commands.
-003. Use the assigned directory as the working directory.
-004. Do not request shell commands that intentionally leave the assigned directory.
-005. Do not use sudo or host-system modification commands.
-006. Use shell commands for tests, linters, file listing, safe project commands, profiling, and diagnostics.
-007. Always include a timeout.
-008. Inspect stdout, stderr, and exit code.
-009. If a command fails, decide whether to fix, retry, profile, optimize, or report blocked.
-010. Include important shell results in the progress and finish notes.
+PURPOSE: Controls the shell tool.
+001. Run shell with: <<tool:shell>>{"reason":"..","expected_result":"..","destructive_risk_answer":"..","timeout_seconds":30,"command":".."}<</tool>>.
+002. reason, expected_result, destructive_risk_answer, and timeout_seconds are REQUIRED or the command is blocked.
+003. The command runs sandboxed in your assigned directory.
+004. Prefer narrow commands: run tests, list files, lint. Do not use sudo or commands that change the host system.
+005. Read the RESULT: exit_code, stdout, stderr. exit_code 0 means success.
+006. Common check: {"command":"python -m pytest -q"} to run tests.
+007. If a command is blocked, the result lists the reason or missing fields — fix and resend.
+008. If a command fails, fix the cause and re-run, or finish blocked with the failure.

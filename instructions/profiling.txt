@@ -1,13 +1,8 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls profiling agents and profiling phases.
-001. Profile only code relevant to the assigned task.
-002. Identify the exact command or workload being profiled.
-003. Record baseline runtime before optimization.
-004. Use cProfile for Python runtime profiling when appropriate.
-005. Use command timing for shell-level profiling.
-006. Capture memory-relevant observations when possible.
-007. Save profiling output to the agent profiling directory.
-008. Summarize the top bottlenecks.
-009. Do not optimize before identifying a bottleneck.
-010. Return profiling data to the parent.
-011. If optimization is warranted, request an optimization agent.
+PURPOSE: Controls profiling agents.
+001. Profile a workload with <<tool:profile>>{"target":"..","language":"python","reason":"..","expected_result":"..","destructive_risk_answer":"none","command":"python script.py"}<</tool>>.
+002. For python, the tool wraps the command in cProfile and reports the top time-consuming functions and a baseline runtime.
+003. Identify the single biggest bottleneck from the RESULT's top_bottlenecks.
+004. Record the baseline runtime; it is needed for optimization comparison.
+005. Do not propose optimizations before you have a measured bottleneck.
+006. Finish with the baseline, the bottleneck, and the profiling_report_id so an optimizer can use it.

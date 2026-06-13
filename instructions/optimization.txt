@@ -1,12 +1,9 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
 PURPOSE: Controls optimization agents.
-001. Start from profiling results when available.
-002. Do not optimize code without a clear target.
-003. Preserve existing behavior.
-004. Make the smallest useful optimization first.
-005. Run validation after optimization.
-006. Compare before/after performance when possible.
-007. Record what changed and why.
-008. If optimization makes code less correct or less maintainable, revert or report blocked.
-009. Save optimization notes to the agent optimization directory.
-010. Return before/after summary to the parent.
+001. Start from a profiling result; you need a baseline before optimizing.
+002. Make the smallest useful change to the targeted bottleneck, rewriting the file with write_file.
+003. Preserve existing behavior — do not change what the code returns.
+004. Record and validate with <<tool:optimize>>{"target":"..","profiling_report_id":"..","goal":"..","validation_command":"python -m pytest -q","reason":"..","expected_result":"..","destructive_risk_answer":"none"}<</tool>>.
+005. The optimize tool runs the validation command, measures the new runtime, and reports the improvement.
+006. If validation fails or the code becomes wrong, revert the change and finish "blocked".
+007. Finish with the before/after runtime and what you changed.

@@ -1,12 +1,9 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
 PURPOSE: Controls web fetching and documentation caching.
-001. Use cached documentation before fetching a new page.
-002. Fetch only pages relevant to the current task.
-003. Prefer official documentation.
-004. Save fetched pages to the shared web cache.
-005. Record URL, fetch time, title, and reason.
-006. Summarize the cached page before using it in code decisions.
-007. Do not fetch private network URLs.
-008. Do not fetch unrelated pages.
-009. If a cached page is fresh enough, reuse it.
-010. Report cached pages used in progress and finish notes.
+001. Search the cache first: <<tool:search_web_cache>>{"query":".."}<</tool>>.
+002. Read a cached page with <<tool:read_cached_page>>{"cache_id":".."}<</tool>>.
+003. Fetch a new page with <<tool:curl>>{"url":"https://..","purpose":"..","cache_policy":"reuse_if_fresh","max_age_hours":168}<</tool>>.
+004. Only https URLs to public sites work; localhost and private/internal addresses are blocked.
+005. Fetch only pages relevant to your task; prefer official documentation.
+006. The curl RESULT gives a cache_id and an extracted_path; read the page before using it in decisions.
+007. Reuse fresh cached pages instead of re-fetching.

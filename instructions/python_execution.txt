@@ -1,12 +1,9 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls Python execution.
-001. Use Python execution for validation, inspection, profiling, transformations, and tests.
-002. Run Python only through the python tool or an approved sandboxed Python terminal.
-003. Do not assume Python code ran unless the runtime returns a result.
-004. Keep Python snippets task-specific.
-005. Use the assigned directory as the working directory.
-006. Do not request code that intentionally leaves the assigned directory.
-007. Always include a timeout.
-008. Inspect stdout, stderr, and exit code.
-009. Use profiling tools when performance analysis is requested.
-010. Include important Python results in the progress and finish notes.
+PURPOSE: Controls the python tool.
+001. Run Python with: <<tool:python>>{"reason":"..","expected_result":"..","destructive_risk_answer":"..","timeout_seconds":30,"code":".."}<</tool>>.
+002. All four of reason, expected_result, destructive_risk_answer, and timeout_seconds are REQUIRED or the run is blocked.
+003. The code runs sandboxed in your assigned directory; files you wrote there are importable.
+004. Do not assume the code ran — read the RESULT: exit_code, stdout, stderr.
+005. Use python to verify behavior, inspect data, or run quick checks.
+006. Keep snippets short and specific to the current step.
+007. If exit_code is not 0, read stderr, fix the cause, and run again.

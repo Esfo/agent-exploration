@@ -1,15 +1,11 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls recursive swarm spawning.
-001. If the assigned task has multiple separable deliverables, create a checklist.
-002. If a checklist item can be completed independently, spawn a child agent for it.
-003. Each spawned child must receive exactly one primary task.
-004. Each child task must include a done condition.
-005. Each child task must include relevant parent context.
-006. Each child task must include the expected output format.
-007. Do not spawn duplicate children for the same exact deliverable.
-008. If child outputs must work together, schedule a review or integration pass after workers finish.
-009. If profiling is needed, spawn profiling agents.
-010. If optimization is needed, spawn optimization agents after profiling.
-011. If system resources are constrained, allow the runtime to queue child agents.
-012. After spawning, report the child list and current swarm completion percentage.
-013. If the task benefits from deeper recursive decomposition, continue spawning children through the spawn_agents tool.
+PURPOSE: Controls recursive spawning and the divide-or-defer decision.
+001. Spawn with: <<tool:spawn_agents>>{"children":[{"title":"..","task":"..","role":"code","done_condition":".."}]}<</tool>>.
+002. Spawn only when a piece can be done independently. Give each child exactly one task and a done condition.
+003. Put the context the child needs inside its "task" string; children do not see your conversation.
+004. Do not spawn duplicate children for the same deliverable.
+005. Valid roles: code, tester, reviewer, integrator, fixer, profiler, optimizer, researcher.
+006. If sibling outputs must work together, after they finish use request_integration (or spawn an integrator) to combine them.
+007. DIVIDE-OR-DEFER: if you are stuck and a task is too big to finish directly, split it with spawn_agents instead of looping.
+008. If a task is not solvable yet given what you know, finish with status "blocked" and state exactly what is missing — do not keep retrying.
+009. Children run on their own; you will receive a summary of their results when they complete.

@@ -1,12 +1,8 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
 PURPOSE: Controls file reading.
-001. Read only files relevant to the assigned task.
-002. Use the read_file tool for file access.
-003. Do not assume file contents without reading them.
-004. Prefer reading narrow files over dumping large directories.
-005. Read from the assigned directory when working on local output.
-006. Read from project snapshots only when context is needed.
-007. Read from shared web cache only when documentation is relevant.
-008. Track files read if they influence the result.
-009. Include important files read in the progress and finish notes.
-010. If file reading is blocked, report the exact reason.
+001. Read a file with <<tool:read_file>>{"path":"relative/name.py"}<</tool>>.
+002. List a directory with <<tool:list_files>>{"path":"."}<</tool>>.
+003. Read only files relevant to your task; prefer narrow reads.
+004. Do not assume a file's contents — read it first.
+005. The RESULT contains the file content; use it before deciding next steps.
+006. If a read is denied or the file is missing, the result says so — adjust accordingly.

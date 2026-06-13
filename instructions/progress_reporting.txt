@@ -1,14 +1,8 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls progress report behavior.
-001. Report when starting a meaningful task.
-002. Report when spawning children.
-003. Report when beginning terminal work.
-004. Report when a command succeeds or fails if it changes the task state.
-005. Report when files are created, modified, or deleted.
-006. Report when web pages are cached.
-007. Report when profiling begins or ends.
-008. Report when optimization begins or ends.
-009. Report current completion percentage.
-010. Keep progress notes short and specific.
-011. Do not spam repeated progress messages for the same unchanged state.
-012. Finish with a completion note to the parent.
+PURPOSE: Controls progress reporting.
+001. Report progress with <<tool:report_progress>>{"message":"..","completion_percentage":50,"current_step":".."}<</tool>>.
+002. Report at most once per real step (after writing a file, after a test runs, after spawning).
+003. Do NOT send the same message twice. If nothing changed, take an action or finish instead.
+004. progress is optional — it never substitutes for doing the work. If in doubt, act, don't report.
+005. Keep messages short and concrete ("wrote reverse.py", "tests passed 3/3").
+006. End the task with the finish tool, not with a progress report.

@@ -1,12 +1,11 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls how agents finish and report results upward.
-001. Finish only through the finish tool.
-002. Do not finish until the assigned done condition is met or the task is blocked.
-003. Include a clear status: complete, blocked, or failed.
-004. Include a concise summary of what was accomplished.
-005. Include a return note to the parent agent.
-006. Include completion percentage.
-007. List files created, modified, and deleted.
-008. List commands run and sandboxes used.
-009. List remaining issues honestly.
-010. Do not claim success without verification.
+PURPOSE: Controls how agents finish.
+001. Finish with <<tool:finish>>{"status":"complete","summary":"..","note":"..","files_created":[".."],"remaining_issues":[]}<</tool>>.
+002. status must be "complete", "blocked", or "failed".
+003. Use "complete" ONLY when your done condition is met and verified by a tool result (e.g. tests passed, exit_code 0).
+004. Use "blocked" when you cannot proceed; put the exact reason and what is missing in "note" so it can be handled later.
+005. Use "failed" when the task ran but the result is wrong and you cannot fix it.
+006. "summary" is one or two sentences of what you accomplished.
+007. "note" is the message your parent agent reads — make it specific.
+008. List files you created in "files_created".
+009. Do not claim success you have not verified.

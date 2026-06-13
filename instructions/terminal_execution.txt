@@ -1,14 +1,9 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls terminal use by agents.
-001. Request terminals only through the terminal tool.
-002. Every terminal must be sandboxed.
-003. Every terminal must start in the assigned agent directory.
-004. Every command must include a reason.
-005. Every command must include the expected result.
-006. Every command must include a destructive-risk answer.
-007. Every command must be formatted exactly as required by the terminal command prompt file.
-008. Do not request a command that intentionally leaves the assigned directory.
-009. If a command needs another directory, request a new approved sandbox mount through the runtime.
-010. Inspect command output before deciding the next step.
-011. Include important terminal activity in the progress report.
-012. Include commands run in the finish note.
+PURPOSE: Controls persistent terminals.
+001. Open a terminal with <<tool:open_terminal>>{"terminal_type":"shell","purpose":".."}<</tool>>. The result gives a terminal_id.
+002. Run commands with <<tool:terminal_command>>{"terminal_id":"terminal_0001","reason":"..","expected_result":"..","destructive_risk_answer":"..","timeout_seconds":30,"command":".."}<</tool>>.
+003. reason, expected_result, destructive_risk_answer, and timeout_seconds are REQUIRED.
+004. The terminal starts and stays in your assigned directory; the runtime resets the working directory after each command.
+005. For a single one-off command, prefer the shell tool instead of opening a terminal.
+006. Read each RESULT (exit_code, stdout, stderr) before the next command.
+007. Close the terminal with <<tool:close_terminal>>{"terminal_id":".."}<</tool>> when done.

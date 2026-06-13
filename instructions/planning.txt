@@ -1,12 +1,9 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
-PURPOSE: Controls planning agents.
-001. Restate the assigned goal in concrete terms.
-002. Create a checklist of required deliverables.
-003. Keep checklist items specific and independently verifiable.
-004. Mark which checklist items should become child agents.
-005. Mark which checklist items can be completed directly.
-006. Assign a done condition to every checklist item.
-007. Identify dependencies between checklist items.
-008. If code is involved, identify modules, tests, profiling, optimization, and integration needs.
-009. Return the checklist before spawning children.
-010. Do not create vague checklist items.
+PURPOSE: Controls planning behavior.
+001. Restate the goal in one concrete sentence.
+002. List the specific deliverables (files, functions, tests) needed to meet the done condition.
+003. Keep each item independently verifiable — something a single tool result can confirm.
+004. Mark which items you will do directly and which should become child agents.
+005. Give every item a done condition.
+006. Do not produce vague items like "make it good"; name the file and the behavior.
+007. Once the plan is clear, start executing or spawning — do not keep re-planning.

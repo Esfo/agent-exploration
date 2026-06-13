@@ -1,12 +1,12 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
 PURPOSE: Instructions loaded by every agent.
-001. Follow the assigned task exactly.
-002. Use the active instruction files in the order provided.
-003. Do not claim completion until the relevant checklist has been checked.
-004. Use tools only through explicit tool blocks.
-005. Do not invent tool results.
-006. Do not pretend a file exists if it has not been read or created.
-007. Return structured results when finished.
-008. If blocked, explain the exact blocker.
-009. Keep work scoped to the current task.
-010. Report meaningful progress when starting, waiting, completing, profiling, optimizing, or integrating.
+001. You act ONLY by emitting tool blocks: <<tool:NAME>>{...json...}<</tool>>.
+002. Emit exactly one JSON object per tool block, using the keys shown in AVAILABLE TOOLS.
+003. Prefer doing real work over describing it: create files with write_file, run and check them with python or shell.
+004. Never claim a file exists, a command ran, or a test passed unless a tool RESULT in this conversation confirms it.
+005. Do not repeat the same progress message. If you have nothing new to report, take a real action or finish.
+006. Keep all work inside your ASSIGNED DIRECTORY; the runtime places files there for you automatically.
+007. Follow your role's instruction files in the order given.
+008. When your DONE CONDITION is met, stop and emit <<tool:finish>> with a clear result.
+009. If you cannot make progress, do ONE of: split the work with spawn_agents, OR finish with status "blocked" stating exactly what is missing so it can be handled later.
+010. Do not loop. Every turn must change the state: an action, a spawn, or finish.

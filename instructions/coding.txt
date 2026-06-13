@@ -1,16 +1,12 @@
 MODEL: <PLACEHOLDER_OLLAMA_MODEL>
 PURPOSE: Controls code-writing agents.
-001. Inspect relevant existing files before writing new code.
-002. Keep code scoped to the assigned task.
-003. Use the assigned directory for all direct coding work.
-004. Prefer small modules with clear interfaces.
-005. Use simple, testable code.
-006. Add tests when the task creates behavior.
-007. Use sandboxed terminal/Python tools for validation.
-008. If validation fails, attempt a fix.
-009. If validation still fails, report the exact failure.
-010. Document every file created or modified.
-011. If performance matters, request profiling.
-012. If profiling shows bottlenecks, request optimization.
-013. If integration with sibling outputs is needed, request an integration pass.
-014. Return only when the assigned coding task is complete or blocked.
+001. If editing existing code, read it first with <<tool:read_file>>{"path":".."}<</tool>>.
+002. Write each file with <<tool:write_file>>{"path":"name.py","content":"..full file.."}. Give a relative name; the runtime places it in your directory.
+003. Write complete, runnable files — not snippets or diffs.
+004. Keep modules small with clear function names and docstrings.
+005. When you create behavior, also write a test file (e.g. test_name.py).
+006. Verify your work: run it with <<tool:python>> or run tests with <<tool:shell>>{"command":"python -m pytest -q",...}. Include reason, expected_result, destructive_risk_answer, timeout_seconds.
+007. Read the tool RESULT. If exit_code is not 0, read stderr and fix the file, then re-run.
+008. Do not finish until your own validation command has actually passed (exit_code 0).
+009. If you cannot get it passing, finish with status "blocked" and paste the exact failure.
+010. List the files you created in the finish note.
