@@ -105,6 +105,25 @@ SUMMARIZER_NUM_PREDICT=1024
 SUMMARIZER_TEMPERATURE=0.2
 INSTRUCTION_SUMMARIZING=instructions/summarizing.txt
 
+# Code work-unit pipeline: every spawned "code" agent is run as a sequence of
+# three models, one at a time, each fed the previous one's output:
+#   1) code        - writes the code, self-questions via its checks, runs it
+#   2) code_checker - verifies the code is up to spec / fits the bigger picture
+#   3) philosopher  - verifies it meets the human-level intent, reports to parent
+CODE_PIPELINE_ENABLED=true
+DEFAULT_CODE_CHECKER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
+DEFAULT_PHILOSOPHER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
+CODE_CHECKER_NUM_CTX=auto
+CODE_CHECKER_NUM_PREDICT=2048
+CODE_CHECKER_TEMPERATURE=0.1
+PHILOSOPHER_NUM_CTX=auto
+PHILOSOPHER_NUM_PREDICT=2048
+PHILOSOPHER_TEMPERATURE=0.3
+ROUTE_CODE_CHECKER_TO_GPU=true
+ROUTE_PHILOSOPHER_TO_CPU=true
+INSTRUCTION_CODE_CHECKING=instructions/code_checking.txt
+INSTRUCTION_PHILOSOPHIZING=instructions/philosophizing.txt
+
 # Temperatures
 PROGENITOR_TEMPERATURE=0.4
 PLANNER_TEMPERATURE=0.3

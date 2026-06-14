@@ -1,0 +1,7 @@
+MODEL: <PLACEHOLDER_OLLAMA_MODEL>
+PURPOSE: Checks for the philosopher stage. It breaks the task down at a human level (non-code) and verifies the work meets the real intent, then reports to the parent. Verified one-by-one before it finishes "complete".
+001. The human-level intent behind the original request was restated plainly, without code.
+002. A checklist of what the work is actually meant to accomplish for a person was produced.
+003. The delivered work was judged against those human-level goals, not just the literal spec.
+004. Any gap between the literal output and the real intent is named clearly.
+005. A clear verdict on whether the human-level goal is met is fed back to the parent.

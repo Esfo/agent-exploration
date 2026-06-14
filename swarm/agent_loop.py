@@ -402,6 +402,61 @@ class AgentRunner:
         ctx.events.agent_finished(child["id"], result)
         return summary
 
+    def _agent_conversation(self, agent_row, inherited: list[dict]) -> list[dict]:
+        """Reconstruct an agent's full conversation: inherited branch + its purpose
+        + its own model outputs (which carry any code it wrote)."""
+        purpose = self._purpose_text(dict(agent_row))
+        own = [{"role": "assistant", "content": m["content"]}
+               for m in self.ctx.db.get_messages(agent_row["id"])]
+        return inherited + [{"role": "user", "content": purpose}] + own
+
+    def run_code_pipeline(self, code_agent_id: str, inherited: list[dict]) -> dict:
+        """A code work-unit run as three sequential models, each fed the previous:
+        code -> code_checker -> philosopher (spec: change the nature of recursion)."""
+        ctx, db = self.ctx, self.ctx.db
+        code_row = db.get_agent(code_agent_id)
+        orig_task = code_row["task"]
+
+        # Stage 1: the coding model writes + self-checks + runs the code.
+        code_res = self.run_agent(code_agent_id, inherited)
+        stage1 = self._agent_conversation(db.get_agent(code_agent_id), inherited)
+
+        # Stage 2: the code-checker verifies spec + bigger picture.
+        checker = ctx.create_child(
+            parent=code_row, title="Check the code against spec and the bigger picture",
+            task=("Verify the code produced above is up to spec, meets the intended goal, "
+                  "and fits the bigger picture it must return into.\nORIGINAL TASK:\n" + orig_task),
+            role="code_checker", done_condition="A clear PASS/FAIL verdict on the code.",
+            suggested_model=None, priority=2)
+        checker_res = self.run_agent(checker["id"], stage1)
+        stage2 = self._agent_conversation(db.get_agent(checker["id"]), stage1)
+
+        # Stage 3: the philosopher verifies human-level intent and reports up.
+        phil = ctx.create_child(
+            parent=code_row, title="Verify the work meets the human-level goal",
+            task=("Without writing code, verify the work meets the human-level goals as "
+                  "intended, and report a verdict to the parent.\nORIGINAL TASK:\n" + orig_task),
+            role="philosopher", done_condition="A clear verdict on whether human intent is met.",
+            suggested_model=None, priority=3)
+        phil_res = self.run_agent(phil["id"], stage2)
+
+        return {
+            "status": code_res.get("status", "blocked"),
+            "summary": (f"code: {code_res.get('summary','')} | "
+                        f"check: {checker_res.get('summary','')} | "
+                        f"human-goal: {phil_res.get('summary','')}"),
+            "note": (f"Code pipeline finished. CODE [{code_res.get('status')}]: "
+                     f"{code_res.get('note', code_res.get('summary',''))}. "
+                     f"CHECKER [{checker_res.get('status')}]: "
+                     f"{checker_res.get('note', checker_res.get('summary',''))}. "
+                     f"PHILOSOPHER [{phil_res.get('status')}]: "
+                     f"{phil_res.get('note', phil_res.get('summary',''))}."),
+            "return_note": phil_res.get("note", ""),
+            "completion_percentage": code_res.get("completion_percentage", 100),
+            "pipeline": {"code": code_agent_id, "code_checker": checker["id"],
+                         "philosopher": phil["id"]},
+        }
+
     def _run_children(self, spawned: list[dict], conversation: list[dict]) -> str:
         """Run children concurrently, each inheriting the branch conversation.
         The scheduler's GPU/CPU semaphores bound actual inference; thread-per-child
@@ -411,8 +466,13 @@ class AgentRunner:
 
         results: dict[str, dict] = {}
 
+        pipeline = self.ctx.settings.get_bool("CODE_PIPELINE_ENABLED", True)
+
         def _run(child):
-            results[child["id"]] = self.run_agent(child["id"], conversation)
+            if child.get("role") == "code" and pipeline:
+                results[child["id"]] = self.run_code_pipeline(child["id"], conversation)
+            else:
+                results[child["id"]] = self.run_agent(child["id"], conversation)
 
         if self.ctx.scheduler is None or len(spawned) == 1:
             for child in spawned:

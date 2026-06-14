@@ -28,6 +28,8 @@ ROLE_INSTRUCTION_KEYS = {
     "fixer": ["INSTRUCTION_FIXING"],
     "profiler": ["INSTRUCTION_PROFILING"],
     "optimizer": ["INSTRUCTION_OPTIMIZATION"],
+    "code_checker": ["INSTRUCTION_CODE_CHECKING"],
+    "philosopher": ["INSTRUCTION_PHILOSOPHIZING"],
 }
 
 # Tool -> the process instruction file whose checks apply when the agent can use
@@ -88,6 +90,9 @@ ROLE_TOOLSETS = {
     "optimizer": WORKER_TOOLS + ["optimize", "profile"],
     "profiler": WORKER_TOOLS + ["profile"],
     "researcher": WEB_TOOLS,
+    # Stage-2 checker can read + run to verify; stage-3 philosopher is non-code.
+    "code_checker": WORKER_TOOLS,
+    "philosopher": ["read_file", "list_files"],
 }
 
 # Concise argument hints so small models emit the right JSON keys.

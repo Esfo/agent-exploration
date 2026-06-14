@@ -41,6 +41,8 @@ ROLE_PRIMARY_FILE = {
     "optimizer": ("INSTRUCTION_OPTIMIZATION", "OPTIMIZATION"),
     "finisher": ("INSTRUCTION_FINISHING", "FINISH"),
     "summarizer": ("INSTRUCTION_SUMMARIZING", "SUMMARIZER"),
+    "code_checker": ("INSTRUCTION_CODE_CHECKING", "CODE_CHECKER"),
+    "philosopher": ("INSTRUCTION_PHILOSOPHIZING", "PHILOSOPHER"),
 }
 
 # role -> DEFAULT_<X>_MODEL settings key
@@ -64,6 +66,8 @@ ROLE_DEFAULT_KEY = {
     "optimizer": "DEFAULT_OPTIMIZATION_MODEL",
     "finisher": "DEFAULT_FINISH_MODEL",
     "summarizer": "DEFAULT_SUMMARIZER_MODEL",
+    "code_checker": "DEFAULT_CODE_CHECKER_MODEL",
+    "philosopher": "DEFAULT_PHILOSOPHER_MODEL",
 }
 
 # Roles routed to GPU (setting ROUTE_<X>_TO_GPU=true). Default CPU otherwise.
@@ -75,6 +79,7 @@ GPU_ROUTE_KEY = {
     "integrator": "ROUTE_INTEGRATION_TO_GPU",
     "fixer": "ROUTE_FIX_TO_GPU",
     "optimizer": "ROUTE_OPTIMIZATION_TO_GPU",
+    "code_checker": "ROUTE_CODE_CHECKER_TO_GPU",
 }
 
 
