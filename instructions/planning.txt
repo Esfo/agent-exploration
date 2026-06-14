@@ -1,0 +1,6 @@
+PURPOSE: Checks on the planning process. Verified one-by-one at finish.
+001. The goal was restated concretely.
+002. The deliverables are specific and each is independently verifiable.
+003. Each item has a done condition.
+004. Items were marked as do-directly vs. spawn-a-child appropriately.
+005. The plan led to action — there was no endless re-planning.

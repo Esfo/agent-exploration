@@ -1,0 +1,11 @@
+PURPOSE: Controls behavior when CPU/RAM/GPU/disk resources are pressured.
+001. If the runtime reports high resource pressure, prefer queueing new agents.
+002. If GPU is saturated, allow CPU routing for low-priority work.
+003. If RAM is saturated, pause low-priority agents.
+004. If disk is near limit, stop writing large files and report blocked.
+005. If active sandboxes are saturated, queue sandbox requests.
+006. If active terminals are saturated, queue terminal requests.
+007. If command queues are saturated, wait for running commands to finish.
+008. Do not fake progress while queued.
+009. Report that work is waiting on resources.
+010. Resume when the runtime allows it.

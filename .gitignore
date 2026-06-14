@@ -1,0 +1,24 @@
+# Runtime state and generated artifacts
+runtime/state.sqlite*
+runtime/config_cache.json
+logs/*.jsonl
+cache/web/pages/*
+cache/web/index.sqlite*
+
+# Everything agents generate at runtime. Nothing under an agent's directory
+# (work/, output/, terminal/, profiling/, .trash/, logs/, ...) is ever tracked.
+workspace/agents/**
+workspace/project/**
+workspace/project_snapshot/**
+workspace/profiling/**
+workspace/optimization/**
+workspace/shared_readonly/**
+# ...but keep the directory placeholders so the tree exists after clone.
+!**/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/

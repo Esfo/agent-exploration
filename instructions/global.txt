@@ -1,0 +1,7 @@
+PURPOSE: Checks applied to every agent. Verified one-by-one before any agent finishes "complete".
+001. Every action was taken through a tool block, not described in prose.
+002. No tool result was invented; nothing was claimed that a tool did not actually return.
+003. All work stayed inside the assigned directory.
+004. The assigned task (its done condition) was actually met, not merely attempted.
+005. Each turn changed the state — there was no idle looping or repeated identical progress.
+006. If the task could not be completed, it was either split into a new swarm or finished "blocked" with a clear reason — completion was never faked.

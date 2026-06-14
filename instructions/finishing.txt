@@ -1,0 +1,7 @@
+PURPOSE: Checks on how an agent finishes. Verified one-by-one at finish.
+001. The finish status is one of complete, blocked, or failed.
+002. "complete" is used only when the done condition was met and verified by a tool result.
+003. The summary states concretely what was accomplished.
+004. The return note to the parent is specific enough to act on.
+005. Files created or changed are listed.
+006. Remaining issues, if any, are stated honestly rather than hidden.

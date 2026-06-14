@@ -1,0 +1,8 @@
+PURPOSE: Checks that the coding process was implemented correctly. Each line is verified one-by-one before a code agent may finish "complete".
+001. At least one file was created or modified for the deliverable.
+002. The work was validated by actually running it — a python or shell command exited 0.
+003. The code is scoped to the assigned task and not sprawling into unrelated areas.
+004. New behavior has a corresponding test, or there is a clear reason none is needed.
+005. Existing files were read before being changed, rather than blindly overwritten.
+006. No success was claimed that a tool result does not actually confirm.
+007. If the task cannot be completed correctly, does this require a separate agent swarm, or should it be deferred? Decide and act rather than faking completion.

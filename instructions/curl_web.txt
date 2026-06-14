@@ -1,0 +1,5 @@
+PURPOSE: Checks on web fetching. Verified one-by-one at finish (lenient if the web was not used).
+001. The cache was checked before fetching anything new.
+002. Only task-relevant, public https pages were fetched.
+003. A fetched page was actually read before being used in a decision.
+004. Fresh cached pages were reused instead of being re-fetched.

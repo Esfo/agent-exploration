@@ -1,0 +1,10 @@
+PURPOSE: Defines tool syntax.
+Tool blocks must use this format:
+
+<<tool:tool_name>>
+{
+  "key": "value"
+}
+<</tool>>
+
+Do not describe tool usage without emitting a tool block.

@@ -1,0 +1,5 @@
+PURPOSE: Checks on python tool use. Verified one-by-one at finish (lenient if python was not used).
+001. Each python run carried a reason, expected result, destructive-risk answer, and timeout.
+002. Results (exit code, stdout, stderr) were inspected — nothing was assumed to have run.
+003. When a run failed, the cause was addressed and re-run rather than ignored.
+004. Python was used for real validation/inspection, not as a substitute for writing files.

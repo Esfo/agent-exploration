@@ -1,0 +1,5 @@
+PURPOSE: Checks on file deletion. Verified one-by-one at finish (lenient if nothing was deleted).
+001. Only files inside the assigned directory were deleted.
+002. No file was deleted merely to hide an error.
+003. Where a file needed correcting, it was rewritten rather than deleted-then-recreated when that was simpler.
+004. Any blocked deletion was reported with its reason.

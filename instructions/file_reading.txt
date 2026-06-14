@@ -1,0 +1,4 @@
+PURPOSE: Checks on file reading. Verified one-by-one at finish (lenient if no reads were needed).
+001. File contents that influenced the result were actually read, not assumed.
+002. Reads were narrow and relevant rather than dumping large directories.
+003. Any read that was blocked was reported with its reason, not ignored.

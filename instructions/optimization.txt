@@ -1,0 +1,6 @@
+PURPOSE: Checks on the optimization process. Verified one-by-one at finish.
+001. There was a measured baseline before optimizing.
+002. The change targeted the identified bottleneck and preserved existing behavior.
+003. Validation was run after the change and actually passed.
+004. Before/after runtime was compared and reported.
+005. If the change broke correctness or wasn't worth it, it was reverted or reported blocked.

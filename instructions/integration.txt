@@ -1,0 +1,6 @@
+PURPOSE: Checks on the integration process. Verified one-by-one at finish.
+001. The outputs being combined were actually read.
+002. Overlapping or conflicting files and incompatible interfaces were identified.
+003. The combined result was validated by running it.
+004. No child's work was silently dropped — it was reconciled or explicitly excluded with a reason.
+005. Integration status and remaining issues were reported.

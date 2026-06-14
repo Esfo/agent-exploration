@@ -1,0 +1,5 @@
+PURPOSE: Checks on file writing. Verified one-by-one at finish (lenient if no files were written).
+001. Any file written was created with the write_file tool, with complete contents (not a diff).
+002. No file write was assumed to have happened without a confirming tool result.
+003. No secrets, credentials, or absolute machine paths were written into files.
+004. Files written are relevant to the task, not stray artifacts.

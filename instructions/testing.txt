@@ -1,0 +1,6 @@
+PURPOSE: Checks that the testing process was implemented correctly. Verified one-by-one before a tester finishes "complete".
+001. A validation command was actually run (a python/shell command exited 0).
+002. The reported pass/fail matches the command's real exit code — no claimed pass without confirmation.
+003. The smallest meaningful command was used to validate the work.
+004. If tests failed and are fixable, a fix was attempted or a fixer was requested; if not fixable here, does it need its own swarm or a deferral?
+005. The test command and its result are stated in the finish note.

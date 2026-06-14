@@ -1,0 +1,5 @@
+PURPOSE: Checks on the fixing process. Verified one-by-one at finish.
+001. The fix started from the specific failure described, and the relevant file was read first.
+002. The change was the smallest one addressing the failure; unrelated files were left alone.
+003. The previously-failing command was re-run and its result inspected.
+004. If it now passes, that was confirmed by the command; if it still fails, that was reported honestly.

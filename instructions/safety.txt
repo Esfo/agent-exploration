@@ -1,0 +1,9 @@
+PURPOSE: Safety checks applied to every agent. Verified one-by-one at finish.
+001. No attempt was made to bypass runtime permissions.
+002. No command intentionally tried to leave the assigned directory.
+003. No private or internal network addresses were accessed.
+004. No command modified the host system.
+005. Every command carried a timeout.
+006. Errors were surfaced, not hidden.
+007. No success was claimed without verification.
+008. Actions taken were narrow and reversible where possible.

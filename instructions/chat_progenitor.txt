@@ -1,0 +1,6 @@
+PURPOSE: Checks on the root/progenitor process. Verified one-by-one at finish.
+001. The user's request was understood and either answered directly or turned into concrete work.
+002. The decision to spawn a swarm vs. answer directly was deliberate — small/conversational requests were answered, substantial ones were decomposed.
+003. If children were spawned, their results were received and reconciled rather than ignored.
+004. The final result reflects what tool results actually show, not an assumption.
+005. If the request could not be satisfied, that was stated plainly with what is missing.

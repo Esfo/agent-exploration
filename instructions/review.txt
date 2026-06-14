@@ -1,0 +1,5 @@
+PURPOSE: Checks on the review process. Verified one-by-one at finish.
+001. The work under review was actually read before judging it.
+002. The verdict is a clear PASS or FAIL against the task's done condition.
+003. Concrete, specific fixes were listed for anything that failed.
+004. Where claims (tests passed, perf improved) were made, they were checked rather than taken on faith.

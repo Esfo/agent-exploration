@@ -1,0 +1,16 @@
+PURPOSE: Defines exact terminal command formatting.
+Every terminal command request must use:
+
+<<tool:terminal_command>>
+{
+  "terminal_id": "agent_current",
+  "working_directory": "assigned",
+  "reason": "...",
+  "expected_result": "...",
+  "destructive_risk_answer": "...",
+  "timeout_seconds": 30,
+  "command": "..."
+}
+<</tool>>
+
+The runtime will reject commands that do not include reason, expected result, working directory, timeout, and destructive-risk answer.

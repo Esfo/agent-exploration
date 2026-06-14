@@ -1,0 +1,6 @@
+PURPOSE: Checks on the profiling process. Verified one-by-one at finish.
+001. The exact workload being profiled was identified and actually run.
+002. A baseline runtime was recorded.
+003. The top bottleneck was identified from real profiling output, not guessed.
+004. No optimization was proposed before a measured bottleneck existed.
+005. The baseline and profiling_report_id were returned for an optimizer to use.
