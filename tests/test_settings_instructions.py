@@ -1,7 +1,7 @@
 import pytest
 
-from swarm.settings import Settings, SettingsError, PLACEHOLDER_MODEL
-from swarm.instructions import parse_instruction_file, InstructionError
+from swarm.settings import Settings, SettingsError
+from swarm.instructions import parse_instruction_file
 
 
 def write(tmp_path, name, content):
@@ -42,22 +42,17 @@ def test_settings_bad_line(tmp_path):
 
 
 def test_instruction_parse(tmp_path):
-    p = write(tmp_path, "coding.txt",
-              f"MODEL: {PLACEHOLDER_MODEL}\nPURPOSE: test\n001. first\n002. second\n# c\n")
+    # No MODEL line: PURPOSE first, then numbered instructions.
+    p = write(tmp_path, "coding.txt", "PURPOSE: test\n001. first\n002. second\n# c\n")
     inst = parse_instruction_file(p)
-    assert inst.model_is_placeholder
     assert inst.purpose == "test"
     assert inst.lines == ["first", "second"]
 
 
-def test_instruction_concrete_model(tmp_path):
+def test_instruction_legacy_model_line_ignored(tmp_path):
+    # A leftover MODEL line is accepted and ignored (model comes from settings).
     p = write(tmp_path, "x.txt", "MODEL: qwen2.5-coder:7b\nPURPOSE: p\n001. do it\n")
     inst = parse_instruction_file(p)
-    assert not inst.model_is_placeholder
-    assert inst.model == "qwen2.5-coder:7b"
-
-
-def test_instruction_requires_model_first(tmp_path):
-    p = write(tmp_path, "bad.txt", "PURPOSE: p\n001. x\n")
-    with pytest.raises(InstructionError):
-        parse_instruction_file(p)
+    assert inst.purpose == "p"
+    assert inst.lines == ["do it"]
+    assert not hasattr(inst, "model")

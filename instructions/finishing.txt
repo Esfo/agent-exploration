@@ -1,4 +1,3 @@
-MODEL: <PLACEHOLDER_OLLAMA_MODEL>
 PURPOSE: Checks on how an agent finishes. Verified one-by-one at finish.
 001. The finish status is one of complete, blocked, or failed.
 002. "complete" is used only when the done condition was met and verified by a tool result.

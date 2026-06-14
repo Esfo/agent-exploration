@@ -109,15 +109,9 @@ class ModelSelector:
             return None, None
         key, _ = info
         rel = self.s.get(key)
-        if not rel:
-            return None, None
-        path = self.s.root / rel
-        if not path.exists():
-            return None, str(rel)
-        model = parse_instruction_file(path).model.strip()
-        if model == PLACEHOLDER_MODEL or not model:
-            return None, str(rel)
-        return model, str(rel)
+        # Instruction files no longer dictate the model; we only return the file
+        # path (for logging / settings prefix). The model comes from settings.
+        return None, (str(rel) if rel else None)
 
     def _role_default(self, role: str) -> str | None:
         key = ROLE_DEFAULT_KEY.get(role)
@@ -195,8 +189,8 @@ class ModelSelector:
                 model, source = gd, "default_fallback"
         if model is None:
             raise SettingsError(
-                f"no usable model for role '{role}': all candidates are placeholders. "
-                f"Set DEFAULT_MODEL or a concrete MODEL: line."
+                f"no usable model for role '{role}': set DEFAULT_{role.upper()}_MODEL "
+                f"or DEFAULT_MODEL in settings/main.settings to a model you've pulled."
             )
 
         endpoint, exec_class = self._endpoint_for(role)

@@ -153,9 +153,8 @@ class ContextBuilder:
     def system_prompt(self, role: str) -> str:
         parts = [self._render_prompt("PROMPT_BASE"), self._render_prompt("PROMPT_TOOL_FORMAT")]
         parts.append(
-            "The numbered lines in the files below are CHECKS. Before you may finish "
-            "\"complete\", the runtime verifies them one-by-one; if any check fails you "
-            "are sent back to fix it. Work so that every check is true.")
+            "The numbered lines in the files below are your INSTRUCTIONS. Follow them "
+            "in order as you work.")
         keys = instruction_keys_for(role)
         for key in keys:
             rendered = self._render_instruction(key)

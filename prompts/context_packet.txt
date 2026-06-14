@@ -1,4 +1,3 @@
-MODEL: <PLACEHOLDER_OLLAMA_MODEL>
 PURPOSE: Defines context packet formatting.
 Include:
     AGENT ID

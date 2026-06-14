@@ -15,7 +15,6 @@ import threading
 from . import ids, tools
 from .context_builder import ContextBuilder
 from .model_selector import ModelSelector
-from .checks import run_gate
 from .instructions import parse_instruction_file
 from .transcript import Transcript
 from .token_budget import (ContextLimitReached, _summarize_dropped, ensure_fits,
@@ -159,8 +158,6 @@ class AgentRunner:
         parse_retries = 0
         last_response = ""
         attempted: list[str] = []
-        gate_attempts = 0
-        max_gate_attempts = ctx.settings.get_int("MAX_GATE_ATTEMPTS", 3) or 3
 
         memories_text = ""
         if ctx.memory is not None:
@@ -258,29 +255,6 @@ class AgentRunner:
                     continue
 
                 if call.name == "finish":
-                    # Finish gate: a "complete" claim must pass the role's checks
-                    # one-by-one (user-list design). Other statuses pass through.
-                    if (result["status"] == "complete"
-                            and ctx.settings.get_bool("CHECK_GATE_ENABLED", True)):
-                        passed, fail_text, detail, fname = run_gate(ctx, agent_d, history)
-                        if not passed:
-                            gate_attempts += 1
-                            if gate_attempts >= max_gate_attempts:
-                                blocked = {"status": "blocked", "failure": "check_gate_failed",
-                                           "note": (f"Finish blocked after {gate_attempts} attempts by "
-                                                    f"check in {fname}: \"{fail_text}\" ({detail})"),
-                                           "summary": result.get("summary", ""),
-                                           "completion_percentage": result.get("completion_percentage", 0)}
-                                db.save_agent_result(agent_id, blocked)
-                                db.update_agent_status(agent_id, "blocked")
-                                ctx.events.agent_finished(agent_id, blocked)
-                                return blocked
-                            feedback(f"Finish blocked by a check in {fname}: \"{fail_text}\" did not pass "
-                                f"({detail}). Address it now. If resolving it needs a separate agent "
-                                f"swarm, decide and use spawn_agents; if it genuinely cannot be done, "
-                                f"call finish with status \"blocked\" and explain.")
-                            resumed = True
-                            break
                     db.update_agent_status(agent_id, result["status"])
                     ctx.events.agent_finished(agent_id, result)
                     return result

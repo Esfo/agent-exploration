@@ -1,4 +1,3 @@
-MODEL: <PLACEHOLDER_OLLAMA_MODEL>
 PURPOSE: Drives a summarizer agent that compresses the earlier part of a branch conversation so a newly spawned agent can still inherit the essential context. Used when the conversation is too large to inherit whole.
 001. The original goal and the current state of the work are preserved.
 002. Decisions made are retained, with the reasoning that led to them.

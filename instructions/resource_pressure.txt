@@ -1,4 +1,3 @@
-MODEL: <PLACEHOLDER_OLLAMA_MODEL>
 PURPOSE: Controls behavior when CPU/RAM/GPU/disk resources are pressured.
 001. If the runtime reports high resource pressure, prefer queueing new agents.
 002. If GPU is saturated, allow CPU routing for low-priority work.

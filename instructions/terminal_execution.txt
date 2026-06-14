@@ -1,6 +1,5 @@
-MODEL: <PLACEHOLDER_OLLAMA_MODEL>
 PURPOSE: Checks that terminal use was correct. Verified one-by-one at finish.
-001. Every terminal command stayed inside the assigned directory. [[auto:cwd_clean]]
+001. Every terminal command stayed inside the assigned directory.
 002. Each terminal command carried a reason, an expected result, a destructive-risk answer, and a timeout.
 003. Each command's output (exit code, stdout, stderr) was inspected before the next step.
 004. No command tried to modify the host system or leave the jail on purpose.

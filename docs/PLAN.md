@@ -65,14 +65,14 @@ that deviate from or sharpen the spec.
 The spec framed some things in ways the system owner later corrected. These are
 now the canonical behaviors (see linked docs):
 
-### User-lists are finish-gate checks ✅ — see [`CHECKS.md`](CHECKS.md)
-- Each `instructions/*.txt` is an ordered list of **checks** for its named
-  process, not just prose. Before an agent finishes "complete", the runtime
-  verifies its role's checks **one-by-one**: deterministic where tagged
-  `[[auto:KEY]]`, model-judged otherwise. First failure blocks the finish; the
-  agent fixes it, spawns to divide, or finishes "blocked". (`swarm/checks.py`)
-- Instruction loading unified: an agent loads (and is gated by) global + safety
-  + progress + finishing + its role file + one file per usable tool.
+### User-lists are instructions the agent follows ✅ — see [`CHECKS.md`](CHECKS.md)
+- Each `instructions/*.txt` is an ordered list of **instructions** for its named
+  process, injected into the agent's prompt and followed in order. There is NO
+  runtime gate that re-reads them as pass/fail. Verification is done by spawning
+  checker agents (code_checker, philosopher) that follow their own files.
+- Instruction loading: an agent is given global + safety + progress + finishing
+  + its role file + one file per usable tool.
+- The model for a role is set in settings/main.settings, not the instruction file.
 
 ### Conversation inheritance + unique purpose ✅ — see [`CONTEXT.md`](CONTEXT.md)
 - Each recursive agent inherits the **full conversation** of the branch it was

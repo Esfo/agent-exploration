@@ -8,14 +8,14 @@ happens when a branch gets too big.
 Each model call for an agent is assembled as (`swarm/context_builder.build_messages`):
 
 ```
-[ system  ] role checks  (its instruction files, rendered as the gate criteria)
+[ system  ] role instructions  (its instruction files, followed in order)
 [ user…   ] INHERITED CONVERSATION  (the full thread of the branch it came from)
 [ user    ] THIS AGENT'S PURPOSE     (unique per agent; + any relevant memories)
 [ user/…  ] its own WORKING turns    (accumulated as it acts)
 ```
 
 - The **system** message is the agent's role + tool + safety instruction files
-  (the same lines that gate its finish — see [CHECKS.md](CHECKS.md)).
+  (see [CHECKS.md](CHECKS.md)).
 - The **inherited conversation** is the full message history of the branch that
   spawned it — *including the parent's assistant (model) outputs*, recursively
   up the chain. Children are not isolated; they read what their ancestors said

@@ -9,7 +9,7 @@ sandbox, reconcile each other's work, and report back. Runtime is **pure stdlib*
 ## Docs
 
 - [`docs/PLAN.md`](docs/PLAN.md) — build status + design decisions
-- [`docs/CHECKS.md`](docs/CHECKS.md) — **user-list checks** (the finish-gate)
+- [`docs/CHECKS.md`](docs/CHECKS.md) — instruction files (how agents follow them)
 - [`docs/CONTEXT.md`](docs/CONTEXT.md) — conversation inheritance, purpose, summarizer
 - [`docs/COMMANDS.md`](docs/COMMANDS.md) — chat & slash command reference
 
@@ -34,10 +34,10 @@ mock model (`python -m pytest -q`, 92 tests):
 - **Scheduler** — stdlib resource monitor (RAM/CPU/VRAM/disk) + GPU/CPU inference
   slots with backpressure; **parallel** agents over a thread-safe shared DB.
 - **Memory & branching** — `/remember`/`/forget`/`/memories`; `/branch`.
-- **User-list checks** ([CHECKS.md](docs/CHECKS.md)) — each `instructions/*.txt`
-  is an ordered list of checks; before an agent finishes "complete" the runtime
-  verifies them one-by-one (deterministic where `[[auto:]]`-tagged, else
-  model-judged).
+- **Instruction files** ([CHECKS.md](docs/CHECKS.md)) — each `instructions/*.txt`
+  is an ordered list of instructions the agent follows; the model per role is set
+  in `settings/main.settings`. Verification is done by spawned checker agents,
+  not a runtime gate.
 - **Conversation inheritance** ([CONTEXT.md](docs/CONTEXT.md)) — each recursive
   agent inherits the full branch conversation (incl. the parent's model output)
   plus a unique purpose; an over-large branch is compressed by a **summarizer
@@ -92,9 +92,7 @@ python tools/bootstrap_static.py   # regenerate static scaffold (won't clobber e
 The single biggest risk is tool-call reliability: a quantized 7B model will
 sometimes emit malformed `<<tool:>>` blocks. The parser is deliberately
 forgiving and the loop feeds corrections back, but if a model proves too
-unreliable we may switch to Ollama's schema-constrained output. With one GPU
-slot (`MAX_ACTIVE_GPU_AGENTS=1`) the GPU-routed agents serialize while CPU
-agents run alongside, so expect minutes of wall-clock for a multi-agent tree.
-The finish-gate ([CHECKS.md](docs/CHECKS.md)) is what stops a small model from
-"hallucinating" success — it can't finish a coding task without a real file and
-a passing validation command.
+unreliable we may switch to Ollama's schema-constrained output. GPU/CPU agent
+concurrency is measured at startup (`swarm/calibration.py`). The defense against
+a small model "hallucinating" success is the spawned checker pipeline (code →
+code_checker → philosopher), each following its own instruction file.

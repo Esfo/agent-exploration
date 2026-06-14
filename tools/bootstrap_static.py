@@ -42,7 +42,8 @@ DIRS = [
 
 
 def instruction(model: str, purpose: str, lines: list[str]) -> str:
-    body = [f"MODEL: {model}", f"PURPOSE: {purpose}"]
+    # The model comes from settings, not the instruction file; no MODEL: line.
+    body = [f"PURPOSE: {purpose}"]
     for i, ln in enumerate(lines, 1):
         body.append(f"{i:03d}. {ln}")
     return "\n".join(body) + "\n"
@@ -373,7 +374,6 @@ INSTRUCTIONS: dict[str, str] = {
 
 PROMPTS: dict[str, str] = {
     "agent_base.txt": (
-        f"MODEL: {PH}\n"
         "PURPOSE: Base prompt loaded by all agents.\n"
         "You are an autonomous recursive local agent.\n"
         "You are assigned one task.\n"
@@ -387,7 +387,6 @@ PROMPTS: dict[str, str] = {
         "You must finish through the finish tool.\n"
     ),
     "tool_format.txt": (
-        f"MODEL: {PH}\n"
         "PURPOSE: Defines tool syntax.\n"
         "Tool blocks must use this format:\n"
         "\n"
@@ -400,7 +399,6 @@ PROMPTS: dict[str, str] = {
         "Do not describe tool usage without emitting a tool block.\n"
     ),
     "terminal_command_format.txt": (
-        f"MODEL: {PH}\n"
         "PURPOSE: Defines exact terminal command formatting.\n"
         "Every terminal command request must use:\n"
         "\n"
@@ -420,7 +418,6 @@ PROMPTS: dict[str, str] = {
         "working directory, timeout, and destructive-risk answer.\n"
     ),
     "context_packet.txt": (
-        f"MODEL: {PH}\n"
         "PURPOSE: Defines context packet formatting.\n"
         "Include:\n"
         "    AGENT ID\n    ROLE\n    SELECTED MODEL\n    MODEL SOURCE\n    ROOT TASK\n"
@@ -430,7 +427,6 @@ PROMPTS: dict[str, str] = {
         "    RESOURCE STATE\n    COMPLETION RULE\n"
     ),
     "final_result.txt": (
-        f"MODEL: {PH}\n"
         "PURPOSE: Defines finish output.\n"
         "Finish only through the finish tool.\n"
         "Include:\n"
@@ -522,14 +518,6 @@ FIX_NUM_PREDICT=4096
 PROFILING_NUM_PREDICT=2048
 OPTIMIZATION_NUM_PREDICT=4096
 FINISH_NUM_PREDICT=2048
-
-# Finish-gate checks (user-list design): each instruction file is an ordered
-# list of checks for its named process. Before an agent finishes "complete" the
-# runtime walks the role's checks one-by-one; auto-tagged lines are checked
-# deterministically, the rest by the model. See docs/CHECKS.md.
-CHECK_GATE_ENABLED=true
-CHECK_GATE_MODEL_EVAL=true
-MAX_GATE_ATTEMPTS=3
 
 # Token budgeting
 TOKEN_SAFETY_MARGIN=256
