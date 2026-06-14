@@ -83,8 +83,8 @@ class ChatInterface:
             return
         if self.ctx.control is not None:
             self.ctx.control.reset()  # clear any pause/cancel from a prior swarm
-        self.ctx.events.chat(f"\nSwarm started: {swarm_id}\nRoot task:\n    {goal}\nCompletion: 0%"
-                             "\n(swarm runs in the background — try /status, /pause, /cancel)")
+        self.ctx.events.chat(f"Swarm {swarm_id} started: {' '.join(goal.split())[:70]} "
+                             "(running in background — /status /pause /cancel)")
         # Run in a background thread so the REPL stays responsive for control commands.
         t = threading.Thread(target=self._run_swarm, args=(swarm_id, root["id"]), daemon=True)
         t.start()

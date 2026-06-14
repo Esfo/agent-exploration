@@ -50,7 +50,7 @@ def build_runtime(settings_path: str = DEFAULT_SETTINGS, client=None):
     _seed_ids(db)
 
     show_flags = {k: settings.get_bool(k, True) for k in settings.as_dict() if k.startswith("CHAT_SHOW_")}
-    events = EventBus(settings.path("LOG_DIR"), db=db, show=show_flags)
+    events = EventBus(settings.path("LOG_DIR"), db=db, show=show_flags, live=True)
 
     probe = ProbeCache(settings.path("RUNTIME_DIR") / "config_cache.json")
     selector = ModelSelector(settings, probe)
