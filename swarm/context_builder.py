@@ -30,6 +30,7 @@ ROLE_INSTRUCTION_KEYS = {
     "optimizer": ["INSTRUCTION_OPTIMIZATION"],
     "testing_agent": ["INSTRUCTION_CODE_CHECKING"],
     "philosopher": ["INSTRUCTION_PHILOSOPHIZING"],
+    "zipper_agent": ["INSTRUCTION_ZIPPER"],
 }
 
 # Tool -> the process instruction file whose checks apply when the agent can use
@@ -93,6 +94,8 @@ ROLE_TOOLSETS = {
     # Stage-2 checker can read + run to verify; stage-3 philosopher is non-code.
     "testing_agent": WORKER_TOOLS,
     "philosopher": ["read_file", "list_files"],
+    # The zipper is runtime-driven (YES/NO gate); it reads + writes the project area.
+    "zipper_agent": ["read_file", "list_files", "write_file"],
 }
 
 # Concise argument hints so small models emit the right JSON keys.

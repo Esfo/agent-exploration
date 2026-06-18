@@ -480,16 +480,21 @@ class AgentRunner:
         the parent."""
         from .convergence import run_convergence
 
+        # spawn results are thin {id,title,role}; load the full rows so convergence
+        # and the zipper get real model fields, work dirs, and parent links.
+        agents = [self.ctx.db.get_agent(c["id"]) for c in spawned]
+        agents = [dict(a) for a in agents if a is not None]
+
         blobs = []
-        for c in spawned:
-            r = results.get(c["id"], {}) or {}
+        for a in agents:
+            r = results.get(a["id"], {}) or {}
             work = r.get("return_note") or r.get("note") or r.get("summary", "")
-            blobs.append(f"[{c.get('role','?')} ({c['id']})]\n{work}")
+            blobs.append(f"[{a.get('role','?')} ({a['id']})]\n{work}")
         work_blob = "\n\n".join(blobs)
         shared = conversation + [{"role": "user",
                                   "content": "[GROUP WORK PRODUCED SO FAR]\n" + work_blob}]
         goal_type = (self.ctx.root_goal or "the assigned goal").strip()[:120] or "the assigned goal"
-        res = run_convergence(self.ctx, spawned, shared, goal_type)
+        res = run_convergence(self.ctx, agents, shared, goal_type)
 
         verdict = "FINISHED" if res.finished else "INCOMPLETE"
         note = (f"\n\nCONVERGENCE: group voted {verdict} after {res.round_count} round(s).")
@@ -497,4 +502,32 @@ class AgentRunner:
             note += ("\nThe group did not reach unanimous FINISHED; consider another "
                      "work pass or refined sub-tasks. Latest aggregated reasoning:\n"
                      + res.consolidation[:800])
+            return summary + note
+
+        # A FINISHED convergence hands off to the zipper, which integrates the
+        # group's deliverables into the project area and updates the docs.
+        if self.ctx.settings.get_bool("ZIPPER_ENABLED", True):
+            note += "\n" + self._run_zipper_handoff(agents, goal_type)
         return summary + note
+
+    def _run_zipper_handoff(self, agents: list[dict], goal_type: str) -> str:
+        """Spawn a zipper_agent and run the zipper process over the converged group."""
+        from .zipper import run_zipper
+
+        parent = self.ctx.db.get_agent(agents[0]["parent_agent_id"]) if agents else None
+        if parent is None:
+            return "ZIPPER: skipped (no parent)."
+        zipper = self.ctx.create_child(
+            parent=parent, title="Finalize and integrate converged work",
+            task="Integrate the group's deliverables into the project area and update docs.",
+            role="zipper_agent", done_condition="", suggested_model=None, priority=9)
+        self.ctx.events.agent_started(dict(zipper))
+        task_list = "\n".join(f"- {a.get('title','')}" for a in agents)
+        zres = run_zipper(self.ctx, zipper, agents, task_list=task_list, goal=goal_type)
+        result = {"status": "complete", "summary": zres.summary,
+                  "note": zres.summary, "completion_percentage": 100}
+        self.ctx.db.save_agent_result(zipper["id"], result)
+        self.ctx.db.update_agent_completion(zipper["id"], 100)
+        self.ctx.db.update_agent_status(zipper["id"], "complete")
+        self.ctx.events.agent_finished(zipper["id"], result)
+        return "ZIPPER: " + zres.summary

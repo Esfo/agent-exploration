@@ -50,7 +50,7 @@ def instruction(model: str, purpose: str, lines: list[str]) -> str:
 
 
 INSTRUCTIONS: dict[str, str] = {
-    "global.txt": instruction(PH, "Instructions loaded by every agent.", [
+    "global": instruction(PH, "Instructions loaded by every agent.", [
         "Follow the assigned task exactly.",
         "Use the active instruction files in the order provided.",
         "Do not claim completion until the relevant checklist has been checked.",
@@ -75,7 +75,7 @@ INSTRUCTIONS: dict[str, str] = {
         "Report profiling and optimization findings when available.",
         "When the swarm completes, summarize result, files, commands, tests, models, profiling, optimization, and remaining issues.",
     ]),
-    "planning.txt": instruction(PH, "Controls planning agents.", [
+    "planning": instruction(PH, "Controls planning agents.", [
         "Restate the assigned goal in concrete terms.",
         "Create a checklist of required deliverables.",
         "Keep checklist items specific and independently verifiable.",
@@ -87,7 +87,7 @@ INSTRUCTIONS: dict[str, str] = {
         "Return the checklist before spawning children.",
         "Do not create vague checklist items.",
     ]),
-    "spawning.txt": instruction(PH, "Controls recursive swarm spawning.", [
+    "spawning": instruction(PH, "Controls recursive swarm spawning.", [
         "If the assigned task has multiple separable deliverables, create a checklist.",
         "If a checklist item can be completed independently, spawn a child agent for it.",
         "Each spawned child must receive exactly one primary task.",
@@ -118,7 +118,7 @@ INSTRUCTIONS: dict[str, str] = {
         "If integration with sibling outputs is needed, request an integration pass.",
         "Return only when the assigned coding task is complete or blocked.",
     ]),
-    "terminal_execution.txt": instruction(PH, "Controls terminal use by agents.", [
+    "terminal_execution": instruction(PH, "Controls terminal use by agents.", [
         "Request terminals only through the terminal tool.",
         "Every terminal must be sandboxed.",
         "Every terminal must start in the assigned agent directory.",
@@ -132,7 +132,7 @@ INSTRUCTIONS: dict[str, str] = {
         "Include important terminal activity in the progress report.",
         "Include commands run in the finish note.",
     ]),
-    "python_execution.txt": instruction(PH, "Controls Python execution.", [
+    "python_execution": instruction(PH, "Controls Python execution.", [
         "Use Python execution for validation, inspection, profiling, transformations, and tests.",
         "Run Python only through the python tool or an approved sandboxed Python terminal.",
         "Do not assume Python code ran unless the runtime returns a result.",
@@ -144,7 +144,7 @@ INSTRUCTIONS: dict[str, str] = {
         "Use profiling tools when performance analysis is requested.",
         "Include important Python results in the progress and finish notes.",
     ]),
-    "shell_execution.txt": instruction(PH, "Controls shell execution.", [
+    "shell_execution": instruction(PH, "Controls shell execution.", [
         "Use shell commands only through the shell or sandboxed terminal tool.",
         "Prefer narrow commands over broad commands.",
         "Use the assigned directory as the working directory.",
@@ -156,7 +156,7 @@ INSTRUCTIONS: dict[str, str] = {
         "If a command fails, decide whether to fix, retry, profile, optimize, or report blocked.",
         "Include important shell results in the progress and finish notes.",
     ]),
-    "command_questioning.txt": instruction(PH, "Ordered questions that every proposed command must answer before the runtime executes it.", [
+    "command_questioning": instruction(PH, "Ordered questions that every proposed command must answer before the runtime executes it.", [
         "What is the exact command?",
         "What directory will it run in?",
         "What is the reason for running it?",
@@ -174,7 +174,7 @@ INSTRUCTIONS: dict[str, str] = {
         "If the command is safe, provide the command block in the required format.",
         "If the command is risky, explain the risk and request a safer alternative.",
     ]),
-    "curl_web.txt": instruction(PH, "Controls web fetching and documentation caching.", [
+    "curl_web": instruction(PH, "Controls web fetching and documentation caching.", [
         "Use cached documentation before fetching a new page.",
         "Fetch only pages relevant to the current task.",
         "Prefer official documentation.",
@@ -186,7 +186,7 @@ INSTRUCTIONS: dict[str, str] = {
         "If a cached page is fresh enough, reuse it.",
         "Report cached pages used in progress and finish notes.",
     ]),
-    "file_reading.txt": instruction(PH, "Controls file reading.", [
+    "file_reading": instruction(PH, "Controls file reading.", [
         "Read only files relevant to the assigned task.",
         "Use the read_file tool for file access.",
         "Do not assume file contents without reading them.",
@@ -198,7 +198,7 @@ INSTRUCTIONS: dict[str, str] = {
         "Include important files read in the progress and finish notes.",
         "If file reading is blocked, report the exact reason.",
     ]),
-    "file_writing.txt": instruction(PH, "Controls file writing and saving.", [
+    "file_writing": instruction(PH, "Controls file writing and saving.", [
         "Before writing a file, verify the target path is inside the assigned directory.",
         "Create parent directories only inside the assigned directory.",
         "Never overwrite a file without reading it first unless it is new.",
@@ -210,7 +210,7 @@ INSTRUCTIONS: dict[str, str] = {
         "Include written files in progress and finish notes.",
         "If writing fails, report the exact reason.",
     ]),
-    "file_deleting.txt": instruction(PH, "Controls file deletion.", [
+    "file_deleting": instruction(PH, "Controls file deletion.", [
         "Delete only files inside the assigned directory unless integrator permissions allow otherwise.",
         "Prefer soft-delete by moving files to .trash.",
         "Never delete parent directories.",
@@ -222,7 +222,7 @@ INSTRUCTIONS: dict[str, str] = {
         "If deletion is blocked, report the exact reason.",
         "Do not attempt to bypass deletion restrictions.",
     ]),
-    "finishing.txt": instruction(PH, "Controls how agents finish and report results upward.", [
+    "finishing": instruction(PH, "Controls how agents finish and report results upward.", [
         "Finish only through the finish tool.",
         "Do not finish until the assigned done condition is met or the task is blocked.",
         "Include a clear status: complete, blocked, or failed.",
@@ -234,7 +234,7 @@ INSTRUCTIONS: dict[str, str] = {
         "List remaining issues honestly.",
         "Do not claim success without verification.",
     ]),
-    "review.txt": instruction(PH, "Controls reviewer agents.", [
+    "review": instruction(PH, "Controls reviewer agents.", [
         "Inspect the assigned output against the assigned task.",
         "Check whether the result is complete.",
         "Check whether the result is compatible with the parent project.",
@@ -247,7 +247,7 @@ INSTRUCTIONS: dict[str, str] = {
         "If needed, spawn focused child reviewers.",
         "Include a clear pass/fail/block result.",
     ]),
-    "integration.txt": instruction(PH, "Controls integration agents.", [
+    "integration": instruction(PH, "Controls integration agents.", [
         "Inspect all relevant child outputs.",
         "Identify files created by each child.",
         "Identify overlapping or conflicting files.",
@@ -261,7 +261,7 @@ INSTRUCTIONS: dict[str, str] = {
         "If performance concerns appear, request profiling.",
         "If profiling finds bottlenecks, request optimization.",
     ]),
-    "testing.txt": instruction(PH, "Controls tester agents.", [
+    "testing": instruction(PH, "Controls tester agents.", [
         "Identify the smallest meaningful validation command.",
         "Run tests only through sandboxed terminal or sandboxed shell tools.",
         "Capture stdout, stderr, and exit code.",
@@ -273,7 +273,7 @@ INSTRUCTIONS: dict[str, str] = {
         "Include test command and result in finish note.",
         "If performance is relevant, request profiling.",
     ]),
-    "fixing.txt": instruction(PH, "Controls fix agents.", [
+    "fixing": instruction(PH, "Controls fix agents.", [
         "Start from a specific failure report.",
         "Identify the smallest fix likely to resolve the failure.",
         "Modify only files relevant to the failure.",
@@ -285,7 +285,7 @@ INSTRUCTIONS: dict[str, str] = {
         "If performance regression appears, request profiling.",
         "Return fix status to parent.",
     ]),
-    "profiling.txt": instruction(PH, "Controls profiling agents and profiling phases.", [
+    "profiling": instruction(PH, "Controls profiling agents and profiling phases.", [
         "Profile only code relevant to the assigned task.",
         "Identify the exact command or workload being profiled.",
         "Record baseline runtime before optimization.",
@@ -298,7 +298,7 @@ INSTRUCTIONS: dict[str, str] = {
         "Return profiling data to the parent.",
         "If optimization is warranted, request an optimization agent.",
     ]),
-    "optimization.txt": instruction(PH, "Controls optimization agents.", [
+    "optimization": instruction(PH, "Controls optimization agents.", [
         "Start from profiling results when available.",
         "Do not optimize code without a clear target.",
         "Preserve existing behavior.",
@@ -310,7 +310,7 @@ INSTRUCTIONS: dict[str, str] = {
         "Save optimization notes to the agent optimization directory.",
         "Return before/after summary to the parent.",
     ]),
-    "progress_reporting.txt": instruction(PH, "Controls progress report behavior.", [
+    "progress_reporting": instruction(PH, "Controls progress report behavior.", [
         "Report when starting a meaningful task.",
         "Report when spawning children.",
         "Report when beginning terminal work.",
@@ -324,7 +324,7 @@ INSTRUCTIONS: dict[str, str] = {
         "Do not spam repeated progress messages for the same unchanged state.",
         "Finish with a completion note to the parent.",
     ]),
-    "resource_pressure.txt": instruction(PH, "Controls behavior when CPU/RAM/GPU/disk resources are pressured.", [
+    "resource_pressure": instruction(PH, "Controls behavior when CPU/RAM/GPU/disk resources are pressured.", [
         "If the runtime reports high resource pressure, prefer queueing new agents.",
         "If GPU is saturated, allow CPU routing for low-priority work.",
         "If RAM is saturated, pause low-priority agents.",
@@ -336,7 +336,7 @@ INSTRUCTIONS: dict[str, str] = {
         "Report that work is waiting on resources.",
         "Resume when the runtime allows it.",
     ]),
-    "sandboxing.txt": instruction(PH, "Controls sandbox expectations for executable actions.", [
+    "sandboxing": instruction(PH, "Controls sandbox expectations for executable actions.", [
         "All terminal execution must be sandboxed.",
         "All shell execution must be sandboxed.",
         "All Python execution must be sandboxed.",
@@ -348,7 +348,7 @@ INSTRUCTIONS: dict[str, str] = {
         "If a command needs network access, request a web fetch or approved network sandbox.",
         "Include sandbox ID in progress and finish notes.",
     ]),
-    "summarizing.txt": instruction(PH, "Drives a summarizer agent that compresses earlier conversation so a spawn can inherit essential context.", [
+    "summarizing": instruction(PH, "Drives a summarizer agent that compresses earlier conversation so a spawn can inherit essential context.", [
         "The original goal and current state of the work are preserved.",
         "Decisions made are retained, with the reasoning behind them.",
         "Files created/modified and commands run (with outcomes) are kept.",
@@ -357,7 +357,7 @@ INSTRUCTIONS: dict[str, str] = {
         "The result is a compact briefing, not a transcript.",
         "No new facts are invented.",
     ]),
-    "safety.txt": instruction(PH, "Loaded by all agents to constrain risky behavior.", [
+    "safety": instruction(PH, "Loaded by all agents to constrain risky behavior.", [
         "Do not attempt to bypass runtime permissions.",
         "Do not request commands that intentionally leave the assigned directory.",
         "Do not access private network addresses.",
@@ -533,7 +533,7 @@ DEFAULT_SUMMARIZER_MODEL={PH}
 SUMMARIZER_NUM_CTX=auto
 SUMMARIZER_NUM_PREDICT=1024
 SUMMARIZER_TEMPERATURE=0.2
-INSTRUCTION_SUMMARIZING=instructions/summarizing.txt
+INSTRUCTION_SUMMARIZING=instructions/summarizing
 
 # Temperatures
 PROGENITOR_TEMPERATURE=0.4
@@ -652,7 +652,7 @@ MAX_AGENT_DIR_MB=200
 
 # Command questioning
 COMMAND_QUESTIONING_ENABLED=true
-COMMAND_QUESTION_FILE=instructions/command_questioning.txt
+COMMAND_QUESTION_FILE=instructions/command_questioning
 BLOCK_COMMAND_IF_DESTRUCTIVE_SCORE_HIGH=true
 REQUIRE_COMMAND_REASON=true
 REQUIRE_COMMAND_EXPECTED_RESULT=true
@@ -685,7 +685,7 @@ CHAT_SHOW_OPTIMIZATION_SUMMARIES=true
 
 # Profiling
 PROFILING_ENABLED=true
-PROFILING_INSTRUCTION_FILE=instructions/profiling.txt
+PROFILING_INSTRUCTION_FILE=instructions/profiling
 PROFILING_OUTPUT_DIR=workspace/profiling
 PROFILE_PYTHON_WITH_CPROFILE=true
 PROFILE_COMMAND_RUNTIME=true
@@ -694,36 +694,36 @@ PROFILE_TOOL_CALLS=true
 
 # Optimization
 OPTIMIZATION_ENABLED=true
-OPTIMIZATION_INSTRUCTION_FILE=instructions/optimization.txt
+OPTIMIZATION_INSTRUCTION_FILE=instructions/optimization
 OPTIMIZATION_OUTPUT_DIR=workspace/optimization
 OPTIMIZATION_REQUIRES_PROFILING_FIRST=true
 OPTIMIZATION_SHOULD_RUN_VALIDATION=true
 
 # Instruction files
-INSTRUCTION_GLOBAL=instructions/global.txt
+INSTRUCTION_GLOBAL=instructions/global
 INSTRUCTION_PROGENITOR=instructions/chat_agent
-INSTRUCTION_PLANNING=instructions/planning.txt
-INSTRUCTION_SPAWNING=instructions/spawning.txt
+INSTRUCTION_PLANNING=instructions/planning
+INSTRUCTION_SPAWNING=instructions/spawning
 INSTRUCTION_CODING=instructions/coding_agent
-INSTRUCTION_TERMINAL=instructions/terminal_execution.txt
-INSTRUCTION_PYTHON=instructions/python_execution.txt
-INSTRUCTION_SHELL=instructions/shell_execution.txt
-INSTRUCTION_COMMAND_QUESTIONING=instructions/command_questioning.txt
-INSTRUCTION_CURL=instructions/curl_web.txt
-INSTRUCTION_FILE_READING=instructions/file_reading.txt
-INSTRUCTION_FILE_WRITING=instructions/file_writing.txt
-INSTRUCTION_FILE_DELETING=instructions/file_deleting.txt
-INSTRUCTION_FINISHING=instructions/finishing.txt
-INSTRUCTION_REVIEW=instructions/review.txt
-INSTRUCTION_INTEGRATION=instructions/integration.txt
-INSTRUCTION_TESTING=instructions/testing.txt
-INSTRUCTION_FIXING=instructions/fixing.txt
-INSTRUCTION_PROFILING=instructions/profiling.txt
-INSTRUCTION_OPTIMIZATION=instructions/optimization.txt
-INSTRUCTION_PROGRESS=instructions/progress_reporting.txt
-INSTRUCTION_RESOURCE_PRESSURE=instructions/resource_pressure.txt
-INSTRUCTION_SANDBOXING=instructions/sandboxing.txt
-INSTRUCTION_SAFETY=instructions/safety.txt
+INSTRUCTION_TERMINAL=instructions/terminal_execution
+INSTRUCTION_PYTHON=instructions/python_execution
+INSTRUCTION_SHELL=instructions/shell_execution
+INSTRUCTION_COMMAND_QUESTIONING=instructions/command_questioning
+INSTRUCTION_CURL=instructions/curl_web
+INSTRUCTION_FILE_READING=instructions/file_reading
+INSTRUCTION_FILE_WRITING=instructions/file_writing
+INSTRUCTION_FILE_DELETING=instructions/file_deleting
+INSTRUCTION_FINISHING=instructions/finishing
+INSTRUCTION_REVIEW=instructions/review
+INSTRUCTION_INTEGRATION=instructions/integration
+INSTRUCTION_TESTING=instructions/testing
+INSTRUCTION_FIXING=instructions/fixing
+INSTRUCTION_PROFILING=instructions/profiling
+INSTRUCTION_OPTIMIZATION=instructions/optimization
+INSTRUCTION_PROGRESS=instructions/progress_reporting
+INSTRUCTION_RESOURCE_PRESSURE=instructions/resource_pressure
+INSTRUCTION_SANDBOXING=instructions/sandboxing
+INSTRUCTION_SAFETY=instructions/safety
 
 # Prompt files
 PROMPT_BASE=prompts/agent_base.txt

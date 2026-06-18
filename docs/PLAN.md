@@ -70,15 +70,22 @@ that deviate from or sharpen the spec.
 - [x] Wired into `_run_children`: a spawned group of >1 agent runs its work, then
       converges (group vote) before returning upward; verdict folded into the
       summary the parent receives (gated by `CONVERGENCE_ENABLED`)
-- [ ] Hand the converged result off to a `zipper_agent` (finalizer) — next
+- [x] Hand the converged result off to a `zipper_agent` (finalizer): on a FINISHED
+      vote, `swarm/zipper.py` runs a YES/NO gate per artifact, copies approved
+      deliverables into `PROJECT_DIR`, and writes/updates an `INTEGRATED.md`
+      manifest. Gated by `ZIPPER_ENABLED`.
 - [ ] Response phase optionally routed through full `run_agent` (real tool use)
 - [ ] On INCOMPLETE, auto-trigger another work pass (currently surfaces the
       verdict + reasoning to the parent to decide)
+- [ ] Zipper: move (not copy) + smarter placement (package/lib subdirs) and
+      richer generated docs
 
-### Naming
+### Naming / conventions
 - Root/chat-facing role renamed **`progenitor` → `chat_agent`** (instruction file
   `instructions/chat_agent`); settings key `INSTRUCTION_PROGENITOR` kept internal.
 - Worker roles: **`code` → `coding_agent`**, **`code_checker` → `testing_agent`**.
+- New role **`zipper_agent`** (finalizer).
+- **Instruction files no longer use a `.txt` extension** (`instructions/<name>`).
 
 ## Beyond the spec — owner design corrections
 

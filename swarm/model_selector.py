@@ -43,6 +43,7 @@ ROLE_PRIMARY_FILE = {
     "summarizer": ("INSTRUCTION_SUMMARIZING", "SUMMARIZER"),
     "testing_agent": ("INSTRUCTION_CODE_CHECKING", "CODE_CHECKER"),
     "philosopher": ("INSTRUCTION_PHILOSOPHIZING", "PHILOSOPHER"),
+    "zipper_agent": ("INSTRUCTION_ZIPPER", "ZIPPER"),
 }
 
 # role -> DEFAULT_<X>_MODEL settings key
@@ -68,6 +69,7 @@ ROLE_DEFAULT_KEY = {
     "summarizer": "DEFAULT_SUMMARIZER_MODEL",
     "testing_agent": "DEFAULT_CODE_CHECKER_MODEL",
     "philosopher": "DEFAULT_PHILOSOPHER_MODEL",
+    "zipper_agent": "DEFAULT_ZIPPER_MODEL",
 }
 
 # Roles routed to GPU (setting ROUTE_<X>_TO_GPU=true). Default CPU otherwise.

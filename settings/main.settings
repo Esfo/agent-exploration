@@ -94,7 +94,7 @@ DEFAULT_SUMMARIZER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
 SUMMARIZER_NUM_CTX=auto
 SUMMARIZER_NUM_PREDICT=1024
 SUMMARIZER_TEMPERATURE=0.2
-INSTRUCTION_SUMMARIZING=instructions/summarizing.txt
+INSTRUCTION_SUMMARIZING=instructions/summarizing
 
 # Code work-unit pipeline: every spawned "coding_agent" is run as a sequence of
 # three models, one at a time, each fed the previous one's output:
@@ -107,6 +107,16 @@ CODE_PIPELINE_ENABLED=true
 # loops until every agent votes "I vote FINISHED" (or this round cap is hit).
 CONVERGENCE_ENABLED=true
 CONVERGENCE_MAX_ROUNDS=4
+
+# Zipper process: after a group converges FINISHED, the zipper moves the group's
+# deliverables into PROJECT_DIR and writes/updates the doc manifest. It is a
+# hard-coded YES/NO gate; Python performs the moves.
+ZIPPER_ENABLED=true
+DEFAULT_ZIPPER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
+ZIPPER_NUM_CTX=auto
+ZIPPER_NUM_PREDICT=512
+ZIPPER_TEMPERATURE=0.0
+INSTRUCTION_ZIPPER=instructions/zipper_agent
 DEFAULT_CODE_CHECKER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
 DEFAULT_PHILOSOPHER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
 CODE_CHECKER_NUM_CTX=auto
@@ -118,7 +128,7 @@ PHILOSOPHER_TEMPERATURE=0.3
 ROUTE_CODE_CHECKER_TO_GPU=true
 ROUTE_PHILOSOPHER_TO_CPU=true
 INSTRUCTION_CODE_CHECKING=instructions/testing_agent
-INSTRUCTION_PHILOSOPHIZING=instructions/philosophizing.txt
+INSTRUCTION_PHILOSOPHIZING=instructions/philosophizing
 
 # Temperatures
 PROGENITOR_TEMPERATURE=0.4
@@ -242,7 +252,7 @@ MAX_AGENT_DIR_MB=200
 
 # Command questioning
 COMMAND_QUESTIONING_ENABLED=true
-COMMAND_QUESTION_FILE=instructions/command_questioning.txt
+COMMAND_QUESTION_FILE=instructions/command_questioning
 BLOCK_COMMAND_IF_DESTRUCTIVE_SCORE_HIGH=true
 REQUIRE_COMMAND_REASON=true
 REQUIRE_COMMAND_EXPECTED_RESULT=true
@@ -275,7 +285,7 @@ CHAT_SHOW_OPTIMIZATION_SUMMARIES=true
 
 # Profiling
 PROFILING_ENABLED=true
-PROFILING_INSTRUCTION_FILE=instructions/profiling.txt
+PROFILING_INSTRUCTION_FILE=instructions/profiling
 PROFILING_OUTPUT_DIR=workspace/profiling
 PROFILE_PYTHON_WITH_CPROFILE=true
 PROFILE_COMMAND_RUNTIME=true
@@ -284,36 +294,36 @@ PROFILE_TOOL_CALLS=true
 
 # Optimization
 OPTIMIZATION_ENABLED=true
-OPTIMIZATION_INSTRUCTION_FILE=instructions/optimization.txt
+OPTIMIZATION_INSTRUCTION_FILE=instructions/optimization
 OPTIMIZATION_OUTPUT_DIR=workspace/optimization
 OPTIMIZATION_REQUIRES_PROFILING_FIRST=true
 OPTIMIZATION_SHOULD_RUN_VALIDATION=true
 
 # Instruction files
-INSTRUCTION_GLOBAL=instructions/global.txt
+INSTRUCTION_GLOBAL=instructions/global
 INSTRUCTION_PROGENITOR=instructions/chat_agent
-INSTRUCTION_PLANNING=instructions/planning.txt
-INSTRUCTION_SPAWNING=instructions/spawning.txt
+INSTRUCTION_PLANNING=instructions/planning
+INSTRUCTION_SPAWNING=instructions/spawning
 INSTRUCTION_CODING=instructions/coding_agent
-INSTRUCTION_TERMINAL=instructions/terminal_execution.txt
-INSTRUCTION_PYTHON=instructions/python_execution.txt
-INSTRUCTION_SHELL=instructions/shell_execution.txt
-INSTRUCTION_COMMAND_QUESTIONING=instructions/command_questioning.txt
-INSTRUCTION_CURL=instructions/curl_web.txt
-INSTRUCTION_FILE_READING=instructions/file_reading.txt
-INSTRUCTION_FILE_WRITING=instructions/file_writing.txt
-INSTRUCTION_FILE_DELETING=instructions/file_deleting.txt
-INSTRUCTION_FINISHING=instructions/finishing.txt
-INSTRUCTION_REVIEW=instructions/review.txt
-INSTRUCTION_INTEGRATION=instructions/integration.txt
-INSTRUCTION_TESTING=instructions/testing.txt
-INSTRUCTION_FIXING=instructions/fixing.txt
-INSTRUCTION_PROFILING=instructions/profiling.txt
-INSTRUCTION_OPTIMIZATION=instructions/optimization.txt
-INSTRUCTION_PROGRESS=instructions/progress_reporting.txt
-INSTRUCTION_RESOURCE_PRESSURE=instructions/resource_pressure.txt
-INSTRUCTION_SANDBOXING=instructions/sandboxing.txt
-INSTRUCTION_SAFETY=instructions/safety.txt
+INSTRUCTION_TERMINAL=instructions/terminal_execution
+INSTRUCTION_PYTHON=instructions/python_execution
+INSTRUCTION_SHELL=instructions/shell_execution
+INSTRUCTION_COMMAND_QUESTIONING=instructions/command_questioning
+INSTRUCTION_CURL=instructions/curl_web
+INSTRUCTION_FILE_READING=instructions/file_reading
+INSTRUCTION_FILE_WRITING=instructions/file_writing
+INSTRUCTION_FILE_DELETING=instructions/file_deleting
+INSTRUCTION_FINISHING=instructions/finishing
+INSTRUCTION_REVIEW=instructions/review
+INSTRUCTION_INTEGRATION=instructions/integration
+INSTRUCTION_TESTING=instructions/testing
+INSTRUCTION_FIXING=instructions/fixing
+INSTRUCTION_PROFILING=instructions/profiling
+INSTRUCTION_OPTIMIZATION=instructions/optimization
+INSTRUCTION_PROGRESS=instructions/progress_reporting
+INSTRUCTION_RESOURCE_PRESSURE=instructions/resource_pressure
+INSTRUCTION_SANDBOXING=instructions/sandboxing
+INSTRUCTION_SAFETY=instructions/safety
 
 # Prompt files
 PROMPT_BASE=prompts/agent_base.txt
