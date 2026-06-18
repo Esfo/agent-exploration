@@ -1,6 +1,0 @@
-PURPOSE: Checks for the code-checker stage. It verifies the code produced by the previous (coding) agent. Verified one-by-one before it finishes "complete".
-001. The code under review (shown in the conversation above) was actually read and understood.
-002. The code is up to spec and meets the intended goal of the original task.
-003. The code fits the bigger picture — the interface, data, or system it must return into.
-004. Obvious correctness problems, missing cases, or mismatches with the goal are identified.
-005. A clear PASS or FAIL verdict on the code is given, with specifics, and fed back for the next stage.
