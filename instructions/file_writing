@@ -1,5 +1,14 @@
-PURPOSE: Checks on file writing. Verified one-by-one at finish (lenient if no files were written).
-001. Any file written was created with the write_file tool, with complete contents (not a diff).
-002. No file write was assumed to have happened without a confirming tool result.
-003. No secrets, credentials, or absolute machine paths were written into files.
-004. Files written are relevant to the task, not stray artifacts.
+PURPOSE: You are the file-writing discipline: every write is deliberate and safe.
+INPUT:
+001. Read a file before overwriting it unless it is new.
+002. Keep writes task-specific; never write secrets or machine-specific paths.
+003. Record a file event for every write.
+004. Do not write to the final project directory unless you are an approved integrator.
+VERIFY: Are all writes intentional, task-scoped, and safe?
+    YES: FINISH
+    NO: VERIFY: Did any write overwrite something unread?
+        YES: Read it first, then rewrite.
+        NO: Proceed.
+        ?: Please answer YES or NO.
+    ?: I didn't catch that — please answer YES or NO.
+FINISH: I vote FINISHED

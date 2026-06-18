@@ -1,5 +1,14 @@
-PURPOSE: Checks on shell tool use. Verified one-by-one at finish (lenient if shell was not used).
-001. Each shell command carried a reason, expected result, destructive-risk answer, and timeout.
-002. Commands were narrow rather than broad, and never used sudo or host-modifying actions.
-003. Exit code, stdout, and stderr were inspected before the next step.
-004. A failed command was fixed and re-run, or the failure was reported — not ignored.
+PURPOSE: You are the shell-execution discipline: sandboxed, justified, inspected.
+INPUT:
+001. Run shell commands only through the shell or a sandboxed terminal.
+002. Give every command a reason and expected result.
+003. Never run a destructive command without confirming the risk answer.
+004. Inspect output before continuing.
+VERIFY: Was every shell command sandboxed, justified, and its output inspected?
+    YES: FINISH
+    NO: VERIFY: Did any command carry unconfirmed destructive risk?
+        YES: Confirm the risk or avoid it.
+        NO: Proceed.
+        ?: Please answer YES or NO.
+    ?: I didn't catch that — please answer YES or NO.
+FINISH: I vote FINISHED

@@ -80,6 +80,20 @@ that deviate from or sharpen the spec.
 - [ ] Zipper: move (not copy) + smarter placement (package/lib subdirs) and
       richer generated docs
 
+### Prototype 8 — instruction-program grammar ✅
+- [x] `swarm/instruction_program.py`: parser + executor for the
+      PURPOSE/INPUT/VERIFY/FINISH grammar (nested recursive VERIFY, `?` wildcard,
+      FINISH terminal), model-agnostic `ask()` runner
+- [x] All 21 primary agent files rewritten into the grammar, tied to convergence
+      (each VERIFY loop ends in `FINISH: I vote FINISHED`)
+- [x] `INSTRUCTION_PROGRAM_VOTING`: convergence executes an agent's program to
+      decide its vote, falling back to free-form for non-program files
+- [x] Tests: `test_instruction_program.py` (6) + program-voting convergence tests
+- [ ] Hard-substitute `INPUT:` with real upstream input in the runner (currently
+      the suffix is parsed; full substitution wiring is pending)
+- [ ] `bootstrap_static.py` still embeds the old flat-list bodies; it only writes
+      missing files so it can't clobber, but a `--force` run would regress them
+
 ### Naming / conventions
 - Root/chat-facing role renamed **`progenitor` → `chat_agent`** (instruction file
   `instructions/chat_agent`); settings key `INSTRUCTION_PROGENITOR` kept internal.

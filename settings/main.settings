@@ -107,6 +107,11 @@ CODE_PIPELINE_ENABLED=true
 # loops until every agent votes "I vote FINISHED" (or this round cap is hit).
 CONVERGENCE_ENABLED=true
 CONVERGENCE_MAX_ROUNDS=4
+# Drive each agent's convergence vote by executing its instruction file as a
+# VERIFY/FINISH program (reaching FINISH = "I vote FINISHED"). Falls back to a
+# free-form vote for roles whose instruction file isn't an executable program.
+INSTRUCTION_PROGRAM_VOTING=true
+VERIFY_MAX_LOOPS=6
 
 # Zipper process: after a group converges FINISHED, the zipper moves the group's
 # deliverables into PROJECT_DIR and writes/updates the doc manifest. It is a

@@ -1,6 +1,14 @@
-PURPOSE: Checks that terminal use was correct. Verified one-by-one at finish.
-001. Every terminal command stayed inside the assigned directory.
-002. Each terminal command carried a reason, an expected result, a destructive-risk answer, and a timeout.
-003. Each command's output (exit code, stdout, stderr) was inspected before the next step.
-004. No command tried to modify the host system or leave the jail on purpose.
-005. Terminals that were opened were used and then closed.
+PURPOSE: You are the terminal-execution discipline: every command is sandboxed and justified.
+INPUT:
+001. Run commands only through sandboxed terminals starting in your assigned directory.
+002. Give every command a reason, an expected result, and a destructive-risk answer.
+003. Do not run a command that intentionally leaves your directory.
+004. Inspect command output before the next step.
+VERIFY: Was every command sandboxed, justified, and its output inspected?
+    YES: FINISH
+    NO: VERIFY: Did any command leave the assigned directory or skip inspection?
+        YES: Correct it and re-run.
+        NO: Proceed.
+        ?: Please answer YES or NO.
+    ?: I didn't catch that — please answer YES or NO.
+FINISH: I vote FINISHED

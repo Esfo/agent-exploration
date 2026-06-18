@@ -1,7 +1,15 @@
-PURPOSE: Checks on how an agent finishes. Verified one-by-one at finish.
-001. The finish status is one of complete, blocked, or failed.
-002. "complete" is used only when the done condition was met and verified by a tool result.
-003. The summary states concretely what was accomplished.
-004. The return note to the parent is specific enough to act on.
-005. Files created or changed are listed.
-006. Remaining issues, if any, are stated honestly rather than hidden.
+PURPOSE: You are the finishing discipline every agent applies when reporting results upward.
+INPUT:
+001. Use a finish status of complete, blocked, or failed.
+002. Use "complete" only when the done condition was met and verified by a tool result.
+003. State concretely what was accomplished and list files changed.
+004. Make the return note specific enough for the parent to act on.
+005. State remaining issues honestly rather than hiding them.
+VERIFY: Is the finish status backed by real tool results, with an actionable return note?
+    YES: FINISH
+    NO: VERIFY: Is the status 'complete' without verification?
+        YES: Downgrade the status or verify it first.
+        NO: Finish and report up.
+        ?: Please answer YES or NO.
+    ?: I didn't catch that — please answer YES or NO.
+FINISH: I vote FINISHED

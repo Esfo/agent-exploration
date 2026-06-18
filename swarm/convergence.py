@@ -165,6 +165,52 @@ def _aggregate_responses(responses: list[dict]) -> str:
     )
 
 
+def _agent_program(ctx, agent):
+    """Parse the agent's primary instruction file as an executable VERIFY program,
+    or return None if it has none / isn't a program."""
+    from .instruction_program import parse_program
+    from .model_selector import ROLE_PRIMARY_FILE
+    role = agent.get("role", "")
+    entry = ROLE_PRIMARY_FILE.get(role)
+    if not entry:
+        return None
+    rel = ctx.settings.get(entry[0])
+    if not rel:
+        return None
+    path = ctx.settings.root / rel
+    if not path.exists():
+        return None
+    prog = parse_program(path.read_text(encoding="utf-8"))
+    return prog if prog.is_executable else None
+
+
+def _program_vote(ctx, agent, shared, purpose):
+    """Decide an agent's vote by executing its instruction program. Each VERIFY
+    question is asked of the model in the shared context; reaching FINISH casts
+    a FINISHED vote. Returns (vote, reasoning) or None if no program applies."""
+    from .instruction_program import run_program
+    prog = _agent_program(ctx, agent)
+    if prog is None:
+        return None
+
+    asked: list[str] = []
+
+    def ask(question: str) -> str:
+        asked.append(question)
+        msgs = shared + [
+            {"role": "system", "content": purpose},
+            {"role": "user", "content": question
+             + '\nAnswer with a short YES or NO and a brief reason.'},
+        ]
+        return _chat(ctx, agent, msgs)
+
+    out = run_program(prog, ask, max_loops=ctx.settings.get_int("VERIFY_MAX_LOOPS", 6) or 6)
+    vote = FINISHED if out.finished else INCOMPLETE
+    reasoning = (f"[program vote via {len(asked)} verify step(s)] "
+                 + " | ".join(f"{s.question}->{s.answer}" for s in out.log if s.kind == "verify"))
+    return vote, reasoning
+
+
 def _aggregate_reasoning(votes: list[AgentVote]) -> str:
     out = []
     for v in votes:
@@ -212,17 +258,23 @@ def run_convergence(ctx, agents: list[dict], inherited: list[dict] | None,
                                        + consolidation}]
 
         # --- vote phase ---
+        use_program = ctx.settings.get_bool("INSTRUCTION_PROGRAM_VOTING", True)
         for agent in agents:
             purpose = _purpose(agent, goal_type)
-            vote_q = VOTE_PROMPT.format(agent_type=agent.get("role", "agent"),
-                                        goal_type=goal_type)
-            msgs = shared + [
-                {"role": "system", "content": purpose},
-                {"role": "user", "content": vote_q},
-            ]
-            reasoning = _chat(ctx, agent, msgs)
+            pv = _program_vote(ctx, agent, shared, purpose) if use_program else None
+            if pv is not None:
+                vote, reasoning = pv
+            else:
+                vote_q = VOTE_PROMPT.format(agent_type=agent.get("role", "agent"),
+                                            goal_type=goal_type)
+                msgs = shared + [
+                    {"role": "system", "content": purpose},
+                    {"role": "user", "content": vote_q},
+                ]
+                reasoning = _chat(ctx, agent, msgs)
+                vote = parse_vote(reasoning)
             rnd.votes.append(AgentVote(agent_id=agent["id"], role=agent.get("role", "agent"),
-                                       vote=parse_vote(reasoning), reasoning=reasoning))
+                                       vote=vote, reasoning=reasoning))
 
         _log_votes(ctx, agents, rnd)
 

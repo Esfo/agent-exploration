@@ -48,7 +48,8 @@ def project(tmp_path):
         "DEFAULT_MODEL=qwen2.5-coder:7b", "DEFAULT_MODEL=mock-model:latest"
     ).replace("RESOURCE_PRESSURE_ACTION=queue_new_agents", "RESOURCE_PRESSURE_ACTION=off"
     ).replace("CODE_PIPELINE_ENABLED=true", "CODE_PIPELINE_ENABLED=false"
-    ).replace("CONVERGENCE_ENABLED=true", "CONVERGENCE_ENABLED=false")
+    ).replace("CONVERGENCE_ENABLED=true", "CONVERGENCE_ENABLED=false"
+    ).replace("INSTRUCTION_PROGRAM_VOTING=true", "INSTRUCTION_PROGRAM_VOTING=false")
     sp.write_text(text, encoding="utf-8")
     return tmp_path
 

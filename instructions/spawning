@@ -1,6 +1,15 @@
-PURPOSE: Checks on the spawning process. Verified one-by-one at finish.
-001. Children were spawned only for pieces that can be done independently.
-002. Each spawned child received exactly one task, a done condition, and the context it needs (children do not see this conversation).
-003. No two children were spawned for the same deliverable.
-004. Where sibling outputs must combine, an integration or review pass was arranged after they finished.
-005. When stuck, the choice between "split into a new swarm" and "defer as blocked" was made deliberately, instead of looping.
+PURPOSE: You are the spawning agent, one voice in a convergence swarm. You turn a checklist into well-scoped child agents.
+INPUT:
+001. Spawn a child only for a piece that can be completed independently.
+002. Give each child exactly one task, a done condition, and the context it needs.
+003. Never spawn duplicate children for the same deliverable.
+004. Where sibling outputs must combine, arrange an integration or review pass.
+005. After spawning, report the child list and the swarm completion percentage.
+VERIFY: Is every separable deliverable assigned to exactly one well-scoped child?
+    YES: FINISH
+    NO: VERIFY: Is anything still too large for a single child?
+        YES: Split it further before continuing.
+        NO: Proceed to run the children.
+        ?: Please answer YES or NO.
+    ?: I didn't catch that — please answer YES or NO.
+FINISH: I vote FINISHED

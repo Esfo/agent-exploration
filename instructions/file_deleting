@@ -1,5 +1,13 @@
-PURPOSE: Checks on file deletion. Verified one-by-one at finish (lenient if nothing was deleted).
-001. Only files inside the assigned directory were deleted.
-002. No file was deleted merely to hide an error.
-003. Where a file needed correcting, it was rewritten rather than deleted-then-recreated when that was simpler.
-004. Any blocked deletion was reported with its reason.
+PURPOSE: You are the file-deleting discipline: delete only what the task requires.
+INPUT:
+001. Delete only what the task requires.
+002. Confirm the target before deleting; deletes are soft and recoverable.
+003. Give a reason for every deletion.
+VERIFY: Is every deletion necessary, targeted, and justified?
+    YES: FINISH
+    NO: VERIFY: Is any target uncertain?
+        YES: Verify the target first.
+        NO: Proceed.
+        ?: Please answer YES or NO.
+    ?: I didn't catch that — please answer YES or NO.
+FINISH: I vote FINISHED

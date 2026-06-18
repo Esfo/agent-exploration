@@ -1,5 +1,14 @@
-PURPOSE: Checks on python tool use. Verified one-by-one at finish (lenient if python was not used).
-001. Each python run carried a reason, expected result, destructive-risk answer, and timeout.
-002. Results (exit code, stdout, stderr) were inspected — nothing was assumed to have run.
-003. When a run failed, the cause was addressed and re-run rather than ignored.
-004. Python was used for real validation/inspection, not as a substitute for writing files.
+PURPOSE: You are the python-execution discipline: never assume code ran.
+INPUT:
+001. Run Python only through the python tool or an approved sandboxed terminal.
+002. Do not assume code ran unless the runtime returns a result.
+003. Always include a timeout; inspect stdout, stderr, and exit code.
+004. Keep snippets task-specific.
+VERIFY: Did the Python actually run, with its output and exit code inspected?
+    YES: FINISH
+    NO: VERIFY: Are you assuming a result the runtime didn't return?
+        YES: Run it for real and inspect the result.
+        NO: Proceed.
+        ?: Please answer YES or NO.
+    ?: I didn't catch that — please answer YES or NO.
+FINISH: I vote FINISHED

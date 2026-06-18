@@ -143,3 +143,50 @@ def test_convergence_runs_in_spawn_path(project):
     log = project / "logs" / "convergence.jsonl"
     assert log.exists()
     assert '"vote": "finished"' in log.read_text()
+
+
+def _enable_program_voting(project):
+    sp = project / "settings" / "main.settings"
+    sp.write_text(sp.read_text().replace(
+        "INSTRUCTION_PROGRAM_VOTING=false", "INSTRUCTION_PROGRAM_VOTING=true"))
+
+
+def test_program_driven_voting_finishes(project):
+    _enable_program_voting(project)
+    ids._counters.clear()
+
+    def script(last_user, model, n):
+        # The instruction-program asks VERIFY questions with this suffix.
+        if "Answer with a short YES or NO" in last_user:
+            return "YES, the work is complete"
+        return "my plan/execute response"
+
+    ctx, _ = make_runtime(project, MockClient(script))
+    sid = ids.next_id("swarm")
+    ctx.db.create_swarm(sid, "g")
+    agents = _group(ctx, sid, ["coding_agent", "testing_agent"])
+
+    res = run_convergence(ctx, agents, inherited=[], goal_type="code")
+    assert res.finished is True
+    assert all(v.vote == FINISHED for v in res.rounds[0].votes)
+    # the vote came from executing the agent's VERIFY program
+    assert any("program vote" in v.reasoning for v in res.rounds[0].votes)
+
+
+def test_program_driven_voting_incomplete(project):
+    _enable_program_voting(project)
+    ids._counters.clear()
+
+    def script(last_user, model, n):
+        if "Answer with a short YES or NO" in last_user:
+            return "NO, not yet"
+        return "more work needed"
+
+    ctx, _ = make_runtime(project, MockClient(script))
+    sid = ids.next_id("swarm")
+    ctx.db.create_swarm(sid, "g")
+    agents = _group(ctx, sid, ["coding_agent", "testing_agent"])
+
+    res = run_convergence(ctx, agents, inherited=[], goal_type="code", max_rounds=1)
+    assert res.finished is False
+    assert all(v.vote == INCOMPLETE for v in res.rounds[0].votes)
