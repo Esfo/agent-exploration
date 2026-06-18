@@ -74,11 +74,19 @@ that deviate from or sharpen the spec.
       vote, `swarm/zipper.py` runs a YES/NO gate per artifact, copies approved
       deliverables into `PROJECT_DIR`, and writes/updates an `INTEGRATED.md`
       manifest. Gated by `ZIPPER_ENABLED`.
+- [x] Convergence **never ends INCOMPLETE**: a non-unanimous round escalates and
+      the loop continues; a safety bound force-resolves (recorded) so it can't run
+      unbounded. Two escalation forms wired in `agent_loop`:
+      - (a) **add peer agents** — the required complementary roles (a coding agent
+        implies testing + philosophy peers) are added to the group
+      - (b) **dissenter sub-swarm** — a dissenting agent can take its job over as
+        its own swarm; the sub-swarm converges and the zipper moves its finalized
+        work back **into that agent's directory**, bubbling up one level at a time
+- [x] Zipper **moves** (not copies) finalized work into categorized destination
+      dirs (`code/ docs/ research/ math/ reports/ notes/`) chosen by role then
+      extension, with a minimal "here's the code / here's the docs/…" manifest;
+      `target_dir` lets each swarm level finalize into its own area
 - [ ] Response phase optionally routed through full `run_agent` (real tool use)
-- [ ] On INCOMPLETE, auto-trigger another work pass (currently surfaces the
-      verdict + reasoning to the parent to decide)
-- [ ] Zipper: move (not copy) + smarter placement (package/lib subdirs) and
-      richer generated docs
 
 ### Prototype 8 — instruction-program grammar ✅
 - [x] `swarm/instruction_program.py`: parser + executor for the

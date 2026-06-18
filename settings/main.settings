@@ -112,6 +112,10 @@ CONVERGENCE_MAX_ROUNDS=4
 # free-form vote for roles whose instruction file isn't an executable program.
 INSTRUCTION_PROGRAM_VOTING=true
 VERIFY_MAX_LOOPS=6
+# Convergence never ends INCOMPLETE: dissent escalates by adding peer agents or by
+# a dissenting agent taking its job over as its own sub-swarm. This bounds how deep
+# that form-(b) sub-swarming may recurse.
+MAX_SUBSWARM_DEPTH=4
 
 # Zipper process: after a group converges FINISHED, the zipper moves the group's
 # deliverables into PROJECT_DIR and writes/updates the doc manifest. It is a

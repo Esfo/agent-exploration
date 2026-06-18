@@ -75,7 +75,9 @@ def test_incomplete_then_converges(project):
     assert res.rounds[1].unanimous_finished is True
 
 
-def test_never_converges_hits_round_cap(project):
+def test_never_ends_incomplete_force_resolves_at_safety_bound(project):
+    # Convergence can never terminate INCOMPLETE. With persistent dissent and no
+    # escalation, the safety bound force-resolves to finished=True (recorded).
     ids._counters.clear()
     sp = project / "settings" / "main.settings"
     sp.write_text(sp.read_text().replace("CONVERGENCE_MAX_ROUNDS=4", "CONVERGENCE_MAX_ROUNDS=2"))
@@ -91,7 +93,42 @@ def test_never_converges_hits_round_cap(project):
     agents = _group(ctx, sid, ["coding_agent", "testing_agent"])
 
     res = run_convergence(ctx, agents, inherited=[], goal_type="code")
-    assert res.finished is False
+    assert res.finished is True          # never INCOMPLETE
+    assert res.force_resolved is True
+    assert res.round_count == 2
+
+
+def test_escalation_resolves_dissent(project):
+    # A dissenting first round; the escalate callback flips the group to agreement,
+    # and convergence then finishes genuinely (not force-resolved).
+    ids._counters.clear()
+    state = {"agree": False}
+
+    def script(last_user, model, n):
+        if _is_vote(last_user):
+            return "I vote FINISHED" if state["agree"] else "I vote INCOMPLETE"
+        return "response"
+
+    ctx, _ = make_runtime(project, MockClient(script))
+    sid = ids.next_id("swarm")
+    ctx.db.create_swarm(sid, "g")
+    agents = _group(ctx, sid, ["coding_agent", "testing_agent"])
+
+    calls = {"n": 0}
+
+    def escalate(rnd, agents_now, dissenters):
+        calls["n"] += 1
+        state["agree"] = True   # escalation made the work converge
+        # also add a peer (form a)
+        peer = ctx.create_child(parent=ctx.db.get_agent(agents_now[0]["parent_agent_id"]),
+                                title="extra", task="assess", role="reviewer",
+                                done_condition="", suggested_model=None, priority=1)
+        return [dict(peer)]
+
+    res = run_convergence(ctx, agents, inherited=[], goal_type="code", escalate=escalate)
+    assert res.finished is True
+    assert res.force_resolved is False
+    assert calls["n"] == 1               # escalated exactly once, then converged
     assert res.round_count == 2
 
 
@@ -188,5 +225,6 @@ def test_program_driven_voting_incomplete(project):
     agents = _group(ctx, sid, ["coding_agent", "testing_agent"])
 
     res = run_convergence(ctx, agents, inherited=[], goal_type="code", max_rounds=1)
-    assert res.finished is False
+    assert res.finished is True              # never INCOMPLETE
+    assert res.force_resolved is True
     assert all(v.vote == INCOMPLETE for v in res.rounds[0].votes)

@@ -22,7 +22,43 @@ from .instructions import parse_instruction_file
 _SKIP_NAMES = {".gitkeep"}
 _SKIP_SUFFIXES = {".pyc", ".log", ".tmp"}
 
-DOC_MANIFEST = "INTEGRATED.md"
+DOC_MANIFEST = "README.md"
+
+# Finalized work is placed by category, not in recursive per-agent directories.
+# Category is decided first by the producing role, then by file extension.
+CATEGORY_BY_ROLE = {
+    "coding_agent": "code", "fixer": "code", "optimizer": "code",
+    "integrator": "code", "testing_agent": "code", "testing": "code",
+    "researcher": "research",
+    "philosopher": "notes",
+    "profiler": "reports", "reviewer": "reports",
+    "math": "math", "physics": "math", "chemistry": "math", "economics": "reports",
+}
+CATEGORY_BY_EXT = {
+    ".py": "code", ".js": "code", ".ts": "code", ".go": "code", ".rs": "code",
+    ".c": "code", ".h": "code", ".cpp": "code", ".java": "code", ".rb": "code",
+    ".sh": "code", ".sql": "code",
+    ".md": "docs", ".rst": "docs", ".html": "docs", ".pdf": "docs", ".txt": "docs",
+    ".ipynb": "research",
+    ".tex": "math", ".csv": "reports",
+}
+DEFAULT_CATEGORY = "notes"
+
+# Human-facing labels for the minimal manifest ("here's the code", "here's docs").
+CATEGORY_BLURB = {
+    "code": "here's the code",
+    "docs": "here's the docs / pages",
+    "research": "here's the research",
+    "math": "here's the math",
+    "reports": "here's the reports",
+    "notes": "here's the notes",
+}
+
+
+def _category(role: str, filename: str) -> str:
+    if role in CATEGORY_BY_ROLE:
+        return CATEGORY_BY_ROLE[role]
+    return CATEGORY_BY_EXT.get(Path(filename).suffix.lower(), DEFAULT_CATEGORY)
 
 
 @dataclass
@@ -80,27 +116,33 @@ def _ask_yes(ctx, zipper: dict, sys_txt: str, question: str) -> bool:
         return False
 
 
-def _unique_dest(project_dir: Path, name: str) -> Path:
-    dest = project_dir / name
+def _unique_dest(category_dir: Path, name: str) -> Path:
+    dest = category_dir / name
     if not dest.exists():
         return dest
     stem, suffix = Path(name).stem, Path(name).suffix
     i = 2
-    while (project_dir / f"{stem}_{i}{suffix}").exists():
+    while (category_dir / f"{stem}_{i}{suffix}").exists():
         i += 1
-    return project_dir / f"{stem}_{i}{suffix}"
+    return category_dir / f"{stem}_{i}{suffix}"
 
 
 def run_zipper(ctx, zipper: dict, agents: list[dict], *, task_list: str = "",
-               goal: str = "") -> ZipperResult:
-    """Integrate the group's deliverables into PROJECT_DIR and write a doc manifest.
+               goal: str = "", target_dir=None) -> ZipperResult:
+    """Finalize the group's deliverables into ``target_dir`` and write the manifest.
+
+    Work is **moved** (not copied) into per-category subdirectories
+    (``code/``, ``docs/``, ``research/``, ``math/``, ``reports/``, ``notes/``) — the
+    final, intended location — rather than left in recursive per-agent directories.
+    ``target_dir`` defaults to ``PROJECT_DIR`` (top of the swarm); a sub-swarm passes
+    its spawning agent's directory so finals bubble upward one level at a time.
 
     ``zipper`` is an already-created zipper_agent record (carries the model fields).
     ``agents`` are the converged group whose work dirs hold the deliverables.
     """
     res = ZipperResult()
 
-    project_dir = ctx.settings.path("PROJECT_DIR")
+    project_dir = Path(target_dir) if target_dir is not None else ctx.settings.path("PROJECT_DIR")
     project_dir.mkdir(parents=True, exist_ok=True)
 
     # System prompt for the YES/NO gate comes from the zipper's instruction file.
@@ -109,7 +151,8 @@ def run_zipper(ctx, zipper: dict, agents: list[dict], *, task_list: str = "",
     if rel and (ctx.settings.root / rel).exists():
         sys_txt = parse_instruction_file(ctx.settings.root / rel).render() or sys_txt
 
-    integrated_meta: list[tuple[str, str]] = []  # (dest_name, source_role)
+    # category -> list of (dest_name, role)
+    integrated_meta: dict[str, list[tuple[str, str]]] = {}
     for agent in agents:
         role = agent.get("role", "?")
         for src in _candidate_files(agent):
@@ -119,37 +162,42 @@ def run_zipper(ctx, zipper: dict, agents: list[dict], *, task_list: str = "",
             if not _ask_yes(ctx, zipper, sys_txt, q):
                 res.skipped.append(str(src))
                 continue
-            dest = _unique_dest(project_dir, src.name)
+            category = _category(role, src.name)
+            cat_dir = project_dir / category
+            cat_dir.mkdir(parents=True, exist_ok=True)
+            dest = _unique_dest(cat_dir, src.name)
             try:
-                shutil.copy2(src, dest)
+                shutil.move(str(src), str(dest))   # move into the final location
             except Exception:  # noqa: BLE001
                 res.skipped.append(str(src))
                 continue
             res.integrated.append(str(dest))
-            integrated_meta.append((dest.name, role))
+            integrated_meta.setdefault(category, []).append((dest.name, role))
 
-    res.doc_path = _write_manifest(project_dir, integrated_meta, goal, task_list)
-    res.summary = (f"zipper integrated {len(res.integrated)} file(s) into "
-                   f"{project_dir.name}/, skipped {len(res.skipped)}.")
+    res.doc_path = _write_manifest(project_dir, integrated_meta, goal)
+    res.summary = (f"zipper finalized {len(res.integrated)} file(s) into "
+                   f"{project_dir.name}/ across {len(integrated_meta)} categor"
+                   f"{'y' if len(integrated_meta) == 1 else 'ies'}, skipped {len(res.skipped)}.")
     return res
 
 
-def _write_manifest(project_dir: Path, integrated_meta: list[tuple[str, str]],
-                    goal: str, task_list: str) -> str:
-    """Generate the project doc manifest if missing, otherwise update it."""
+def _write_manifest(project_dir: Path, integrated_meta: dict[str, list[tuple[str, str]]],
+                    goal: str) -> str:
+    """Write a minimal, human-facing manifest: one section per category, each
+    introduced by its blurb ("here's the code", "here's the docs", ...)."""
     manifest = project_dir / DOC_MANIFEST
-    existing = manifest.read_text(encoding="utf-8") if manifest.exists() else ""
-    header = "# Integrated project artifacts\n"
-    lines = [header] if not existing else [existing.rstrip() + "\n"]
+    lines = ["# Project deliverables\n"]
     if goal:
-        lines.append(f"\n## {goal}\n")
-    if task_list:
-        lines.append(f"\nTask list before spawn:\n{task_list.strip()}\n")
-    if integrated_meta:
-        lines.append("\nFiles integrated this pass:\n")
-        for name, role in integrated_meta:
-            lines.append(f"- `{name}` (from {role})\n")
-    else:
-        lines.append("\n(no new files integrated this pass)\n")
+        lines.append(f"\n_{goal}_\n")
+    if not integrated_meta:
+        lines.append("\n(nothing finalized yet)\n")
+    for category in ("code", "docs", "research", "math", "reports", "notes"):
+        items = integrated_meta.get(category)
+        if not items:
+            continue
+        blurb = CATEGORY_BLURB.get(category, f"here's the {category}")
+        lines.append(f"\n## {category}/ — {blurb}\n")
+        for name, role in items:
+            lines.append(f"- `{category}/{name}` (from {role})\n")
     manifest.write_text("".join(lines), encoding="utf-8")
     return str(manifest)

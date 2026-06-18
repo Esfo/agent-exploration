@@ -22,6 +22,23 @@ from .token_budget import (ContextLimitReached, _summarize_dropped, ensure_fits,
 
 AGENT_SUBDIRS = ["input", "output", "work", "terminal", "profiling", "optimization", ".trash", "logs"]
 
+# Roles that imply real "work" and therefore require verification/judgement peers
+# in the convergence group (spec: if a coding agent is present, so is a
+# testing/philosophy agent). Used by escalation form (a).
+CODE_ROLES = {"coding_agent", "fixer", "optimizer", "integrator"}
+REQUIRED_WITH_CODE = ["testing_agent", "philosopher"]
+
+
+def required_peer_roles(roles) -> list[str]:
+    """Complementary roles that must be present when work roles are in the group."""
+    s = set(roles)
+    missing: list[str] = []
+    if s & CODE_ROLES:
+        for r in REQUIRED_WITH_CODE:
+            if r not in s and r not in missing:
+                missing.append(r)
+    return missing
+
 
 class RuntimeContext:
     def __init__(self, settings, db, events, selector: ModelSelector, client,
@@ -431,7 +448,8 @@ class AgentRunner:
                          "philosopher": phil["id"]},
         }
 
-    def _run_children(self, spawned: list[dict], conversation: list[dict]) -> str:
+    def _run_children(self, spawned: list[dict], conversation: list[dict],
+                      *, target_dir=None) -> str:
         """Run children concurrently, each inheriting the branch conversation.
         The scheduler's GPU/CPU semaphores bound actual inference; thread-per-child
         avoids pool-exhaustion deadlock when a child itself spawns grandchildren."""
@@ -470,14 +488,17 @@ class AgentRunner:
         # A spawned group of >1 agent converges: they hold a response/vote group
         # conversation and must unanimously vote FINISHED before returning upward.
         if len(spawned) > 1 and self.ctx.settings.get_bool("CONVERGENCE_ENABLED", True):
-            summary = self._run_group_convergence(spawned, conversation, results, summary)
+            summary = self._run_group_convergence(spawned, conversation, results, summary,
+                                                  target_dir=target_dir)
         return summary
 
     def _run_group_convergence(self, spawned: list[dict], conversation: list[dict],
-                               results: dict[str, dict], summary: str) -> str:
+                               results: dict[str, dict], summary: str,
+                               *, target_dir=None) -> str:
         """Drive the spawned group through the convergence process after they have
         each produced work, folding the group verdict into the summary returned to
-        the parent."""
+        the parent. Convergence never ends INCOMPLETE; an escalation callback adds
+        peers and/or sub-swarms a dissenting agent until the group converges."""
         from .convergence import run_convergence
 
         # spawn results are thin {id,title,role}; load the full rows so convergence
@@ -494,23 +515,87 @@ class AgentRunner:
         shared = conversation + [{"role": "user",
                                   "content": "[GROUP WORK PRODUCED SO FAR]\n" + work_blob}]
         goal_type = (self.ctx.root_goal or "the assigned goal").strip()[:120] or "the assigned goal"
-        res = run_convergence(self.ctx, agents, shared, goal_type)
 
-        verdict = "FINISHED" if res.finished else "INCOMPLETE"
+        escalate = self._make_escalator(conversation, goal_type)
+        res = run_convergence(self.ctx, agents, shared, goal_type, escalate=escalate)
+
+        verdict = "FINISHED" + (" (force-resolved)" if res.force_resolved else "")
         note = (f"\n\nCONVERGENCE: group voted {verdict} after {res.round_count} round(s).")
-        if not res.finished:
-            note += ("\nThe group did not reach unanimous FINISHED; consider another "
-                     "work pass or refined sub-tasks. Latest aggregated reasoning:\n"
-                     + res.consolidation[:800])
-            return summary + note
 
-        # A FINISHED convergence hands off to the zipper, which integrates the
-        # group's deliverables into the project area and updates the docs.
+        # A FINISHED convergence hands off to the zipper, which finalizes the
+        # group's deliverables into the categorized project area.
         if self.ctx.settings.get_bool("ZIPPER_ENABLED", True):
-            note += "\n" + self._run_zipper_handoff(agents, goal_type)
+            note += "\n" + self._run_zipper_handoff(agents, goal_type, target_dir=target_dir)
         return summary + note
 
-    def _run_zipper_handoff(self, agents: list[dict], goal_type: str) -> str:
+    def _make_escalator(self, conversation: list[dict], goal_type: str):
+        """Build the convergence escalation callback implementing both spawning
+        forms: (a) add the required complementary peer agents to the group, and
+        (b) let a dissenting agent take its job over as its own sub-swarm whose
+        finalized work zippers back into that agent."""
+        def escalate(rnd, agents_now, dissenters):
+            # Form (b): a dissenter may decide its part needs its own swarm.
+            for a in dissenters:
+                self._maybe_subswarm(a, conversation, goal_type)
+            # Form (a): ensure the required complementary roles are present.
+            return self._add_required_peers(agents_now, goal_type)
+        return escalate
+
+    def _add_required_peers(self, agents_now: list[dict], goal_type: str) -> list[dict]:
+        roles = [a.get("role") for a in agents_now]
+        missing = required_peer_roles(roles)
+        if not missing:
+            return []
+        parent = self.ctx.db.get_agent(agents_now[0]["parent_agent_id"])
+        if parent is None:
+            return []
+        peers = []
+        for role in missing:
+            peer = self.ctx.create_child(
+                parent=parent, title=f"Added {role} to assess the group's work",
+                task=f"Join the group as a {role} and assess the work toward: {goal_type}.",
+                role=role, done_condition="", suggested_model=None, priority=4)
+            self.ctx.events.agent_started(dict(peer))
+            peers.append(dict(peer))
+        return peers
+
+    def _maybe_subswarm(self, agent: dict, conversation: list[dict], goal_type: str) -> bool:
+        """Form (b): if the agent believes its job needs its own swarm (and depth
+        allows), spawn a sub-team under it, run it (which converges + zippers the
+        finalized work back into this agent's directory), so the agent can rejoin
+        its peers with completed work."""
+        max_depth = self.ctx.settings.get_int("MAX_SUBSWARM_DEPTH", 4)
+        if max_depth is not None and int(agent.get("depth", 0)) >= max_depth:
+            return False
+        if not self._agent_wants_subswarm(agent, goal_type):
+            return False
+        parent = self.ctx.db.get_agent(agent["id"])
+        if parent is None:
+            return False
+        # Build a small sub-team: the agent's own role plus required peers.
+        roles = [agent.get("role", "coding_agent")] + required_peer_roles([agent.get("role")])
+        spawned = []
+        for role in roles:
+            child = self.ctx.create_child(
+                parent=parent, title=f"{role} sub-task for {agent.get('title','')}",
+                task=agent.get("task", ""), role=role, done_condition="",
+                suggested_model=None, priority=5)
+            spawned.append({"id": child["id"], "title": child["title"], "role": role})
+        # The sub-swarm finalizes into THIS agent's directory (work bubbles up one
+        # level at a time, in final format only).
+        self._run_children(spawned, conversation,
+                           target_dir=agent.get("assigned_directory"))
+        return True
+
+    def _agent_wants_subswarm(self, agent: dict, goal_type: str) -> bool:
+        from .convergence import _chat
+        q = (f"You are the {agent.get('role')} agent working on \"{agent.get('title','')}\". "
+             "Is your part too big to finish alone — does it need to be taken over by its "
+             "own swarm of sub-agents? Answer only YES or NO.")
+        ans = _chat(self.ctx, agent, [{"role": "user", "content": q}])
+        return (ans or "").strip().lower().startswith("y")
+
+    def _run_zipper_handoff(self, agents: list[dict], goal_type: str, *, target_dir=None) -> str:
         """Spawn a zipper_agent and run the zipper process over the converged group."""
         from .zipper import run_zipper
 
@@ -523,7 +608,8 @@ class AgentRunner:
             role="zipper_agent", done_condition="", suggested_model=None, priority=9)
         self.ctx.events.agent_started(dict(zipper))
         task_list = "\n".join(f"- {a.get('title','')}" for a in agents)
-        zres = run_zipper(self.ctx, zipper, agents, task_list=task_list, goal=goal_type)
+        zres = run_zipper(self.ctx, zipper, agents, task_list=task_list, goal=goal_type,
+                          target_dir=target_dir)
         result = {"status": "complete", "summary": zres.summary,
                   "note": zres.summary, "completion_percentage": 100}
         self.ctx.db.save_agent_result(zipper["id"], result)

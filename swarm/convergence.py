@@ -99,10 +99,11 @@ class RoundResult:
 
 @dataclass
 class ConvergenceResult:
-    finished: bool
+    finished: bool            # always True — convergence never ends INCOMPLETE
     rounds: list[RoundResult]
     goal_type: str
     consolidation: str        # last round's aggregated responses (handoff payload)
+    force_resolved: bool = False   # hit the safety bound without genuine unanimity
 
     @property
     def round_count(self) -> int:
@@ -111,6 +112,7 @@ class ConvergenceResult:
     def as_dict(self) -> dict:
         return {
             "finished": self.finished,
+            "force_resolved": self.force_resolved,
             "rounds": self.round_count,
             "goal_type": self.goal_type,
             "consolidation": self.consolidation,
@@ -228,23 +230,33 @@ def _aggregate_reasoning(votes: list[AgentVote]) -> str:
 
 
 def run_convergence(ctx, agents: list[dict], inherited: list[dict] | None,
-                    goal_type: str, *, max_rounds: int | None = None) -> ConvergenceResult:
+                    goal_type: str, *, max_rounds: int | None = None,
+                    escalate=None) -> ConvergenceResult:
     """Drive a group of agents through response→vote rounds until unanimous
-    FINISHED (or max_rounds). `agents` are already-created agent records; their
-    role is the AGENT_TYPE. `inherited` is the shared branch conversation (INPUT).
+    FINISHED. Convergence NEVER ends INCOMPLETE: a non-unanimous round triggers
+    ``escalate(round, agents, dissenters)`` — which adds peer agents and/or has a
+    dissenting agent take its job over as its own sub-swarm — and the loop
+    continues. `max_rounds` is only a safety bound that force-resolves the loop so
+    it can never run unbounded; it still returns finished=True (force_resolved).
+
+    `agents` are already-created agent records; their role is the AGENT_TYPE.
+    `inherited` is the shared branch conversation (INPUT).
     """
+    agents = list(agents)
     if not agents:
         return ConvergenceResult(finished=True, rounds=[], goal_type=goal_type,
                                  consolidation="")
 
-    if max_rounds is None:
-        max_rounds = ctx.settings.get_int("CONVERGENCE_MAX_ROUNDS", 4) or 4
+    safety = max_rounds if max_rounds is not None else (
+        ctx.settings.get_int("CONVERGENCE_MAX_ROUNDS", 4) or 4)
 
     shared: list[dict] = list(inherited or [])
     rounds: list[RoundResult] = []
     last_consolidation = ""
 
-    for i in range(1, max_rounds + 1):
+    i = 0
+    while True:
+        i += 1
         rnd = RoundResult(index=i)
 
         # --- response phase: each agent plans or executes ---
@@ -293,15 +305,31 @@ def run_convergence(ctx, agents: list[dict], inherited: list[dict] | None,
             return ConvergenceResult(finished=True, rounds=rounds, goal_type=goal_type,
                                      consolidation=last_consolidation)
 
-        # Not unanimous → consolidate reasoning, feed back, repeat the loop.
+        # Not unanimous → consolidate reasoning and feed it back to everyone.
         reasoning_blob = _aggregate_reasoning(rnd.votes)
         feedback = INCOMPLETE_FEEDBACK.format(
             agent_type="each agent", goal_type=goal_type, reasoning=reasoning_blob)
         shared = shared + [{"role": "user", "content": feedback}]
 
-    # Ran out of rounds without unanimity.
-    return ConvergenceResult(finished=False, rounds=rounds, goal_type=goal_type,
-                             consolidation=last_consolidation)
+        # Escalate: convergence never terminates INCOMPLETE. The escalation adds
+        # peer agents and/or sub-swarms a dissenting agent, then the loop repeats.
+        dissenters = [a for a in agents
+                      if any(v.agent_id == a["id"] and v.vote != FINISHED for v in rnd.votes)]
+        if escalate is not None:
+            try:
+                new_peers = escalate(rnd, agents, dissenters) or []
+            except Exception:  # noqa: BLE001 - escalation must not crash convergence
+                new_peers = []
+            have = {a["id"] for a in agents}
+            for p in new_peers:
+                if p and p.get("id") not in have:
+                    agents.append(p)
+                    have.add(p["id"])
+
+        # Safety valve: never loop unbounded. Force-resolve to FINISHED (recorded).
+        if i >= safety:
+            return ConvergenceResult(finished=True, rounds=rounds, goal_type=goal_type,
+                                     consolidation=last_consolidation, force_resolved=True)
 
 
 def _log_votes(ctx, agents, rnd: RoundResult) -> None:
