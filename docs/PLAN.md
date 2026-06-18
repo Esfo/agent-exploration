@@ -89,10 +89,13 @@ that deviate from or sharpen the spec.
 - [x] `INSTRUCTION_PROGRAM_VOTING`: convergence executes an agent's program to
       decide its vote, falling back to free-form for non-program files
 - [x] Tests: `test_instruction_program.py` (6) + program-voting convergence tests
-- [ ] Hard-substitute `INPUT:` with real upstream input in the runner (currently
-      the suffix is parsed; full substitution wiring is pending)
-- [ ] `bootstrap_static.py` still embeds the old flat-list bodies; it only writes
-      missing files so it can't clobber, but a `--force` run would regress them
+- [x] Hard-substitute `INPUT:` with the real upstream input in the runner
+      (`Program.render_input` + `system_text` + `messages_to_text`); convergence
+      frames each program-voting agent with its PURPOSE+guidance and a substituted
+      INPUT built from the shared context
+- [x] `bootstrap_static.py` no longer carries instruction bodies — instruction
+      files are authored/version-controlled; bootstrap validates them against
+      `INSTRUCTION_NAMES` and flags any missing
 
 ### Naming / conventions
 - Root/chat-facing role renamed **`progenitor` → `chat_agent`** (instruction file

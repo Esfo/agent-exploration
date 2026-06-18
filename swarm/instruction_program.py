@@ -89,6 +89,33 @@ class Program:
     def is_executable(self) -> bool:
         return bool(self.steps)
 
+    def system_text(self) -> str:
+        """The agent's framing: PURPOSE plus its numbered work guidance."""
+        out = [f"PURPOSE: {self.purpose}"] if self.purpose else []
+        out.extend(self.guidance)
+        return "\n".join(out)
+
+    def render_input(self, actual_input: str) -> str:
+        """Hard-substitute the INPUT: line with the actual upstream input, then
+        append any text that followed INPUT: on the same line (spec behavior)."""
+        parts = []
+        if (actual_input or "").strip():
+            parts.append(actual_input.strip())
+        if self.input_suffix:
+            parts.append(self.input_suffix)
+        return "\n\n".join(parts)
+
+
+def messages_to_text(messages: list[dict]) -> str:
+    """Flatten a chat message list into the plain text used to substitute INPUT:."""
+    out = []
+    for m in messages or []:
+        role = m.get("role", "?")
+        content = (m.get("content", "") or "").strip()
+        if content:
+            out.append(f"[{role}] {content}")
+    return "\n\n".join(out)
+
 
 def _label_matches(label: str, answer: str) -> bool:
     """Yes/no style match: the label appears as a whole word in the answer, or the

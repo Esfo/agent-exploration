@@ -101,3 +101,31 @@ def test_unsatisfied_verify_returns_incomplete():
 def test_input_suffix_parsed():
     p = parse_program("PURPOSE: x\nINPUT: extra context appended here\nVERIFY: ok?\n    YES: FINISH\n    ?: retry\n")
     assert p.input_suffix == "extra context appended here"
+
+
+def test_render_input_substitutes_actual_and_appends_suffix():
+    p = parse_program("PURPOSE: x\nINPUT: please be thorough\nVERIFY: ok?\n    YES: FINISH\n    ?: retry\n")
+    # actual input is hard-substituted, suffix appended after it
+    rendered = p.render_input("the upstream handoff")
+    assert rendered == "the upstream handoff\n\nplease be thorough"
+    # with no actual input, only the suffix remains
+    assert p.render_input("") == "please be thorough"
+    # with no suffix, only the actual input
+    p2 = parse_program("PURPOSE: x\nINPUT:\nVERIFY: ok?\n    YES: FINISH\n    ?: r\n")
+    assert p2.render_input("just the input") == "just the input"
+
+
+def test_system_text_has_purpose_and_guidance():
+    from swarm.instruction_program import parse_program as pp
+    p = pp("PURPOSE: do the thing\nINPUT:\n001. step one\n002. step two\nVERIFY: ok?\n    YES: FINISH\n    ?: r\n")
+    s = p.system_text()
+    assert s.startswith("PURPOSE: do the thing")
+    assert "001. step one" in s and "002. step two" in s
+
+
+def test_messages_to_text_flattens():
+    from swarm.instruction_program import messages_to_text
+    txt = messages_to_text([{"role": "user", "content": "hi"},
+                            {"role": "assistant", "content": "yo"},
+                            {"role": "user", "content": "  "}])
+    assert txt == "[user] hi\n\n[assistant] yo"

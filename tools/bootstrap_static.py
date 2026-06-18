@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Bootstrap generator for static, user-editable scaffold files.
 
-Creates the directory tree, settings/main.settings, all instruction files,
-all prompt files, and the SQLite schema. These files are intended to be
-user-editable after generation; this script only lays down the initial
-versions. Re-running it will NOT overwrite files that already exist unless
---force is passed, so user edits are preserved.
+Creates the directory tree, settings/main.settings, the prompt files, and the
+SQLite schema. These are user-editable after generation; this script only lays
+down the initial versions and will NOT overwrite existing files unless --force.
+
+Instruction files are NOT generated here. They are authored, version-controlled
+content (the PURPOSE/INPUT/VERIFY/FINISH grammar in docs/CHECKS.md); bootstrap
+only validates that the files named in INSTRUCTION_NAMES are present.
 """
 from __future__ import annotations
 
@@ -41,335 +43,20 @@ DIRS = [
 ]
 
 
-def instruction(model: str, purpose: str, lines: list[str]) -> str:
-    # The model comes from settings, not the instruction file; no MODEL: line.
-    body = [f"PURPOSE: {purpose}"]
-    for i, ln in enumerate(lines, 1):
-        body.append(f"{i:03d}. {ln}")
-    return "\n".join(body) + "\n"
-
-
-INSTRUCTIONS: dict[str, str] = {
-    "global": instruction(PH, "Instructions loaded by every agent.", [
-        "Follow the assigned task exactly.",
-        "Use the active instruction files in the order provided.",
-        "Do not claim completion until the relevant checklist has been checked.",
-        "Use tools only through explicit tool blocks.",
-        "Do not invent tool results.",
-        "Do not pretend a file exists if it has not been read or created.",
-        "Return structured results when finished.",
-        "If blocked, explain the exact blocker.",
-        "Keep work scoped to the current task.",
-        "Report meaningful progress when starting, waiting, completing, profiling, optimizing, or integrating.",
-    ]),
-    "chat_agent": instruction(PH, "Controls the chat-facing root agent.", [
-        "Speak directly to the user through the chat interface.",
-        "Convert user requests into root swarm tasks when appropriate.",
-        "Before starting a swarm, produce a to-do list.",
-        "Include a model plan before starting the swarm.",
-        "Start recursive swarms automatically when the task requires decomposition.",
-        "Show runtime progress events in chat.",
-        "Receive completion notes from child agents.",
-        "Maintain the root swarm checklist.",
-        "Report swarm completion percentage when agents start, progress, and finish.",
-        "Report profiling and optimization findings when available.",
-        "When the swarm completes, summarize result, files, commands, tests, models, profiling, optimization, and remaining issues.",
-    ]),
-    "planning": instruction(PH, "Controls planning agents.", [
-        "Restate the assigned goal in concrete terms.",
-        "Create a checklist of required deliverables.",
-        "Keep checklist items specific and independently verifiable.",
-        "Mark which checklist items should become child agents.",
-        "Mark which checklist items can be completed directly.",
-        "Assign a done condition to every checklist item.",
-        "Identify dependencies between checklist items.",
-        "If code is involved, identify modules, tests, profiling, optimization, and integration needs.",
-        "Return the checklist before spawning children.",
-        "Do not create vague checklist items.",
-    ]),
-    "spawning": instruction(PH, "Controls recursive swarm spawning.", [
-        "If the assigned task has multiple separable deliverables, create a checklist.",
-        "If a checklist item can be completed independently, spawn a child agent for it.",
-        "Each spawned child must receive exactly one primary task.",
-        "Each child task must include a done condition.",
-        "Each child task must include relevant parent context.",
-        "Each child task must include the expected output format.",
-        "Do not spawn duplicate children for the same exact deliverable.",
-        "If child outputs must work together, schedule a review or integration pass after workers finish.",
-        "If profiling is needed, spawn profiling agents.",
-        "If optimization is needed, spawn optimization agents after profiling.",
-        "If system resources are constrained, allow the runtime to queue child agents.",
-        "After spawning, report the child list and current swarm completion percentage.",
-        "If the task benefits from deeper recursive decomposition, continue spawning children through the spawn_agents tool.",
-    ]),
-    "coding_agent": instruction(PH, "Controls code-writing agents.", [
-        "Inspect relevant existing files before writing new code.",
-        "Keep code scoped to the assigned task.",
-        "Use the assigned directory for all direct coding work.",
-        "Prefer small modules with clear interfaces.",
-        "Use simple, testable code.",
-        "Add tests when the task creates behavior.",
-        "Use sandboxed terminal/Python tools for validation.",
-        "If validation fails, attempt a fix.",
-        "If validation still fails, report the exact failure.",
-        "Document every file created or modified.",
-        "If performance matters, request profiling.",
-        "If profiling shows bottlenecks, request optimization.",
-        "If integration with sibling outputs is needed, request an integration pass.",
-        "Return only when the assigned coding task is complete or blocked.",
-    ]),
-    "terminal_execution": instruction(PH, "Controls terminal use by agents.", [
-        "Request terminals only through the terminal tool.",
-        "Every terminal must be sandboxed.",
-        "Every terminal must start in the assigned agent directory.",
-        "Every command must include a reason.",
-        "Every command must include the expected result.",
-        "Every command must include a destructive-risk answer.",
-        "Every command must be formatted exactly as required by the terminal command prompt file.",
-        "Do not request a command that intentionally leaves the assigned directory.",
-        "If a command needs another directory, request a new approved sandbox mount through the runtime.",
-        "Inspect command output before deciding the next step.",
-        "Include important terminal activity in the progress report.",
-        "Include commands run in the finish note.",
-    ]),
-    "python_execution": instruction(PH, "Controls Python execution.", [
-        "Use Python execution for validation, inspection, profiling, transformations, and tests.",
-        "Run Python only through the python tool or an approved sandboxed Python terminal.",
-        "Do not assume Python code ran unless the runtime returns a result.",
-        "Keep Python snippets task-specific.",
-        "Use the assigned directory as the working directory.",
-        "Do not request code that intentionally leaves the assigned directory.",
-        "Always include a timeout.",
-        "Inspect stdout, stderr, and exit code.",
-        "Use profiling tools when performance analysis is requested.",
-        "Include important Python results in the progress and finish notes.",
-    ]),
-    "shell_execution": instruction(PH, "Controls shell execution.", [
-        "Use shell commands only through the shell or sandboxed terminal tool.",
-        "Prefer narrow commands over broad commands.",
-        "Use the assigned directory as the working directory.",
-        "Do not request shell commands that intentionally leave the assigned directory.",
-        "Do not use sudo or host-system modification commands.",
-        "Use shell commands for tests, linters, file listing, safe project commands, profiling, and diagnostics.",
-        "Always include a timeout.",
-        "Inspect stdout, stderr, and exit code.",
-        "If a command fails, decide whether to fix, retry, profile, optimize, or report blocked.",
-        "Include important shell results in the progress and finish notes.",
-    ]),
-    "command_questioning": instruction(PH, "Ordered questions that every proposed command must answer before the runtime executes it.", [
-        "What is the exact command?",
-        "What directory will it run in?",
-        "What is the reason for running it?",
-        "What output or side effect is expected?",
-        "Could this command delete files?",
-        "Could this command overwrite files?",
-        "Could this command modify files outside the assigned directory?",
-        "Could this command access user-private data?",
-        "Could this command modify the host operating system?",
-        "Could this command install or remove packages?",
-        "Could this command make network requests?",
-        "Could this command consume excessive CPU, RAM, GPU, disk, or time?",
-        "Is this destructive to the user ecosystem?",
-        "Is there a narrower safer command?",
-        "If the command is safe, provide the command block in the required format.",
-        "If the command is risky, explain the risk and request a safer alternative.",
-    ]),
-    "curl_web": instruction(PH, "Controls web fetching and documentation caching.", [
-        "Use cached documentation before fetching a new page.",
-        "Fetch only pages relevant to the current task.",
-        "Prefer official documentation.",
-        "Save fetched pages to the shared web cache.",
-        "Record URL, fetch time, title, and reason.",
-        "Summarize the cached page before using it in code decisions.",
-        "Do not fetch private network URLs.",
-        "Do not fetch unrelated pages.",
-        "If a cached page is fresh enough, reuse it.",
-        "Report cached pages used in progress and finish notes.",
-    ]),
-    "file_reading": instruction(PH, "Controls file reading.", [
-        "Read only files relevant to the assigned task.",
-        "Use the read_file tool for file access.",
-        "Do not assume file contents without reading them.",
-        "Prefer reading narrow files over dumping large directories.",
-        "Read from the assigned directory when working on local output.",
-        "Read from project snapshots only when context is needed.",
-        "Read from shared web cache only when documentation is relevant.",
-        "Track files read if they influence the result.",
-        "Include important files read in the progress and finish notes.",
-        "If file reading is blocked, report the exact reason.",
-    ]),
-    "file_writing": instruction(PH, "Controls file writing and saving.", [
-        "Before writing a file, verify the target path is inside the assigned directory.",
-        "Create parent directories only inside the assigned directory.",
-        "Never overwrite a file without reading it first unless it is new.",
-        "Save a file event for every write.",
-        "Keep file writes task-specific.",
-        "Do not write secrets, credentials, or machine-specific paths.",
-        "After writing, read the file back if verification is needed.",
-        "Do not write to the final project directory unless this agent is an approved integrator.",
-        "Include written files in progress and finish notes.",
-        "If writing fails, report the exact reason.",
-    ]),
-    "file_deleting": instruction(PH, "Controls file deletion.", [
-        "Delete only files inside the assigned directory unless integrator permissions allow otherwise.",
-        "Prefer soft-delete by moving files to .trash.",
-        "Never delete parent directories.",
-        "Never delete project-level files unless this agent is an approved integrator.",
-        "Record every delete event.",
-        "Do not delete files just to hide errors.",
-        "If replacing a file, prefer writing a corrected version rather than deleting first.",
-        "Include deleted files in progress and finish notes.",
-        "If deletion is blocked, report the exact reason.",
-        "Do not attempt to bypass deletion restrictions.",
-    ]),
-    "finishing": instruction(PH, "Controls how agents finish and report results upward.", [
-        "Finish only through the finish tool.",
-        "Do not finish until the assigned done condition is met or the task is blocked.",
-        "Include a clear status: complete, blocked, or failed.",
-        "Include a concise summary of what was accomplished.",
-        "Include a return note to the parent agent.",
-        "Include completion percentage.",
-        "List files created, modified, and deleted.",
-        "List commands run and sandboxes used.",
-        "List remaining issues honestly.",
-        "Do not claim success without verification.",
-    ]),
-    "review": instruction(PH, "Controls reviewer agents.", [
-        "Inspect the assigned output against the assigned task.",
-        "Check whether the result is complete.",
-        "Check whether the result is compatible with the parent project.",
-        "Check for missing tests or validation.",
-        "Check for obvious code errors.",
-        "Check terminal outputs for unhandled errors.",
-        "Check profiling/optimization claims if relevant.",
-        "If the work is acceptable, mark review passed.",
-        "If the work needs fixes, return specific fix tasks.",
-        "If needed, spawn focused child reviewers.",
-        "Include a clear pass/fail/block result.",
-    ]),
-    "integration": instruction(PH, "Controls integration agents.", [
-        "Inspect all relevant child outputs.",
-        "Identify files created by each child.",
-        "Identify overlapping or conflicting files.",
-        "Identify incompatible interfaces.",
-        "Merge compatible outputs into the project directory if permitted.",
-        "Run project-level validation when possible.",
-        "If integration fails, create specific fix tasks.",
-        "Do not silently discard child work.",
-        "Record every integrated file.",
-        "Return integration status and remaining issues.",
-        "If performance concerns appear, request profiling.",
-        "If profiling finds bottlenecks, request optimization.",
-    ]),
-    "testing": instruction(PH, "Controls tester agents.", [
-        "Identify the smallest meaningful validation command.",
-        "Run tests only through sandboxed terminal or sandboxed shell tools.",
-        "Capture stdout, stderr, and exit code.",
-        "If tests pass, report exactly what passed.",
-        "If tests fail, summarize the failure precisely.",
-        "If failures are fixable, request fix agents.",
-        "Do not claim validation passed unless command output confirms it.",
-        "Save test output logs.",
-        "Include test command and result in finish note.",
-        "If performance is relevant, request profiling.",
-    ]),
-    "fixing": instruction(PH, "Controls fix agents.", [
-        "Start from a specific failure report.",
-        "Identify the smallest fix likely to resolve the failure.",
-        "Modify only files relevant to the failure.",
-        "Run the failing validation command again.",
-        "If the fix works, report the before/after result.",
-        "If the fix fails, report the remaining failure.",
-        "Do not rewrite unrelated modules.",
-        "If the failure indicates integration mismatch, request integration review.",
-        "If performance regression appears, request profiling.",
-        "Return fix status to parent.",
-    ]),
-    "profiling": instruction(PH, "Controls profiling agents and profiling phases.", [
-        "Profile only code relevant to the assigned task.",
-        "Identify the exact command or workload being profiled.",
-        "Record baseline runtime before optimization.",
-        "Use cProfile for Python runtime profiling when appropriate.",
-        "Use command timing for shell-level profiling.",
-        "Capture memory-relevant observations when possible.",
-        "Save profiling output to the agent profiling directory.",
-        "Summarize the top bottlenecks.",
-        "Do not optimize before identifying a bottleneck.",
-        "Return profiling data to the parent.",
-        "If optimization is warranted, request an optimization agent.",
-    ]),
-    "optimization": instruction(PH, "Controls optimization agents.", [
-        "Start from profiling results when available.",
-        "Do not optimize code without a clear target.",
-        "Preserve existing behavior.",
-        "Make the smallest useful optimization first.",
-        "Run validation after optimization.",
-        "Compare before/after performance when possible.",
-        "Record what changed and why.",
-        "If optimization makes code less correct or less maintainable, revert or report blocked.",
-        "Save optimization notes to the agent optimization directory.",
-        "Return before/after summary to the parent.",
-    ]),
-    "progress_reporting": instruction(PH, "Controls progress report behavior.", [
-        "Report when starting a meaningful task.",
-        "Report when spawning children.",
-        "Report when beginning terminal work.",
-        "Report when a command succeeds or fails if it changes the task state.",
-        "Report when files are created, modified, or deleted.",
-        "Report when web pages are cached.",
-        "Report when profiling begins or ends.",
-        "Report when optimization begins or ends.",
-        "Report current completion percentage.",
-        "Keep progress notes short and specific.",
-        "Do not spam repeated progress messages for the same unchanged state.",
-        "Finish with a completion note to the parent.",
-    ]),
-    "resource_pressure": instruction(PH, "Controls behavior when CPU/RAM/GPU/disk resources are pressured.", [
-        "If the runtime reports high resource pressure, prefer queueing new agents.",
-        "If GPU is saturated, allow CPU routing for low-priority work.",
-        "If RAM is saturated, pause low-priority agents.",
-        "If disk is near limit, stop writing large files and report blocked.",
-        "If active sandboxes are saturated, queue sandbox requests.",
-        "If active terminals are saturated, queue terminal requests.",
-        "If command queues are saturated, wait for running commands to finish.",
-        "Do not fake progress while queued.",
-        "Report that work is waiting on resources.",
-        "Resume when the runtime allows it.",
-    ]),
-    "sandboxing": instruction(PH, "Controls sandbox expectations for executable actions.", [
-        "All terminal execution must be sandboxed.",
-        "All shell execution must be sandboxed.",
-        "All Python execution must be sandboxed.",
-        "All test execution must be sandboxed.",
-        "All profiling execution must be sandboxed.",
-        "All optimization validation must be sandboxed.",
-        "The sandbox must start in the assigned agent directory.",
-        "The sandbox must not write outside approved writable mounts.",
-        "If a command needs network access, request a web fetch or approved network sandbox.",
-        "Include sandbox ID in progress and finish notes.",
-    ]),
-    "summarizing": instruction(PH, "Drives a summarizer agent that compresses earlier conversation so a spawn can inherit essential context.", [
-        "The original goal and current state of the work are preserved.",
-        "Decisions made are retained, with the reasoning behind them.",
-        "Files created/modified and commands run (with outcomes) are kept.",
-        "Open problems, blockers, and remaining work are kept.",
-        "Irrelevant chatter and abandoned attempts are dropped.",
-        "The result is a compact briefing, not a transcript.",
-        "No new facts are invented.",
-    ]),
-    "safety": instruction(PH, "Loaded by all agents to constrain risky behavior.", [
-        "Do not attempt to bypass runtime permissions.",
-        "Do not request commands that intentionally leave the assigned directory.",
-        "Do not access private network addresses.",
-        "Do not use shell commands to modify the host system.",
-        "Do not run commands without a timeout.",
-        "Do not hide errors.",
-        "Do not claim success without verification.",
-        "If a safety rule blocks the task, return blocked with the reason.",
-        "Prefer narrow, reversible actions.",
-        "Answer command-questioning prompts before requesting command execution.",
-    ]),
-}
+# Instruction files are authored, version-controlled content (the VERIFY/FINISH
+# grammar described in docs/CHECKS.md). Bootstrap no longer carries their bodies;
+# it only knows their names so a fresh checkout can be validated. Edit the files
+# in instructions/ directly — they are the source of truth.
+INSTRUCTION_NAMES: list[str] = [
+    "global", "safety", "progress_reporting", "command_questioning",
+    "sandboxing", "resource_pressure",
+    "chat_agent", "planning", "spawning", "coding_agent", "testing_agent",
+    "testing", "review", "integration", "fixing", "profiling", "optimization",
+    "summarizing", "philosophizing", "curl_web", "finishing", "zipper_agent",
+    "file_reading", "file_writing", "file_deleting",
+    "terminal_execution", "python_execution", "shell_execution",
+    "convergence", "verify",
+]
 
 
 PROMPTS: dict[str, str] = {
@@ -960,11 +647,19 @@ def main() -> None:
             gk.write_text("", encoding="utf-8")
 
     results = [write_file(ROOT / "settings" / "main.settings", MAIN_SETTINGS, args.force)]
-    for name, content in INSTRUCTIONS.items():
-        results.append(write_file(ROOT / "instructions" / name, content, args.force))
     for name, content in PROMPTS.items():
         results.append(write_file(ROOT / "prompts" / name, content, args.force))
     results.append(write_file(ROOT / "swarm" / "schema.sql", SCHEMA_SQL, args.force))
+
+    # Instruction files are authored content tracked in git; bootstrap does not
+    # generate them. Validate they are present and flag any that are missing.
+    missing = [n for n in INSTRUCTION_NAMES if not (ROOT / "instructions" / n).exists()]
+    for n in INSTRUCTION_NAMES:
+        present = (ROOT / "instructions" / n).exists()
+        results.append(f"{'ok   ' if present else 'MISS '} instructions/{n}")
+    if missing:
+        results.append(f"\nWARNING: {len(missing)} instruction file(s) missing: "
+                       + ", ".join(missing) + "\nRestore them from version control.")
 
     for line in results:
         print(line)

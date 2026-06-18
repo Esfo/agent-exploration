@@ -185,20 +185,28 @@ def _agent_program(ctx, agent):
 
 
 def _program_vote(ctx, agent, shared, purpose):
-    """Decide an agent's vote by executing its instruction program. Each VERIFY
-    question is asked of the model in the shared context; reaching FINISH casts
-    a FINISHED vote. Returns (vote, reasoning) or None if no program applies."""
-    from .instruction_program import run_program
+    """Decide an agent's vote by executing its instruction program. The agent is
+    framed by its program (PURPOSE + guidance) with INPUT: hard-substituted by the
+    shared convergence context; each VERIFY question is asked of the model and
+    reaching FINISH casts a FINISHED vote. Returns (vote, reasoning) or None if no
+    program applies."""
+    from .instruction_program import messages_to_text, run_program
     prog = _agent_program(ctx, agent)
     if prog is None:
         return None
+
+    # Frame the agent with its program and the substituted INPUT (spec behavior).
+    sys_text = prog.system_text() + "\n\n" + purpose
+    input_text = prog.render_input(messages_to_text(shared))
+    base = [{"role": "system", "content": sys_text}]
+    if input_text:
+        base.append({"role": "user", "content": "INPUT:\n" + input_text})
 
     asked: list[str] = []
 
     def ask(question: str) -> str:
         asked.append(question)
-        msgs = shared + [
-            {"role": "system", "content": purpose},
+        msgs = base + [
             {"role": "user", "content": question
              + '\nAnswer with a short YES or NO and a brief reason.'},
         ]
