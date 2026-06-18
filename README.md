@@ -30,8 +30,8 @@ Tested offline with a mock model (no Ollama needed):
   freshness-based on-disk cache.
 - **Reconciliation** — `request_review`/`request_integration`/`request_testing`/
   `request_fix` spawn the matching agent role.
-- **Code pipeline** — a spawned `code` work-unit runs as three models in sequence,
-  each fed the previous one's output: **code → code_checker → philosopher**, each
+- **Code pipeline** — a spawned `coding_agent` work-unit runs as three models in sequence,
+  each fed the previous one's output: **coding_agent → testing_agent → philosopher**, each
   following its own instruction file.
 - **Profiling/optimization** — `profile` (cProfile + baseline) and `optimize`
   (sandboxed before/after validation).
@@ -62,5 +62,5 @@ emit malformed `<<tool:>>` blocks. The parser is deliberately forgiving and the
 loop feeds corrections back. With recursion unbounded and every code unit
 spawning three agents, convergence depends on the instruction files — they are
 what make agents finish, defer, or stop spawning. The defense against a model
-"hallucinating" success is the spawned checker pipeline (code → code_checker →
+"hallucinating" success is the spawned checker pipeline (coding_agent → testing_agent →
 philosopher), each following its own instruction file.

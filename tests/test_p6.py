@@ -45,11 +45,11 @@ def test_memory_add_toggle_relevant(project):
     mem = MemoryStore(ctx.db)
     m1 = mem.add("always use pathlib for filesystem paths", scope="global", tags="files,path")
     m2 = mem.add("the deploy server is flaky on fridays", scope="global")
-    rel = mem.relevant(role="code", task="write code that resolves filesystem path")
+    rel = mem.relevant(role="coding_agent", task="write code that resolves filesystem path")
     assert any(m["id"] == m1 for m in rel)
     # disable m1 -> no longer surfaced
     mem.set_enabled(m1, False)
-    rel2 = mem.relevant(role="code", task="resolve filesystem path")
+    rel2 = mem.relevant(role="coding_agent", task="resolve filesystem path")
     assert not any(m["id"] == m1 for m in rel2)
 
 
@@ -57,7 +57,7 @@ def test_memory_scope_filter(project):
     ctx, _ = make_runtime(project, MockClient(lambda *_: ""))
     mem = MemoryStore(ctx.db)
     mem.add("reviewer-only note", scope="reviewer")
-    rel_code = mem.relevant(role="code", task="anything")
+    rel_code = mem.relevant(role="coding_agent", task="anything")
     assert not any("reviewer-only" in m["text"] for m in rel_code)
     rel_rev = mem.relevant(role="reviewer", task="anything")
     assert any("reviewer-only" in m["text"] for m in rel_rev)
@@ -78,7 +78,7 @@ def test_memory_injected_into_context(project):
     ctx.memory.add("REMEMBER-THIS-FACT", scope="global")
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "g")
-    root = ctx.create_root(sid, "code", "Root", "do work")
+    root = ctx.create_root(sid, "coding_agent", "Root", "do work")
     runner.run_agent(root["id"])
     assert "REMEMBER-THIS-FACT" in seen["prompt"]
 

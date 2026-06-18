@@ -11,7 +11,7 @@ def test_child_inherits_conversation_and_has_unique_purpose(project):
             return '<<tool:finish>>{"status":"complete","summary":"merged"}<</tool>>'
         if "ROLE: progenitor" in last_user:
             return ('<<tool:spawn_agents>>{"children":[{"title":"sub","task":"do the sub-piece",'
-                    '"role":"code"}]}<</tool>>')
+                    '"role":"coding_agent"}]}<</tool>>')
         return '<<tool:finish>>{"status":"complete","summary":"leaf"}<</tool>>'
 
     client = MockClient(script)
@@ -26,7 +26,7 @@ def test_child_inherits_conversation_and_has_unique_purpose(project):
         return "\n".join(m["content"] for m in call["messages"])
 
     child_calls = [c for c in client.calls if "do the sub-piece" in joined(c)
-                   and "ROLE: code" in joined(c)]
+                   and "ROLE: coding_agent" in joined(c)]
     assert child_calls, "no child call found"
     text = joined(child_calls[0])
 
@@ -34,7 +34,7 @@ def test_child_inherits_conversation_and_has_unique_purpose(project):
     assert "build the whole thing" in text
     assert "ROLE: progenitor" in text          # the parent's purpose is present
     # ...and carries its own unique purpose.
-    assert "This is your purpose: ROLE: code" in text
+    assert "This is your purpose: ROLE: coding_agent" in text
     assert "return your result to your parent branch" in text
 
 

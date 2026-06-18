@@ -386,7 +386,7 @@ class AgentRunner:
 
     def run_code_pipeline(self, code_agent_id: str, inherited: list[dict]) -> dict:
         """A code work-unit run as three sequential models, each fed the previous:
-        code -> code_checker -> philosopher (spec: change the nature of recursion)."""
+        coding_agent -> testing_agent -> philosopher (spec: change the nature of recursion)."""
         ctx, db = self.ctx, self.ctx.db
         code_row = db.get_agent(code_agent_id)
         orig_task = code_row["task"]
@@ -400,7 +400,7 @@ class AgentRunner:
             parent=code_row, title="Check the code against spec and the bigger picture",
             task=("Verify the code produced above is up to spec, meets the intended goal, "
                   "and fits the bigger picture it must return into.\nORIGINAL TASK:\n" + orig_task),
-            role="code_checker", done_condition="A clear PASS/FAIL verdict on the code.",
+            role="testing_agent", done_condition="A clear PASS/FAIL verdict on the code.",
             suggested_model=None, priority=2)
         checker_res = self.run_agent(checker["id"], stage1)
         stage2 = self._agent_conversation(db.get_agent(checker["id"]), stage1)
@@ -427,7 +427,7 @@ class AgentRunner:
                      f"{phil_res.get('note', phil_res.get('summary',''))}."),
             "return_note": phil_res.get("note", ""),
             "completion_percentage": code_res.get("completion_percentage", 100),
-            "pipeline": {"code": code_agent_id, "code_checker": checker["id"],
+            "pipeline": {"coding_agent": code_agent_id, "testing_agent": checker["id"],
                          "philosopher": phil["id"]},
         }
 
@@ -443,7 +443,7 @@ class AgentRunner:
         pipeline = self.ctx.settings.get_bool("CODE_PIPELINE_ENABLED", True)
 
         def _run(child):
-            if child.get("role") == "code" and pipeline:
+            if child.get("role") == "coding_agent" and pipeline:
                 results[child["id"]] = self.run_code_pipeline(child["id"], conversation)
             else:
                 results[child["id"]] = self.run_agent(child["id"], conversation)

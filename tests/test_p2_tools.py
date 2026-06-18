@@ -11,7 +11,7 @@ def _root_agent(ctx):
     ids._counters.clear()
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "goal")
-    return ctx.create_root(sid, "code", "Root", "do work")
+    return ctx.create_root(sid, "coding_agent", "Root", "do work")
 
 
 # ---------- path guard ----------
@@ -153,7 +153,7 @@ def test_full_loop_writes_real_file(project):
     ctx, runner = make_runtime(project, MockClient(script))
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "reverse string")
-    root = ctx.create_root(sid, "code", "Root", "write a reverse function")
+    root = ctx.create_root(sid, "coding_agent", "Root", "write a reverse function")
     result = runner.run_agent(root["id"])
     assert result["status"] == "complete"
     work = Path(root["assigned_directory"])

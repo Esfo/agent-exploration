@@ -70,9 +70,9 @@ def test_parallel_children_all_complete(project):
             return '<<tool:finish>>{"status":"complete","summary":"merged"}<</tool>>'
         if "ROLE: progenitor" in last_user:
             return ('<<tool:spawn_agents>>{"children":['
-                    '{"title":"a","task":"ta","role":"code"},'
-                    '{"title":"b","task":"tb","role":"code"},'
-                    '{"title":"c","task":"tc","role":"code"}]}<</tool>>')
+                    '{"title":"a","task":"ta","role":"coding_agent"},'
+                    '{"title":"b","task":"tb","role":"coding_agent"},'
+                    '{"title":"c","task":"tc","role":"coding_agent"}]}<</tool>>')
         return '<<tool:finish>>{"status":"complete","summary":"leaf"}<</tool>>'
 
     ctx, runner = make_runtime(project, MockClient(script))

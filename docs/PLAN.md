@@ -69,7 +69,7 @@ now the canonical behaviors (see linked docs):
 - Each `instructions/*.txt` is an ordered list of **instructions** for its named
   process, injected into the agent's prompt and followed in order. There is NO
   runtime gate that re-reads them as pass/fail. Verification is done by spawning
-  checker agents (code_checker, philosopher) that follow their own files.
+  checker agents (testing_agent, philosopher) that follow their own files.
 - Instruction loading: an agent is given global + safety + progress + finishing
   + its role file + one file per usable tool.
 - The model for a role is set in settings/main.settings, not the instruction file.

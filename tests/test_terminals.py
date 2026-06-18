@@ -8,7 +8,7 @@ def _agent(ctx):
     ids._counters.clear()
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "g")
-    return ctx.create_root(sid, "code", "Root", "work")
+    return ctx.create_root(sid, "coding_agent", "Root", "work")
 
 
 # ---------- cwd guard ----------

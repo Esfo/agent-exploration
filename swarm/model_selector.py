@@ -25,7 +25,7 @@ ROLE_PRIMARY_FILE = {
     "progenitor": ("INSTRUCTION_PROGENITOR", "PROGENITOR"),
     "planner": ("INSTRUCTION_PLANNING", "PLANNER"),
     "spawner": ("INSTRUCTION_SPAWNING", "SPAWNER"),
-    "code": ("INSTRUCTION_CODING", "CODE"),
+    "coding_agent": ("INSTRUCTION_CODING", "CODE"),
     "terminal": ("INSTRUCTION_TERMINAL", "TERMINAL"),
     "python": ("INSTRUCTION_PYTHON", "PYTHON"),
     "shell": ("INSTRUCTION_SHELL", "SHELL"),
@@ -41,7 +41,7 @@ ROLE_PRIMARY_FILE = {
     "optimizer": ("INSTRUCTION_OPTIMIZATION", "OPTIMIZATION"),
     "finisher": ("INSTRUCTION_FINISHING", "FINISH"),
     "summarizer": ("INSTRUCTION_SUMMARIZING", "SUMMARIZER"),
-    "code_checker": ("INSTRUCTION_CODE_CHECKING", "CODE_CHECKER"),
+    "testing_agent": ("INSTRUCTION_CODE_CHECKING", "CODE_CHECKER"),
     "philosopher": ("INSTRUCTION_PHILOSOPHIZING", "PHILOSOPHER"),
 }
 
@@ -50,7 +50,7 @@ ROLE_DEFAULT_KEY = {
     "progenitor": "DEFAULT_PROGENITOR_MODEL",
     "planner": "DEFAULT_PLANNER_MODEL",
     "spawner": "DEFAULT_SPAWNER_MODEL",
-    "code": "DEFAULT_CODE_MODEL",
+    "coding_agent": "DEFAULT_CODE_MODEL",
     "terminal": "DEFAULT_TERMINAL_MODEL",
     "python": "DEFAULT_PYTHON_MODEL",
     "shell": "DEFAULT_SHELL_MODEL",
@@ -66,7 +66,7 @@ ROLE_DEFAULT_KEY = {
     "optimizer": "DEFAULT_OPTIMIZATION_MODEL",
     "finisher": "DEFAULT_FINISH_MODEL",
     "summarizer": "DEFAULT_SUMMARIZER_MODEL",
-    "code_checker": "DEFAULT_CODE_CHECKER_MODEL",
+    "testing_agent": "DEFAULT_CODE_CHECKER_MODEL",
     "philosopher": "DEFAULT_PHILOSOPHER_MODEL",
 }
 
@@ -75,11 +75,11 @@ GPU_ROUTE_KEY = {
     "progenitor": "ROUTE_PROGENITOR_TO_GPU",
     "planner": "ROUTE_PLANNER_TO_GPU",
     "spawner": "ROUTE_SPAWNER_TO_GPU",
-    "code": "ROUTE_CODE_TO_GPU",
+    "coding_agent": "ROUTE_CODE_TO_GPU",
     "integrator": "ROUTE_INTEGRATION_TO_GPU",
     "fixer": "ROUTE_FIX_TO_GPU",
     "optimizer": "ROUTE_OPTIMIZATION_TO_GPU",
-    "code_checker": "ROUTE_CODE_CHECKER_TO_GPU",
+    "testing_agent": "ROUTE_CODE_CHECKER_TO_GPU",
 }
 
 

@@ -43,7 +43,7 @@ def test_settings_bad_line(tmp_path):
 
 def test_instruction_parse(tmp_path):
     # No MODEL line: PURPOSE first, then numbered instructions.
-    p = write(tmp_path, "coding.txt", "PURPOSE: test\n001. first\n002. second\n# c\n")
+    p = write(tmp_path, "coding_agent", "PURPOSE: test\n001. first\n002. second\n# c\n")
     inst = parse_instruction_file(p)
     assert inst.purpose == "test"
     assert inst.lines == ["first", "second"]

@@ -21,7 +21,7 @@ Each model call for an agent is assembled as (`swarm/context_builder.build_messa
   up the chain. Children are not isolated; they read what their ancestors said
   and did.
 - The **purpose** is the one thing unique to each agent, e.g.:
-  > *This is your purpose: ROLE: code. You are an individual agent (agent_0007)
+  > *This is your purpose: ROLE: coding_agent. You are an individual agent (agent_0007)
   > working on #4 within the context of the conversation above. Your specific
   > task: "…". It is your job to complete this and return your result to your
   > parent branch (agent_0003). Work only in … Now follow your instruction

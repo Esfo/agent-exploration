@@ -25,7 +25,7 @@ def _one_sentence(text: str, limit: int = 64) -> str:
 # Default weights for completion accounting (spec section 31).
 ROLE_WEIGHTS = {
     "checklist_item": 1.0,
-    "code": 1.0,
+    "coding_agent": 1.0,
     "researcher": 1.0,
     "profiler": 1.0,
     "optimizer": 2.0,

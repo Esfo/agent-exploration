@@ -21,14 +21,14 @@ ROLE_INSTRUCTION_KEYS = {
     "progenitor": ["INSTRUCTION_PROGENITOR", "INSTRUCTION_PLANNING", "INSTRUCTION_SPAWNING"],
     "planner": ["INSTRUCTION_PLANNING", "INSTRUCTION_SPAWNING"],
     "spawner": ["INSTRUCTION_SPAWNING"],
-    "code": ["INSTRUCTION_CODING"],
+    "coding_agent": ["INSTRUCTION_CODING"],
     "reviewer": ["INSTRUCTION_REVIEW"],
     "integrator": ["INSTRUCTION_INTEGRATION"],
     "tester": ["INSTRUCTION_TESTING"],
     "fixer": ["INSTRUCTION_FIXING"],
     "profiler": ["INSTRUCTION_PROFILING"],
     "optimizer": ["INSTRUCTION_OPTIMIZATION"],
-    "code_checker": ["INSTRUCTION_CODE_CHECKING"],
+    "testing_agent": ["INSTRUCTION_CODE_CHECKING"],
     "philosopher": ["INSTRUCTION_PHILOSOPHIZING"],
 }
 
@@ -82,7 +82,7 @@ ROLE_TOOLSETS = {
     "progenitor": SPAWN_TOOLS + WORKER_TOOLS + RECONCILE_TOOLS,
     "planner": SPAWN_TOOLS,
     "spawner": SPAWN_TOOLS,
-    "code": WORKER_TOOLS + ["request_review", "request_testing", "request_integration"] + WEB_TOOLS,
+    "coding_agent": WORKER_TOOLS + ["request_review", "request_testing", "request_integration"] + WEB_TOOLS,
     "fixer": WORKER_TOOLS + ["request_testing"],
     "tester": WORKER_TOOLS + ["request_fix"],
     "reviewer": WORKER_TOOLS,
@@ -91,13 +91,13 @@ ROLE_TOOLSETS = {
     "profiler": WORKER_TOOLS + ["profile"],
     "researcher": WEB_TOOLS,
     # Stage-2 checker can read + run to verify; stage-3 philosopher is non-code.
-    "code_checker": WORKER_TOOLS,
+    "testing_agent": WORKER_TOOLS,
     "philosopher": ["read_file", "list_files"],
 }
 
 # Concise argument hints so small models emit the right JSON keys.
 TOOL_HELP = {
-    "spawn_agents": '{"children":[{"title":"..","task":"..","role":"code","done_condition":".."}]}',
+    "spawn_agents": '{"children":[{"title":"..","task":"..","role":"coding_agent","done_condition":".."}]}',
     "report_progress": '{"message":"..","completion_percentage":50,"current_step":".."}',
     "finish": '{"status":"complete|blocked|failed","summary":"..","note":"..","files_created":[".."]}',
     "list_files": '{"path":"."}',

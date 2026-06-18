@@ -96,11 +96,11 @@ SUMMARIZER_NUM_PREDICT=1024
 SUMMARIZER_TEMPERATURE=0.2
 INSTRUCTION_SUMMARIZING=instructions/summarizing.txt
 
-# Code work-unit pipeline: every spawned "code" agent is run as a sequence of
+# Code work-unit pipeline: every spawned "coding_agent" is run as a sequence of
 # three models, one at a time, each fed the previous one's output:
-#   1) code        - writes the code, self-questions via its checks, runs it
-#   2) code_checker - verifies the code is up to spec / fits the bigger picture
-#   3) philosopher  - verifies it meets the human-level intent, reports to parent
+#   1) coding_agent  - writes the code, self-questions via its checks, runs it
+#   2) testing_agent - verifies the code is up to spec / fits the bigger picture
+#   3) philosopher   - verifies it meets the human-level intent, reports to parent
 CODE_PIPELINE_ENABLED=true
 DEFAULT_CODE_CHECKER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
 DEFAULT_PHILOSOPHER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
@@ -112,7 +112,7 @@ PHILOSOPHER_NUM_PREDICT=2048
 PHILOSOPHER_TEMPERATURE=0.3
 ROUTE_CODE_CHECKER_TO_GPU=true
 ROUTE_PHILOSOPHER_TO_CPU=true
-INSTRUCTION_CODE_CHECKING=instructions/code_checking.txt
+INSTRUCTION_CODE_CHECKING=instructions/testing_agent
 INSTRUCTION_PHILOSOPHIZING=instructions/philosophizing.txt
 
 # Temperatures
@@ -289,7 +289,7 @@ INSTRUCTION_GLOBAL=instructions/global.txt
 INSTRUCTION_PROGENITOR=instructions/chat_progenitor.txt
 INSTRUCTION_PLANNING=instructions/planning.txt
 INSTRUCTION_SPAWNING=instructions/spawning.txt
-INSTRUCTION_CODING=instructions/coding.txt
+INSTRUCTION_CODING=instructions/coding_agent
 INSTRUCTION_TERMINAL=instructions/terminal_execution.txt
 INSTRUCTION_PYTHON=instructions/python_execution.txt
 INSTRUCTION_SHELL=instructions/shell_execution.txt

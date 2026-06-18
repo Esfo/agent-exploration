@@ -7,7 +7,7 @@ The agent loop puts the parent into 'waiting_for_children' afterward.
 from __future__ import annotations
 
 VALID_ROLES = {
-    "planner", "spawner", "code", "terminal", "python", "shell", "researcher",
+    "planner", "spawner", "coding_agent", "terminal", "python", "shell", "researcher",
     "file_reader", "file_writer", "file_deleter", "reviewer", "integrator",
     "tester", "fixer", "profiler", "optimizer", "finisher",
 }
@@ -45,9 +45,11 @@ def execute(ctx, agent_id: str, args: dict) -> dict:
 
     created = []
     for spec in children:
-        role = str(spec.get("role", "code")).lower()
+        role = str(spec.get("role", "coding_agent")).lower()
+        if role == "code":  # backward-compat alias for the old role name
+            role = "coding_agent"
         if role not in VALID_ROLES:
-            role = "code"
+            role = "coding_agent"
         child = ctx.create_child(
             parent=parent,
             title=str(spec.get("title", spec.get("task", "subtask"))[:200]),

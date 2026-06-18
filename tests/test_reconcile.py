@@ -9,7 +9,7 @@ def test_request_testing_spawns_tester(project):
     def script(last_user, model, n):
         if "child agents finished" in last_user:
             return '<<tool:finish>>{"status":"complete","summary":"reviewed test results"}<</tool>>'
-        if "ROLE: code" in last_user:
+        if "ROLE: coding_agent" in last_user:
             return '<<tool:request_testing>>{"target":"reverse.py","context":"verify it reverses"}<</tool>>'
         # the tester child
         return '<<tool:finish>>{"status":"complete","summary":"tests pass","note":"3 passed"}<</tool>>'
@@ -17,7 +17,7 @@ def test_request_testing_spawns_tester(project):
     ctx, runner = make_runtime(project, MockClient(script))
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "build + test")
-    root = ctx.create_root(sid, "code", "Root", "write and test reverse")
+    root = ctx.create_root(sid, "coding_agent", "Root", "write and test reverse")
     result = runner.run_agent(root["id"])
 
     assert result["status"] == "complete"

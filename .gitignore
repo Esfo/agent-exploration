@@ -16,6 +16,9 @@ workspace/shared_readonly/**
 # ...but keep the directory placeholders so the tree exists after clone.
 !**/.gitkeep
 
+# Research agent's cached web pages / docs library (sibling of instructions/)
+library/
+
 # Python
 __pycache__/
 *.pyc

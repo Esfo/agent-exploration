@@ -24,7 +24,7 @@ PURPOSE: <what this process is for>
 
 An agent of role R is given, in order: `global.txt`, `safety.txt`,
 `progress_reporting.txt`, `finishing.txt`, the role's own file (e.g.
-`coding.txt`), and one file per tool it can use (e.g. `python_execution.txt`,
+`coding_agent`), and one file per tool it can use (e.g. `python_execution.txt`,
 `file_writing.txt`, `terminal_execution.txt`). So put universal rules in the
 global files and process-specific rules in the role/tool files.
 
@@ -34,11 +34,11 @@ There is no runtime check that re-reads an agent's lines and decides pass/fail.
 Verification happens because work is **spawned through checker agents**, each of
 which just follows its own instruction file:
 
-- A spawned **code** work-unit runs as a sequence (see [CONTEXT.md](CONTEXT.md)
+- A spawned **coding_agent** work-unit runs as a sequence (see [CONTEXT.md](CONTEXT.md)
   and the pipeline in `swarm/agent_loop.py`):
-  1. **code** — follows `coding.txt`: writes the code, works through its
+  1. **coding_agent** — follows `coding_agent`: writes the code, works through its
      instructions, runs it.
-  2. **code_checker** — follows `code_checking.txt`: inherits the coder's output
+  2. **testing_agent** — follows `testing_agent`: inherits the coder's output
      and verifies the code is up to spec / fits the bigger picture.
   3. **philosopher** — follows `philosophizing.txt`: verifies the work meets the
      human-level intent and reports a verdict to the parent.

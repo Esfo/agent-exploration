@@ -5,7 +5,7 @@ from tests.conftest import MockClient, make_runtime
 
 def test_model_selector_falls_back_to_default(project):
     ctx, _ = make_runtime(project, MockClient(lambda *_: ""))
-    cfg = ctx.selector.resolve("code")
+    cfg = ctx.selector.resolve("coding_agent")
     assert cfg.selected_model == "mock-model:latest"
     assert cfg.model_source == "default_fallback"
     # num_ctx auto + probe unavailable -> conservative fallback, capped by MAX_AUTO_NUM_CTX.
@@ -37,7 +37,7 @@ def test_spawn_then_finish(project):
             return '<<tool:finish>>{"status":"complete","summary":"integrated children","note":"done"}<</tool>>'
         if "ROLE: progenitor" in last_user:
             return ('<<tool:spawn_agents>>{"children":[{"title":"sub","task":"do sub",'
-                    '"role":"code","done_condition":"sub done"}]}<</tool>>')
+                    '"role":"coding_agent","done_condition":"sub done"}]}<</tool>>')
         return '<<tool:finish>>{"status":"complete","summary":"leaf done","note":"leaf"}<</tool>>'
 
     ctx, runner = make_runtime(project, MockClient(script))
@@ -51,7 +51,7 @@ def test_spawn_then_finish(project):
     assert len(agents) == 2  # root + 1 child
     child = [a for a in agents if a["parent_agent_id"] == root["id"]][0]
     assert child["status"] == "complete"
-    assert child["role"] == "code"
+    assert child["role"] == "coding_agent"
 
 
 def test_recursion_depth_ceiling(project):
@@ -65,7 +65,7 @@ def test_recursion_depth_ceiling(project):
             return '<<tool:finish>>{"status":"complete","summary":"wrapped up"}<</tool>>'
         # Every agent tries to spawn; ceiling must stop runaway recursion.
         return ('<<tool:spawn_agents>>{"children":[{"title":"deeper","task":"go deeper",'
-                '"role":"code"}]}<</tool>>')
+                '"role":"coding_agent"}]}<</tool>>')
 
     ctx, runner = make_runtime(project, MockClient(script))
     sid = ids.next_id("swarm")

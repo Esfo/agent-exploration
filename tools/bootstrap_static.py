@@ -102,7 +102,7 @@ INSTRUCTIONS: dict[str, str] = {
         "After spawning, report the child list and current swarm completion percentage.",
         "If the task benefits from deeper recursive decomposition, continue spawning children through the spawn_agents tool.",
     ]),
-    "coding.txt": instruction(PH, "Controls code-writing agents.", [
+    "coding_agent": instruction(PH, "Controls code-writing agents.", [
         "Inspect relevant existing files before writing new code.",
         "Keep code scoped to the assigned task.",
         "Use the assigned directory for all direct coding work.",
@@ -704,7 +704,7 @@ INSTRUCTION_GLOBAL=instructions/global.txt
 INSTRUCTION_PROGENITOR=instructions/chat_progenitor.txt
 INSTRUCTION_PLANNING=instructions/planning.txt
 INSTRUCTION_SPAWNING=instructions/spawning.txt
-INSTRUCTION_CODING=instructions/coding.txt
+INSTRUCTION_CODING=instructions/coding_agent
 INSTRUCTION_TERMINAL=instructions/terminal_execution.txt
 INSTRUCTION_PYTHON=instructions/python_execution.txt
 INSTRUCTION_SHELL=instructions/shell_execution.txt

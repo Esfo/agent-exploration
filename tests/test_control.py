@@ -20,7 +20,7 @@ def test_cancel_stops_agent_before_work(project):
     ctx.control.cancel()  # cancel the whole swarm up front
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "g")
-    root = ctx.create_root(sid, "code", "Root", "do work")
+    root = ctx.create_root(sid, "coding_agent", "Root", "do work")
     result = runner.run_agent(root["id"])
     assert result["status"] == "cancelled"
     assert ctx.db.get_agent(root["id"])["status"] == "cancelled"
@@ -33,7 +33,7 @@ def test_stop_after_wave_prevents_new_children(project):
         if "Stop requested" in last_user:
             return '<<tool:finish>>{"status":"complete","summary":"stopped cleanly"}<</tool>>'
         if "ROLE: progenitor" in last_user:
-            return ('<<tool:spawn_agents>>{"children":[{"title":"x","task":"t","role":"code"}]}<</tool>>')
+            return ('<<tool:spawn_agents>>{"children":[{"title":"x","task":"t","role":"coding_agent"}]}<</tool>>')
         return '<<tool:finish>>{"status":"complete"}<</tool>>'
 
     ctx, runner = make_runtime(project, MockClient(script))

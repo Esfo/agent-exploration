@@ -68,7 +68,7 @@ def test_children_inherit_summary_on_overflow(project):
             return '<<tool:finish>>{"status":"complete","summary":"done"}<</tool>>'
         if "ROLE: progenitor" in last_user:
             return ('<<tool:spawn_agents>>{"children":[{"title":"sub","task":"do sub piece",'
-                    '"role":"code"}]}<</tool>>')
+                    '"role":"coding_agent"}]}<</tool>>')
         return '<<tool:finish>>{"status":"complete","summary":"leaf"}<</tool>>'
 
     client = MockClient(script)
@@ -83,7 +83,7 @@ def test_children_inherit_summary_on_overflow(project):
     assert "summarizer" in roles
     child_calls = [c for c in client.calls
                    if any("do sub piece" in m["content"] for m in c["messages"])
-                   and any("ROLE: code" in m["content"] for m in c["messages"])]
+                   and any("ROLE: coding_agent" in m["content"] for m in c["messages"])]
     assert child_calls
     blob = "\n".join(m["content"] for m in child_calls[0]["messages"])
     assert "[SUMMARY OF EARLIER CONVERSATION]" in blob
