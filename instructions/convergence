@@ -1,1 +1,20 @@
-FUNCTION: 
+FUNCTION: The convergence process. This runs every time a group of agents is
+spawned together. The agents hold a group conversation about how to accomplish a
+shared goal and drive toward one answer.
+
+- Every agent inherits the same conversation (the INPUT) but is given its own
+  PURPOSE (its AGENT_TYPE angle on the project).
+- Each round, every agent forms a response — either a plan or a prototype/execution
+  ("please give the most appropriate response at this level of the project, either
+  plan or execute"). Every response is aggregated and fed back into every agent.
+- After the work response, every agent is asked to vote. The vote is collected by
+  a simple text match for "I vote FINISHED" or "I vote INCOMPLETE"; the vote must
+  be the final word of the agent's message.
+- When EVERY agent votes FINISHED, the convergence is complete and its result is
+  handed off to the zipper process.
+- If ANY agent votes INCOMPLETE, the collective reasoning is consolidated and fed
+  back to every agent for a reassessment, and the vote round repeats.
+
+AGENT INITIATION: Don't be pushed around, stand your ground and only agree when
+it's reasonable to do so. Your job is to work together with the other agents to
+deliver a finished project.

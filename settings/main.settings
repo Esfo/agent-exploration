@@ -102,6 +102,11 @@ INSTRUCTION_SUMMARIZING=instructions/summarizing.txt
 #   2) testing_agent - verifies the code is up to spec / fits the bigger picture
 #   3) philosopher   - verifies it meets the human-level intent, reports to parent
 CODE_PIPELINE_ENABLED=true
+
+# Convergence process: a spawned group of agents holds response->vote rounds and
+# loops until every agent votes "I vote FINISHED" (or this round cap is hit).
+CONVERGENCE_ENABLED=true
+CONVERGENCE_MAX_ROUNDS=4
 DEFAULT_CODE_CHECKER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
 DEFAULT_PHILOSOPHER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
 CODE_CHECKER_NUM_CTX=auto

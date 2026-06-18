@@ -60,6 +60,18 @@ that deviate from or sharpen the spec.
 - [x] Memory store + enable/relevance toggles, injected into context
 - [x] Conversation/swarm branching (copy goal + root messages, independent future)
 
+### Prototype 7 — convergence + voting 🚧 (mechanism built, not yet wired into spawn path)
+- [x] `swarm/convergence.py`: response→vote rounds over a spawned agent group
+- [x] Spec-worded prompts (initiation, "plan or execute", the vote ASK, the
+      INCOMPLETE consolidation feedback) sourced in `instructions/convergence`
+- [x] Vote tally by text match on "I vote FINISHED"/"I vote INCOMPLETE"
+      (final-word wins), unanimity gate, `CONVERGENCE_MAX_ROUNDS` cap
+- [x] Per-round vote logging to `logs/convergence.jsonl` + chat summary line
+- [ ] Wire `run_convergence` into `_run_children` so a spawned group converges
+      before returning upward
+- [ ] Hand the converged result off to a `zipper_agent` (finalizer) — next
+- [ ] Response phase optionally routed through full `run_agent` (real tool use)
+
 ## Beyond the spec — owner design corrections
 
 The spec framed some things in ways the system owner later corrected. These are

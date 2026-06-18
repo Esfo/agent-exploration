@@ -1,0 +1,112 @@
+"""Convergence process: response->vote rounds until unanimous 'I vote FINISHED'."""
+from swarm import ids
+from swarm.convergence import parse_vote, run_convergence, FINISHED, INCOMPLETE
+from tests.conftest import MockClient, make_runtime
+
+
+def _is_vote(last_user: str) -> bool:
+    return "would you vote" in last_user.lower()
+
+
+def _group(ctx, sid, roles):
+    root = ctx.create_root(sid, "progenitor", "Root", "build a thing")
+    return [ctx.create_child(parent=root, title=r, task=f"{r} angle", role=r,
+                             done_condition="", suggested_model=None, priority=1)
+            for r in roles]
+
+
+# ----- parse_vote unit -----
+
+def test_parse_vote_basic():
+    assert parse_vote("blah blah\nI vote FINISHED") == FINISHED
+    assert parse_vote("reasons... I vote INCOMPLETE") == INCOMPLETE
+    assert parse_vote("i VoTe finished") == FINISHED
+    assert parse_vote("no verdict here") is None
+
+
+def test_parse_vote_last_wins():
+    # Against instruction an agent mentions both; the final word governs.
+    assert parse_vote("I vote INCOMPLETE earlier, but really I vote FINISHED") == FINISHED
+
+
+# ----- full loop -----
+
+def test_unanimous_finished_first_round(project):
+    ids._counters.clear()
+
+    def script(last_user, model, n):
+        if _is_vote(last_user):
+            return "My assessment is solid.\nI vote FINISHED"
+        return "Here is my plan: do the work."
+
+    ctx, _ = make_runtime(project, MockClient(script))
+    sid = ids.next_id("swarm")
+    ctx.db.create_swarm(sid, "g")
+    agents = _group(ctx, sid, ["coding_agent", "testing_agent"])
+
+    res = run_convergence(ctx, agents, inherited=[], goal_type="code")
+    assert res.finished is True
+    assert res.round_count == 1
+    assert all(v.vote == FINISHED for v in res.rounds[0].votes)
+
+
+def test_incomplete_then_converges(project):
+    ids._counters.clear()
+    counters = {"vote": 0}
+
+    def script(last_user, model, n):
+        if _is_vote(last_user):
+            counters["vote"] += 1
+            # second vote in round 1 dissents; everyone agrees thereafter.
+            if counters["vote"] == 2:
+                return "Not there yet.\nI vote INCOMPLETE"
+            return "Good enough now.\nI vote FINISHED"
+        return "plan/execute response"
+
+    ctx, _ = make_runtime(project, MockClient(script))
+    sid = ids.next_id("swarm")
+    ctx.db.create_swarm(sid, "g")
+    agents = _group(ctx, sid, ["coding_agent", "testing_agent"])
+
+    res = run_convergence(ctx, agents, inherited=[], goal_type="code")
+    assert res.finished is True
+    assert res.round_count == 2
+    assert res.rounds[0].unanimous_finished is False
+    assert res.rounds[1].unanimous_finished is True
+
+
+def test_never_converges_hits_round_cap(project):
+    ids._counters.clear()
+    sp = project / "settings" / "main.settings"
+    sp.write_text(sp.read_text().replace("CONVERGENCE_MAX_ROUNDS=4", "CONVERGENCE_MAX_ROUNDS=2"))
+
+    def script(last_user, model, n):
+        if _is_vote(last_user):
+            return "Still not done.\nI vote INCOMPLETE"
+        return "more work needed"
+
+    ctx, _ = make_runtime(project, MockClient(script))
+    sid = ids.next_id("swarm")
+    ctx.db.create_swarm(sid, "g")
+    agents = _group(ctx, sid, ["coding_agent", "testing_agent"])
+
+    res = run_convergence(ctx, agents, inherited=[], goal_type="code")
+    assert res.finished is False
+    assert res.round_count == 2
+
+
+def test_votes_logged_to_jsonl(project):
+    ids._counters.clear()
+
+    def script(last_user, model, n):
+        return "I vote FINISHED" if _is_vote(last_user) else "plan"
+
+    ctx, _ = make_runtime(project, MockClient(script))
+    sid = ids.next_id("swarm")
+    ctx.db.create_swarm(sid, "g")
+    agents = _group(ctx, sid, ["coding_agent", "testing_agent"])
+    run_convergence(ctx, agents, inherited=[], goal_type="code")
+
+    log = project / "logs" / "convergence.jsonl"
+    assert log.exists()
+    assert '"vote": "finished"' in log.read_text()
