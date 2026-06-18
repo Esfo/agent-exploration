@@ -155,8 +155,14 @@ def test_convergence_runs_in_spawn_path(project):
     sp.write_text(sp.read_text().replace("CONVERGENCE_ENABLED=false", "CONVERGENCE_ENABLED=true"))
     ids._counters.clear()
 
+    spawned_once = {"done": False}
+
     def script(last_user, model, n):
-        if "ROLE: chat_agent" in last_user:
+        # The root spawns its group exactly once. (Guard against the purpose text
+        # re-appearing in summarizer/inherited context and re-triggering a spawn.)
+        if "ROLE: chat_agent" in last_user and "You are the root agent" in last_user \
+                and not spawned_once["done"]:
+            spawned_once["done"] = True
             return ('<<tool:spawn_agents>>{"children":['
                     '{"title":"impl","task":"implement","role":"coding_agent"},'
                     '{"title":"verify","task":"verify","role":"testing_agent"}]}<</tool>>')

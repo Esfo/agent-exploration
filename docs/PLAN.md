@@ -82,10 +82,17 @@ that deviate from or sharpen the spec.
       - (b) **dissenter sub-swarm** — a dissenting agent can take its job over as
         its own swarm; the sub-swarm converges and the zipper moves its finalized
         work back **into that agent's directory**, bubbling up one level at a time
+      - the choice is a model inquiry per dissenter (`_escalation_choice`): is the
+        job too big to handle alone, and if so → INDEPENDENT COMMITTEE (form b) or
+        EXPAND the existing committee (form a)? Neither form fires on its own.
 - [x] Zipper **moves** (not copies) finalized work into categorized destination
       dirs (`code/ docs/ research/ math/ reports/ notes/`) chosen by role then
       extension, with a minimal "here's the code / here's the docs/…" manifest;
       `target_dir` lets each swarm level finalize into its own area
+- [x] `chat_agent` is the inquisitive human-facing planner — its own instruction
+      sheet (not a convergence VERIFY program): leads with questions, plans at
+      scale, enumerates the tools / swarms / agent types it can call, explanatory
+      and direct (not polite/apologetic). It orchestrates; it does not vote.
 - [ ] Response phase optionally routed through full `run_agent` (real tool use)
 
 ### Prototype 8 — instruction-program grammar ✅

@@ -529,17 +529,54 @@ class AgentRunner:
         return summary + note
 
     def _make_escalator(self, conversation: list[dict], goal_type: str):
-        """Build the convergence escalation callback implementing both spawning
-        forms: (a) add the required complementary peer agents to the group, and
-        (b) let a dissenting agent take its job over as its own sub-swarm whose
-        finalized work zippers back into that agent."""
+        """Build the convergence escalation callback. On dissent each agent is asked
+        the general question: is your job too big to handle alone, and if so should
+        it go to an INDEPENDENT COMMITTEE (its own sub-swarm) or should the EXISTING
+        COMMITTEE be EXPANDED (more agents added here)? The answer drives which
+        spawning form runs — neither happens for its own sake."""
         def escalate(rnd, agents_now, dissenters):
-            # Form (b): a dissenter may decide its part needs its own swarm.
+            new_peers: list[dict] = []
             for a in dissenters:
-                self._maybe_subswarm(a, conversation, goal_type)
-            # Form (a): ensure the required complementary roles are present.
-            return self._add_required_peers(agents_now, goal_type)
+                choice = self._escalation_choice(a, goal_type)
+                if choice == "committee":
+                    self._spawn_subswarm(a, conversation, goal_type)
+                elif choice == "expand":
+                    new_peers += self._expand_committee(a, agents_now, goal_type)
+                # "alone" -> the agent keeps working; no spawn this round.
+            return new_peers
         return escalate
+
+    def _escalation_choice(self, agent: dict, goal_type: str) -> str:
+        """Ask the agent whether its job is too big to handle alone, and if so how
+        it should be handled. Returns 'alone', 'committee', or 'expand'."""
+        from .convergence import _chat
+        q = (f"You are the {agent.get('role')} agent working on "
+             f"\"{agent.get('title','')}\" toward: {goal_type}.\n"
+             "Is this job too big to handle alone? If it is, should it be handled by "
+             "an INDEPENDENT COMMITTEE (its own swarm of sub-agents), or should the "
+             "EXISTING COMMITTEE be EXPANDED with more agents here?\n"
+             "Answer with exactly one word: ALONE, COMMITTEE, or EXPAND.")
+        ans = (_chat(self.ctx, agent, [{"role": "user", "content": q}]) or "").strip().lower()
+        if "committee" in ans:
+            return "committee"
+        if "expand" in ans:
+            return "expand"
+        return "alone"
+
+    def _expand_committee(self, agent: dict, agents_now: list[dict], goal_type: str) -> list[dict]:
+        """Form (a): expand the existing committee — add the required complementary
+        roles plus one more agent of the dissenter's own role to share the load."""
+        peers = self._add_required_peers(agents_now, goal_type)
+        parent = self.ctx.db.get_agent(agent["parent_agent_id"]) if agent.get("parent_agent_id") else None
+        if parent is not None:
+            role = agent.get("role", "coding_agent")
+            extra = self.ctx.create_child(
+                parent=parent, title=f"Additional {role} to share the load",
+                task=agent.get("task", ""), role=role, done_condition="",
+                suggested_model=None, priority=4)
+            self.ctx.events.agent_started(dict(extra))
+            peers.append(dict(extra))
+        return peers
 
     def _add_required_peers(self, agents_now: list[dict], goal_type: str) -> list[dict]:
         roles = [a.get("role") for a in agents_now]
@@ -559,15 +596,12 @@ class AgentRunner:
             peers.append(dict(peer))
         return peers
 
-    def _maybe_subswarm(self, agent: dict, conversation: list[dict], goal_type: str) -> bool:
-        """Form (b): if the agent believes its job needs its own swarm (and depth
-        allows), spawn a sub-team under it, run it (which converges + zippers the
-        finalized work back into this agent's directory), so the agent can rejoin
-        its peers with completed work."""
+    def _spawn_subswarm(self, agent: dict, conversation: list[dict], goal_type: str) -> bool:
+        """Form (b): the agent's job is handled by an independent committee — spawn a
+        sub-team under it (bounded by MAX_SUBSWARM_DEPTH) and run it, so its finalized
+        work zippers back into this agent's directory and it can rejoin its peers."""
         max_depth = self.ctx.settings.get_int("MAX_SUBSWARM_DEPTH", 4)
         if max_depth is not None and int(agent.get("depth", 0)) >= max_depth:
-            return False
-        if not self._agent_wants_subswarm(agent, goal_type):
             return False
         parent = self.ctx.db.get_agent(agent["id"])
         if parent is None:
@@ -586,14 +620,6 @@ class AgentRunner:
         self._run_children(spawned, conversation,
                            target_dir=agent.get("assigned_directory"))
         return True
-
-    def _agent_wants_subswarm(self, agent: dict, goal_type: str) -> bool:
-        from .convergence import _chat
-        q = (f"You are the {agent.get('role')} agent working on \"{agent.get('title','')}\". "
-             "Is your part too big to finish alone — does it need to be taken over by its "
-             "own swarm of sub-agents? Answer only YES or NO.")
-        ans = _chat(self.ctx, agent, [{"role": "user", "content": q}])
-        return (ans or "").strip().lower().startswith("y")
 
     def _run_zipper_handoff(self, agents: list[dict], goal_type: str, *, target_dir=None) -> str:
         """Spawn a zipper_agent and run the zipper process over the converged group."""
