@@ -5,50 +5,50 @@ extension** (`instructions/<name>`). The model for each role is set in
 `settings/main.settings` (`DEFAULT_<ROLE>_MODEL`, falling back to `DEFAULT_MODEL`),
 never in the file. Blank lines and `#` comments are ignored.
 
-## Format — PURPOSE / INPUT / VERIFY / FINISH
+## Format — PURPOSE / INPUT / VERIFY
 
-A primary agent file is an executable program (`swarm/instruction_program.py`):
+An instruction file is a small logical machine, not a list of bullet points. It is
+read in order: `PURPOSE` sets the agent up, `INPUT:` is where the runtime injects
+the agent's input, and the `VERIFY` tree asks the model specific yes/no questions
+and branches on the answer. There are **no numbered lines** and nothing is "told"
+to the model line by line.
 
 ```
-PURPOSE: <who this agent is, and what it does within the convergence>
+PURPOSE: <prose: who this agent is, its job, and the mindset it works in>
 INPUT:
-001. <plain guidance on how to do the work>
-002. <...>
-VERIFY: <a yes/no question gating completion>
+VERIFY: <a yes/no question that gates completion>
     YES: FINISH
-    NO: VERIFY: <a deeper yes/no question diagnosing why>
-        YES: <feedback prompt — loops back>
-        NO: <feedback prompt — loops back>
+    NO: VERIFY: <a deeper yes/no question that diagnoses why not>
+        YES: <what to do, then it loops back to re-check>
+        NO: <what to do, then it loops back to re-check>
         ?: Please answer YES or NO.
     ?: I didn't catch that — please answer YES or NO.
-FINISH: I vote FINISHED
 ```
 
-- `PURPOSE:` frames the agent. `INPUT:` is hard-substituted by the runtime with the
-  agent's actual input; any text after `INPUT:` is appended to that message.
-- A `VERIFY:` asks the model a yes/no question. Python matches the answer against
-  the branch labels; the matched branch's action runs — `FINISH` (satisfied), a
-  nested `VERIFY:` (recursive diagnosis), or a feedback prompt (loops back). The
-  final `?` branch is the wildcard, run when nothing matched.
-- `FINISH:` at the top level is the terminal; whatever follows it is the expected
-  output that ends the loop (e.g. the convergence vote `I vote FINISHED`).
+- `PURPOSE:` is prose. It is the one thing that frames the agent — not a place to
+  dump instructions. Everything procedural lives in the `VERIFY` tree.
+- `INPUT:` is hard-substituted by the runtime with the agent's actual upstream
+  input; any text after `INPUT:` on the same line is appended to that message.
+- `VERIFY:` asks the model a yes/no question. Python matches the answer against the
+  branch labels and runs the matched branch: `FINISH` (the check is satisfied — the
+  terminal of the tree), a nested `VERIFY:` (recursive diagnosis), or an
+  instruction that then loops back to re-ask. The final `?` branch is the wildcard,
+  run when no label matched. `FINISH` is a leaf of the tree — it is never a forced
+  literal the model has to emit.
 
-Because every agent acts inside a **convergence** (see below), the VERIFY loop
-doubles as the agent's vote: when `INSTRUCTION_PROGRAM_VOTING=true`, the runtime
-executes the agent's program to decide its FINISHED/INCOMPLETE vote. Roles whose
-file is not an executable program fall back to a free-form vote.
-
-Shared/tool-guidance files (`global`, `safety`, `progress_reporting`,
-`command_questioning`, `sandboxing`, `resource_pressure`) remain plain
-`PURPOSE:` + numbered guidance — they are context, not standalone agents.
+A swarm agent's verify tree reaching `FINISH` is what the runtime reads as that
+agent being satisfied; when `INSTRUCTION_PROGRAM_VOTING=true` that drives its
+convergence vote. Files with no `VERIFY` (e.g. `chat_agent`, `zipper_agent`, and
+the shared rule files `global`/`safety`/`progress_reporting`/`command_questioning`/
+`sandboxing`/`resource_pressure`) are just `PURPOSE` prose — context, not a loop.
 
 ## Which files an agent is given
 
-An agent of role R is given, in order: `global.txt`, `safety.txt`,
-`progress_reporting.txt`, `finishing.txt`, the role's own file (e.g.
-`coding_agent`), and one file per tool it can use (e.g. `python_execution.txt`,
-`file_writing.txt`, `terminal_execution.txt`). So put universal rules in the
-global files and process-specific rules in the role/tool files.
+An agent of role R is given, in order: `global`, `safety`, `progress_reporting`,
+`finishing`, the role's own file (e.g. `coding_agent`), and one file per tool it
+can use (e.g. `python_execution`, `file_writing`, `terminal_execution`). So put
+universal rules in the global files and process-specific rules in the role/tool
+files.
 
 ## Verification is done by agents, not a gate
 
@@ -62,7 +62,7 @@ which just follows its own instruction file:
      instructions, runs it.
   2. **testing_agent** — follows `testing_agent`: inherits the coder's output
      and verifies the code is up to spec / fits the bigger picture.
-  3. **philosopher** — follows `philosophizing.txt`: verifies the work meets the
+  3. **philosopher** — follows `philosophizing`: verifies the work meets the
      human-level intent and reports a verdict to the parent.
 
 Each is an ordinary agent with the same machinery; only its instruction file

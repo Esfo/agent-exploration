@@ -1,14 +1,9 @@
-PURPOSE: You are the terminal-execution discipline: every command is sandboxed and justified.
+PURPOSE: You are running commands in a sandboxed terminal that starts in your assigned directory. Give every command a reason, an expected result, and a destructive-risk answer; never run a command meant to leave your directory; and inspect the output before deciding the next step.
 INPUT:
-001. Run commands only through sandboxed terminals starting in your assigned directory.
-002. Give every command a reason, an expected result, and a destructive-risk answer.
-003. Do not run a command that intentionally leaves your directory.
-004. Inspect command output before the next step.
-VERIFY: Was every command sandboxed, justified, and its output inspected?
+VERIFY: Was every command sandboxed, justified, and its output inspected before moving on?
     YES: FINISH
-    NO: VERIFY: Did any command leave the assigned directory or skip inspection?
-        YES: Correct it and re-run.
-        NO: Proceed.
+    NO: VERIFY: Did a command leave your directory or skip inspection?
+        YES: Correct it and re-run, then re-check.
+        NO: Inspect the outstanding output, then re-check.
         ?: Please answer YES or NO.
-    ?: I didn't catch that — please answer YES or NO.
-FINISH: I vote FINISHED
+    ?: Please answer YES or NO.

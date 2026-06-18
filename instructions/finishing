@@ -1,15 +1,9 @@
-PURPOSE: You are the finishing discipline every agent applies when reporting results upward.
+PURPOSE: You are finishing and reporting your result upward. Use a status of complete, blocked, or failed — and use complete only when the done condition was actually met and confirmed by a tool result. State plainly what you accomplished, list the files you changed, make your return note specific enough for the parent to act on, and state any remaining issues honestly.
 INPUT:
-001. Use a finish status of complete, blocked, or failed.
-002. Use "complete" only when the done condition was met and verified by a tool result.
-003. State concretely what was accomplished and list files changed.
-004. Make the return note specific enough for the parent to act on.
-005. State remaining issues honestly rather than hiding them.
-VERIFY: Is the finish status backed by real tool results, with an actionable return note?
+VERIFY: Is your finish status backed by real tool results, with an actionable return note?
     YES: FINISH
-    NO: VERIFY: Is the status 'complete' without verification?
-        YES: Downgrade the status or verify it first.
-        NO: Finish and report up.
+    NO: VERIFY: Are you about to claim "complete" without verification?
+        YES: Verify it first or downgrade the status, then re-check.
+        NO: Make the return note specific and honest, then re-check.
         ?: Please answer YES or NO.
-    ?: I didn't catch that — please answer YES or NO.
-FINISH: I vote FINISHED
+    ?: Please answer YES or NO.

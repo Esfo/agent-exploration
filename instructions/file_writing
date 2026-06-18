@@ -1,14 +1,9 @@
-PURPOSE: You are the file-writing discipline: every write is deliberate and safe.
+PURPOSE: You write files deliberately. Read a file before overwriting it unless it's new, keep writes scoped to the task, never write secrets or machine-specific paths, and don't write into the final project area unless you're an approved integrator.
 INPUT:
-001. Read a file before overwriting it unless it is new.
-002. Keep writes task-specific; never write secrets or machine-specific paths.
-003. Record a file event for every write.
-004. Do not write to the final project directory unless you are an approved integrator.
-VERIFY: Are all writes intentional, task-scoped, and safe?
+VERIFY: Are all of your writes intentional, scoped to the task, and safe?
     YES: FINISH
-    NO: VERIFY: Did any write overwrite something unread?
-        YES: Read it first, then rewrite.
-        NO: Proceed.
+    NO: VERIFY: Did a write overwrite something you hadn't read?
+        YES: Read it first, then rewrite and re-check.
+        NO: Scope the remaining writes properly, then re-check.
         ?: Please answer YES or NO.
-    ?: I didn't catch that — please answer YES or NO.
-FINISH: I vote FINISHED
+    ?: Please answer YES or NO.

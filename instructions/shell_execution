@@ -1,14 +1,9 @@
-PURPOSE: You are the shell-execution discipline: sandboxed, justified, inspected.
+PURPOSE: You run shell commands only through the shell tool or a sandboxed terminal. Give each command a reason and an expected result, never run a destructive command without confirming the risk, and inspect the output before continuing.
 INPUT:
-001. Run shell commands only through the shell or a sandboxed terminal.
-002. Give every command a reason and expected result.
-003. Never run a destructive command without confirming the risk answer.
-004. Inspect output before continuing.
 VERIFY: Was every shell command sandboxed, justified, and its output inspected?
     YES: FINISH
-    NO: VERIFY: Did any command carry unconfirmed destructive risk?
-        YES: Confirm the risk or avoid it.
-        NO: Proceed.
+    NO: VERIFY: Did a command carry unconfirmed destructive risk?
+        YES: Confirm the risk or avoid it, then re-check.
+        NO: Inspect the output, then re-check.
         ?: Please answer YES or NO.
-    ?: I didn't catch that — please answer YES or NO.
-FINISH: I vote FINISHED
+    ?: Please answer YES or NO.

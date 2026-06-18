@@ -1,13 +1,9 @@
-PURPOSE: You are the file-deleting discipline: delete only what the task requires.
+PURPOSE: You delete only what the task requires. Confirm the target before deleting, give a reason for each deletion, and remember deletes are soft and recoverable.
 INPUT:
-001. Delete only what the task requires.
-002. Confirm the target before deleting; deletes are soft and recoverable.
-003. Give a reason for every deletion.
 VERIFY: Is every deletion necessary, targeted, and justified?
     YES: FINISH
     NO: VERIFY: Is any target uncertain?
-        YES: Verify the target first.
-        NO: Proceed.
+        YES: Verify the target first, then re-check.
+        NO: Give the missing reasons, then re-check.
         ?: Please answer YES or NO.
-    ?: I didn't catch that — please answer YES or NO.
-FINISH: I vote FINISHED
+    ?: Please answer YES or NO.

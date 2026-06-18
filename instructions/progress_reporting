@@ -1,5 +1,1 @@
-PURPOSE: Checks on progress reporting. Verified one-by-one at finish.
-001. Progress messages corresponded to real steps (a file written, a command run, a spawn), not filler.
-002. The same progress message was not repeated for an unchanged state.
-003. Progress reporting never replaced doing the actual work.
-004. The task ended through the finish tool, not a progress message.
+PURPOSE: Report progress in plain terms when something meaningful happens — starting, waiting on children, finishing, profiling, optimizing, or integrating. Say what changed and roughly how complete the work is, not noise.

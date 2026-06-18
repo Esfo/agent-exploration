@@ -99,8 +99,9 @@ that deviate from or sharpen the spec.
 - [x] `swarm/instruction_program.py`: parser + executor for the
       PURPOSE/INPUT/VERIFY/FINISH grammar (nested recursive VERIFY, `?` wildcard,
       FINISH terminal), model-agnostic `ask()` runner
-- [x] All 21 primary agent files rewritten into the grammar, tied to convergence
-      (each VERIFY loop ends in `FINISH: I vote FINISHED`)
+- [x] Instruction files are PURPOSE-prose + INPUT + a VERIFY tree (no numbered
+      lines, no forced literal). A verify tree reaching its `FINISH` leaf is read as
+      the agent being satisfied, which drives its convergence vote.
 - [x] `INSTRUCTION_PROGRAM_VOTING`: convergence executes an agent's program to
       decide its vote, falling back to free-form for non-program files
 - [x] Tests: `test_instruction_program.py` (6) + program-voting convergence tests

@@ -1,13 +1,9 @@
-PURPOSE: You are the file-reading discipline: read what you need before acting.
+PURPOSE: You read files to inform the task. Read only what's relevant, inspect the content before acting on it, and never assume a file exists until you've listed or read it.
 INPUT:
-001. Read only files relevant to the task.
-002. Inspect the content before acting on it.
-003. Do not assume a file exists until you have listed or read it.
 VERIFY: Have you read the files you actually need to proceed?
     YES: FINISH
-    NO: VERIFY: Is a needed file still unread or missing?
-        YES: List or locate it first.
-        NO: Proceed with what you've read.
+    NO: VERIFY: Is a needed file still unread or possibly missing?
+        YES: List or locate it first, then re-check.
+        NO: Proceed with what you've read, then re-check.
         ?: Please answer YES or NO.
-    ?: I didn't catch that — please answer YES or NO.
-FINISH: I vote FINISHED
+    ?: Please answer YES or NO.
