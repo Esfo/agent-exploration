@@ -68,7 +68,7 @@ def test_parallel_children_all_complete(project):
     def script(last_user, model, n):
         if "child agents finished" in last_user:
             return '<<tool:finish>>{"status":"complete","summary":"merged"}<</tool>>'
-        if "ROLE: progenitor" in last_user:
+        if "ROLE: chat_agent" in last_user:
             return ('<<tool:spawn_agents>>{"children":['
                     '{"title":"a","task":"ta","role":"coding_agent"},'
                     '{"title":"b","task":"tb","role":"coding_agent"},'
@@ -79,7 +79,7 @@ def test_parallel_children_all_complete(project):
     ctx.scheduler = Scheduler(_settings(project), ResourceMonitor())
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "fan out")
-    root = ctx.create_root(sid, "progenitor", "Root", "fan out work")
+    root = ctx.create_root(sid, "chat_agent", "Root", "fan out work")
     result = runner.run_agent(root["id"])
 
     assert result["status"] == "complete"

@@ -21,7 +21,7 @@ def test_single_agent_finishes(project):
     ctx, runner = make_runtime(project, MockClient(script))
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "do a thing")
-    root = ctx.create_root(sid, "progenitor", "Root", "do a thing")
+    root = ctx.create_root(sid, "chat_agent", "Root", "do a thing")
     result = runner.run_agent(root["id"])
     assert result["status"] == "complete"
     assert ctx.db.get_agent(root["id"])["status"] == "complete"
@@ -35,7 +35,7 @@ def test_spawn_then_finish(project):
         # back via the "child agents finished" message; everyone then finishes.
         if "child agents finished" in last_user:
             return '<<tool:finish>>{"status":"complete","summary":"integrated children","note":"done"}<</tool>>'
-        if "ROLE: progenitor" in last_user:
+        if "ROLE: chat_agent" in last_user:
             return ('<<tool:spawn_agents>>{"children":[{"title":"sub","task":"do sub",'
                     '"role":"coding_agent","done_condition":"sub done"}]}<</tool>>')
         return '<<tool:finish>>{"status":"complete","summary":"leaf done","note":"leaf"}<</tool>>'
@@ -43,7 +43,7 @@ def test_spawn_then_finish(project):
     ctx, runner = make_runtime(project, MockClient(script))
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "build thing")
-    root = ctx.create_root(sid, "progenitor", "Root", "build thing")
+    root = ctx.create_root(sid, "chat_agent", "Root", "build thing")
     result = runner.run_agent(root["id"])
 
     assert result["status"] == "complete"
@@ -70,7 +70,7 @@ def test_recursion_depth_ceiling(project):
     ctx, runner = make_runtime(project, MockClient(script))
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "deep")
-    root = ctx.create_root(sid, "progenitor", "Root", "deep")
+    root = ctx.create_root(sid, "chat_agent", "Root", "deep")
     runner.run_agent(root["id"])
 
     agents = ctx.db.list_swarm_agents(sid)
@@ -91,6 +91,6 @@ def test_non_tool_output_then_finish(project):
     ctx, runner = make_runtime(project, MockClient(script))
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "x")
-    root = ctx.create_root(sid, "progenitor", "Root", "x")
+    root = ctx.create_root(sid, "chat_agent", "Root", "x")
     result = runner.run_agent(root["id"])
     assert result["status"] == "complete"

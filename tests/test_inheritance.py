@@ -9,7 +9,7 @@ def test_child_inherits_conversation_and_has_unique_purpose(project):
     def script(last_user, model, n):
         if "child agents finished" in last_user:
             return '<<tool:finish>>{"status":"complete","summary":"merged"}<</tool>>'
-        if "ROLE: progenitor" in last_user:
+        if "ROLE: chat_agent" in last_user:
             return ('<<tool:spawn_agents>>{"children":[{"title":"sub","task":"do the sub-piece",'
                     '"role":"coding_agent"}]}<</tool>>')
         return '<<tool:finish>>{"status":"complete","summary":"leaf"}<</tool>>'
@@ -18,7 +18,7 @@ def test_child_inherits_conversation_and_has_unique_purpose(project):
     ctx, runner = make_runtime(project, client)
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "build the whole thing")
-    root = ctx.create_root(sid, "progenitor", "Root", "build the whole thing")
+    root = ctx.create_root(sid, "chat_agent", "Root", "build the whole thing")
     runner.run_agent(root["id"])
 
     # Find the child's model call: the one whose prompt contains the child's task.
@@ -32,7 +32,7 @@ def test_child_inherits_conversation_and_has_unique_purpose(project):
 
     # Inherited the parent's conversation (root purpose carries the root task)...
     assert "build the whole thing" in text
-    assert "ROLE: progenitor" in text          # the parent's purpose is present
+    assert "ROLE: chat_agent" in text          # the parent's purpose is present
     # ...and carries its own unique purpose.
     assert "This is your purpose: ROLE: coding_agent" in text
     assert "return your result to your parent branch" in text
@@ -44,7 +44,7 @@ def test_root_has_no_inherited_history(project):
     ctx, runner = make_runtime(project, client)
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "solo goal")
-    root = ctx.create_root(sid, "progenitor", "Root", "solo goal")
+    root = ctx.create_root(sid, "chat_agent", "Root", "solo goal")
     runner.run_agent(root["id"])
 
     first = client.calls[0]["messages"]

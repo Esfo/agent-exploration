@@ -22,7 +22,7 @@ from .settings import PLACEHOLDER_MODEL, Settings, SettingsError
 
 # role -> (primary instruction settings key, settings prefix used for ctx/predict/temp)
 ROLE_PRIMARY_FILE = {
-    "progenitor": ("INSTRUCTION_PROGENITOR", "PROGENITOR"),
+    "chat_agent": ("INSTRUCTION_PROGENITOR", "PROGENITOR"),
     "planner": ("INSTRUCTION_PLANNING", "PLANNER"),
     "spawner": ("INSTRUCTION_SPAWNING", "SPAWNER"),
     "coding_agent": ("INSTRUCTION_CODING", "CODE"),
@@ -47,7 +47,7 @@ ROLE_PRIMARY_FILE = {
 
 # role -> DEFAULT_<X>_MODEL settings key
 ROLE_DEFAULT_KEY = {
-    "progenitor": "DEFAULT_PROGENITOR_MODEL",
+    "chat_agent": "DEFAULT_PROGENITOR_MODEL",
     "planner": "DEFAULT_PLANNER_MODEL",
     "spawner": "DEFAULT_SPAWNER_MODEL",
     "coding_agent": "DEFAULT_CODE_MODEL",
@@ -72,7 +72,7 @@ ROLE_DEFAULT_KEY = {
 
 # Roles routed to GPU (setting ROUTE_<X>_TO_GPU=true). Default CPU otherwise.
 GPU_ROUTE_KEY = {
-    "progenitor": "ROUTE_PROGENITOR_TO_GPU",
+    "chat_agent": "ROUTE_PROGENITOR_TO_GPU",
     "planner": "ROUTE_PLANNER_TO_GPU",
     "spawner": "ROUTE_SPAWNER_TO_GPU",
     "coding_agent": "ROUTE_CODE_TO_GPU",

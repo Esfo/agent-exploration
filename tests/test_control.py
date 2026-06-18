@@ -32,7 +32,7 @@ def test_stop_after_wave_prevents_new_children(project):
     def script(last_user, model, n):
         if "Stop requested" in last_user:
             return '<<tool:finish>>{"status":"complete","summary":"stopped cleanly"}<</tool>>'
-        if "ROLE: progenitor" in last_user:
+        if "ROLE: chat_agent" in last_user:
             return ('<<tool:spawn_agents>>{"children":[{"title":"x","task":"t","role":"coding_agent"}]}<</tool>>')
         return '<<tool:finish>>{"status":"complete"}<</tool>>'
 
@@ -41,7 +41,7 @@ def test_stop_after_wave_prevents_new_children(project):
     ctx.control.stop_after_wave()
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "g")
-    root = ctx.create_root(sid, "progenitor", "Root", "build")
+    root = ctx.create_root(sid, "chat_agent", "Root", "build")
     result = runner.run_agent(root["id"])
 
     assert result["status"] == "complete"

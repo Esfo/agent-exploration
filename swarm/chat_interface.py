@@ -43,7 +43,7 @@ class ChatInterface:
         from .ollama_client import OllamaError
         from .settings import SettingsError
         try:
-            cfg = self.ctx.selector.resolve("progenitor")
+            cfg = self.ctx.selector.resolve("chat_agent")
         except SettingsError as e:
             self.ctx.events.chat(f"Cannot reach a model: {e}")
             return
@@ -72,7 +72,7 @@ class ChatInterface:
         self.db.create_swarm(swarm_id, goal)
         self.last_swarm = swarm_id
         try:
-            root = self.ctx.create_root(swarm_id, "progenitor", "Root task", goal)
+            root = self.ctx.create_root(swarm_id, "chat_agent", "Root task", goal)
         except SettingsError as e:
             self.db.update_swarm(swarm_id, status="failed")
             self.ctx.events.chat(

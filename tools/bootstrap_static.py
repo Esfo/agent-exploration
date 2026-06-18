@@ -62,7 +62,7 @@ INSTRUCTIONS: dict[str, str] = {
         "Keep work scoped to the current task.",
         "Report meaningful progress when starting, waiting, completing, profiling, optimizing, or integrating.",
     ]),
-    "chat_progenitor.txt": instruction(PH, "Controls the chat-facing progenitor model.", [
+    "chat_agent": instruction(PH, "Controls the chat-facing root agent.", [
         "Speak directly to the user through the chat interface.",
         "Convert user requests into root swarm tasks when appropriate.",
         "Before starting a swarm, produce a to-do list.",
@@ -701,7 +701,7 @@ OPTIMIZATION_SHOULD_RUN_VALIDATION=true
 
 # Instruction files
 INSTRUCTION_GLOBAL=instructions/global.txt
-INSTRUCTION_PROGENITOR=instructions/chat_progenitor.txt
+INSTRUCTION_PROGENITOR=instructions/chat_agent
 INSTRUCTION_PLANNING=instructions/planning.txt
 INSTRUCTION_SPAWNING=instructions/spawning.txt
 INSTRUCTION_CODING=instructions/coding_agent

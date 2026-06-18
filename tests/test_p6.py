@@ -89,7 +89,7 @@ def test_branch_copies_goal_and_messages(project):
     ctx, _ = make_runtime(project, MockClient(lambda *_: ""))
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "original goal")
-    root = ctx.create_root(sid, "progenitor", "Root", "original goal")
+    root = ctx.create_root(sid, "chat_agent", "Root", "original goal")
     ctx.db.save_message(root["id"], "user", "first message")
     ctx.db.save_message(root["id"], "assistant", "second message")
 
@@ -109,7 +109,7 @@ def test_branch_at_message_point(project):
     ctx, _ = make_runtime(project, MockClient(lambda *_: ""))
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "g")
-    root = ctx.create_root(sid, "progenitor", "Root", "g")
+    root = ctx.create_root(sid, "chat_agent", "Root", "g")
     ctx.db.save_message(root["id"], "user", "m1")
     ctx.db.save_message(root["id"], "assistant", "m2")
     ctx.db.save_message(root["id"], "user", "m3")

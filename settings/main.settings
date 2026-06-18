@@ -291,7 +291,7 @@ OPTIMIZATION_SHOULD_RUN_VALIDATION=true
 
 # Instruction files
 INSTRUCTION_GLOBAL=instructions/global.txt
-INSTRUCTION_PROGENITOR=instructions/chat_progenitor.txt
+INSTRUCTION_PROGENITOR=instructions/chat_agent
 INSTRUCTION_PLANNING=instructions/planning.txt
 INSTRUCTION_SPAWNING=instructions/spawning.txt
 INSTRUCTION_CODING=instructions/coding_agent

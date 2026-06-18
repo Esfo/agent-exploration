@@ -465,4 +465,36 @@ class AgentRunner:
                 f"- {child['id']} ({child.get('role','?')}) [{res.get('status')}]: "
                 f"{res.get('return_note') or res.get('note') or res.get('summary','')}"
             )
-        return "\n".join(lines)
+        summary = "\n".join(lines)
+
+        # A spawned group of >1 agent converges: they hold a response/vote group
+        # conversation and must unanimously vote FINISHED before returning upward.
+        if len(spawned) > 1 and self.ctx.settings.get_bool("CONVERGENCE_ENABLED", True):
+            summary = self._run_group_convergence(spawned, conversation, results, summary)
+        return summary
+
+    def _run_group_convergence(self, spawned: list[dict], conversation: list[dict],
+                               results: dict[str, dict], summary: str) -> str:
+        """Drive the spawned group through the convergence process after they have
+        each produced work, folding the group verdict into the summary returned to
+        the parent."""
+        from .convergence import run_convergence
+
+        blobs = []
+        for c in spawned:
+            r = results.get(c["id"], {}) or {}
+            work = r.get("return_note") or r.get("note") or r.get("summary", "")
+            blobs.append(f"[{c.get('role','?')} ({c['id']})]\n{work}")
+        work_blob = "\n\n".join(blobs)
+        shared = conversation + [{"role": "user",
+                                  "content": "[GROUP WORK PRODUCED SO FAR]\n" + work_blob}]
+        goal_type = (self.ctx.root_goal or "the assigned goal").strip()[:120] or "the assigned goal"
+        res = run_convergence(self.ctx, spawned, shared, goal_type)
+
+        verdict = "FINISHED" if res.finished else "INCOMPLETE"
+        note = (f"\n\nCONVERGENCE: group voted {verdict} after {res.round_count} round(s).")
+        if not res.finished:
+            note += ("\nThe group did not reach unanimous FINISHED; consider another "
+                     "work pass or refined sub-tasks. Latest aggregated reasoning:\n"
+                     + res.consolidation[:800])
+        return summary + note

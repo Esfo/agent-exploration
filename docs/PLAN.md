@@ -60,17 +60,25 @@ that deviate from or sharpen the spec.
 - [x] Memory store + enable/relevance toggles, injected into context
 - [x] Conversation/swarm branching (copy goal + root messages, independent future)
 
-### Prototype 7 — convergence + voting 🚧 (mechanism built, not yet wired into spawn path)
+### Prototype 7 — convergence + voting ✅ (wired into spawn path)
 - [x] `swarm/convergence.py`: response→vote rounds over a spawned agent group
 - [x] Spec-worded prompts (initiation, "plan or execute", the vote ASK, the
       INCOMPLETE consolidation feedback) sourced in `instructions/convergence`
 - [x] Vote tally by text match on "I vote FINISHED"/"I vote INCOMPLETE"
       (final-word wins), unanimity gate, `CONVERGENCE_MAX_ROUNDS` cap
 - [x] Per-round vote logging to `logs/convergence.jsonl` + chat summary line
-- [ ] Wire `run_convergence` into `_run_children` so a spawned group converges
-      before returning upward
+- [x] Wired into `_run_children`: a spawned group of >1 agent runs its work, then
+      converges (group vote) before returning upward; verdict folded into the
+      summary the parent receives (gated by `CONVERGENCE_ENABLED`)
 - [ ] Hand the converged result off to a `zipper_agent` (finalizer) — next
 - [ ] Response phase optionally routed through full `run_agent` (real tool use)
+- [ ] On INCOMPLETE, auto-trigger another work pass (currently surfaces the
+      verdict + reasoning to the parent to decide)
+
+### Naming
+- Root/chat-facing role renamed **`progenitor` → `chat_agent`** (instruction file
+  `instructions/chat_agent`); settings key `INSTRUCTION_PROGENITOR` kept internal.
+- Worker roles: **`code` → `coding_agent`**, **`code_checker` → `testing_agent`**.
 
 ## Beyond the spec — owner design corrections
 

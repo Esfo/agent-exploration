@@ -5,7 +5,7 @@ Run `python -m swarm.main` for the interactive REPL, or
 
 ## Talking to the system
 
-- **Bare text** → goes to the **progenitor agent**, which decides for itself
+- **Bare text** → goes to the **chat_agent** (the root agent), which decides for itself
   (per its instruction checks) whether to answer directly or spawn a swarm. The
   runtime never force-spawns.
 - **`/ask <message>`** → a raw, tool-less single-turn line straight to the model

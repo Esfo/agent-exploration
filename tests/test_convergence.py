@@ -9,7 +9,7 @@ def _is_vote(last_user: str) -> bool:
 
 
 def _group(ctx, sid, roles):
-    root = ctx.create_root(sid, "progenitor", "Root", "build a thing")
+    root = ctx.create_root(sid, "chat_agent", "Root", "build a thing")
     return [ctx.create_child(parent=root, title=r, task=f"{r} angle", role=r,
                              done_condition="", suggested_model=None, priority=1)
             for r in roles]
@@ -107,6 +107,39 @@ def test_votes_logged_to_jsonl(project):
     agents = _group(ctx, sid, ["coding_agent", "testing_agent"])
     run_convergence(ctx, agents, inherited=[], goal_type="code")
 
+    log = project / "logs" / "convergence.jsonl"
+    assert log.exists()
+    assert '"vote": "finished"' in log.read_text()
+
+
+def test_convergence_runs_in_spawn_path(project):
+    # Enable convergence (the test fixture disables it by default).
+    sp = project / "settings" / "main.settings"
+    sp.write_text(sp.read_text().replace("CONVERGENCE_ENABLED=false", "CONVERGENCE_ENABLED=true"))
+    ids._counters.clear()
+
+    def script(last_user, model, n):
+        if "ROLE: chat_agent" in last_user:
+            return ('<<tool:spawn_agents>>{"children":['
+                    '{"title":"impl","task":"implement","role":"coding_agent"},'
+                    '{"title":"verify","task":"verify","role":"testing_agent"}]}<</tool>>')
+        if "child agents finished" in last_user:
+            return '<<tool:finish>>{"status":"complete","summary":"done"}<</tool>>'
+        if _is_vote(last_user):
+            return "Looks solid.\nI vote FINISHED"
+        if "either plan or execute" in last_user.lower():
+            return "my plan/execute response"
+        # each spawned child's own working turn
+        return '<<tool:finish>>{"status":"complete","summary":"child did work"}<</tool>>'
+
+    ctx, runner = make_runtime(project, MockClient(script))
+    sid = ids.next_id("swarm")
+    ctx.db.create_swarm(sid, "build a thing")
+    root = ctx.create_root(sid, "chat_agent", "Root", "build a thing")
+    res = runner.run_agent(root["id"])
+
+    assert res["status"] == "complete"
+    # convergence ran as part of the spawn path and logged a unanimous round.
     log = project / "logs" / "convergence.jsonl"
     assert log.exists()
     assert '"vote": "finished"' in log.read_text()

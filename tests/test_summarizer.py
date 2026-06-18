@@ -26,7 +26,7 @@ def test_summarize_branch_replaces_first_fraction(project):
     ids._counters.clear()
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "g")
-    parent = ctx.create_root(sid, "progenitor", "Root", "build X")
+    parent = ctx.create_root(sid, "chat_agent", "Root", "build X")
     convo = [{"role": "user" if i % 2 == 0 else "assistant", "content": f"msg {i}"}
              for i in range(10)]
     out = runner._summarize_branch(dict(parent), convo)
@@ -49,7 +49,7 @@ def test_summarizer_fallback_when_model_unavailable(project):
     ids._counters.clear()
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "g")
-    parent = ctx.create_root(sid, "progenitor", "Root", "build X")
+    parent = ctx.create_root(sid, "chat_agent", "Root", "build X")
     convo = [{"role": "user", "content": f"detail number {i}"} for i in range(10)]
     out = runner._summarize_branch(dict(parent), convo)
     assert out[0]["content"].startswith("[SUMMARY OF EARLIER CONVERSATION]")
@@ -66,7 +66,7 @@ def test_children_inherit_summary_on_overflow(project):
             return "BRIEFING: root asked to build; proceeding."
         if "child agents finished" in last_user:
             return '<<tool:finish>>{"status":"complete","summary":"done"}<</tool>>'
-        if "ROLE: progenitor" in last_user:
+        if "ROLE: chat_agent" in last_user:
             return ('<<tool:spawn_agents>>{"children":[{"title":"sub","task":"do sub piece",'
                     '"role":"coding_agent"}]}<</tool>>')
         return '<<tool:finish>>{"status":"complete","summary":"leaf"}<</tool>>'
@@ -75,7 +75,7 @@ def test_children_inherit_summary_on_overflow(project):
     ctx, runner = make_runtime(project, client)
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "build the thing")
-    root = ctx.create_root(sid, "progenitor", "Root", "build the thing")
+    root = ctx.create_root(sid, "chat_agent", "Root", "build the thing")
     runner.run_agent(root["id"])
 
     # a summarizer ran, and the child's prompt carries the summary prefix

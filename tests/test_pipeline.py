@@ -14,7 +14,7 @@ def test_code_child_runs_three_stage_pipeline(project):
     order = []
 
     def script(last_user, model, n):
-        if "ROLE: progenitor" in last_user:
+        if "ROLE: chat_agent" in last_user:
             return ('<<tool:spawn_agents>>{"children":[{"title":"impl","task":"implement add()",'
                     '"role":"coding_agent"}]}<</tool>>')
         if "child agents finished" in last_user:
@@ -32,7 +32,7 @@ def test_code_child_runs_three_stage_pipeline(project):
     ctx, runner = make_runtime(project, MockClient(script))
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "build add()")
-    root = ctx.create_root(sid, "progenitor", "Root", "build add()")
+    root = ctx.create_root(sid, "chat_agent", "Root", "build add()")
     runner.run_agent(root["id"])
 
     roles = {a["role"] for a in ctx.db.list_swarm_agents(sid)}
@@ -54,7 +54,7 @@ def test_checker_sees_code_in_inherited_conversation(project):
     client_seen = {}
 
     def script(last_user, model, n):
-        if "ROLE: progenitor" in last_user:
+        if "ROLE: chat_agent" in last_user:
             return ('<<tool:spawn_agents>>{"children":[{"title":"impl","task":"implement add()",'
                     '"role":"coding_agent"}]}<</tool>>')
         if "child agents finished" in last_user:
@@ -70,7 +70,7 @@ def test_checker_sees_code_in_inherited_conversation(project):
     ctx, runner = make_runtime(project, client)
     sid = ids.next_id("swarm")
     ctx.db.create_swarm(sid, "build add()")
-    root = ctx.create_root(sid, "progenitor", "Root", "build add()")
+    root = ctx.create_root(sid, "chat_agent", "Root", "build add()")
     runner.run_agent(root["id"])
 
     # find a checker call and confirm the code (write_file with def add) is in its prompt

@@ -18,7 +18,7 @@ GLOBAL_INSTRUCTION_KEYS = [
 ]
 
 ROLE_INSTRUCTION_KEYS = {
-    "progenitor": ["INSTRUCTION_PROGENITOR", "INSTRUCTION_PLANNING", "INSTRUCTION_SPAWNING"],
+    "chat_agent": ["INSTRUCTION_PROGENITOR", "INSTRUCTION_PLANNING", "INSTRUCTION_SPAWNING"],
     "planner": ["INSTRUCTION_PLANNING", "INSTRUCTION_SPAWNING"],
     "spawner": ["INSTRUCTION_SPAWNING"],
     "coding_agent": ["INSTRUCTION_CODING"],
@@ -79,7 +79,7 @@ TERMINAL_TOOLS = ["open_terminal", "terminal_command", "close_terminal"]
 
 # Which tool sets each role gets, beyond COMMON_TOOLS.
 ROLE_TOOLSETS = {
-    "progenitor": SPAWN_TOOLS + WORKER_TOOLS + RECONCILE_TOOLS,
+    "chat_agent": SPAWN_TOOLS + WORKER_TOOLS + RECONCILE_TOOLS,
     "planner": SPAWN_TOOLS,
     "spawner": SPAWN_TOOLS,
     "coding_agent": WORKER_TOOLS + ["request_review", "request_testing", "request_integration"] + WEB_TOOLS,

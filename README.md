@@ -1,7 +1,7 @@
 # recursive_local_swarm
 
 A local, chat-driven, recursively-agentic LLM swarm that runs on Ollama. You talk
-to a **progenitor** agent; it decides (per editable instruction files) whether to
+to a **chat_agent** (the root agent); it decides (per editable instruction files) whether to
 answer directly or spawn a recursive swarm of agents that write code, run it in a
 sandbox, reconcile each other's work, and report back. Runtime is **pure stdlib**
 (no third-party deps).
