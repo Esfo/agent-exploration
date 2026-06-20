@@ -9,17 +9,17 @@ OLLAMA_GPU_ENDPOINT=http://localhost:11434
 OLLAMA_CPU_ENDPOINT=http://localhost:11434
 
 # The model every role uses unless its DEFAULT_<ROLE>_MODEL below is set to a real
-# model name. Each per-role line is left as <PLACEHOLDER_OLLAMA_MODEL>, which means
+# model name. Each per-role line is left as llama3.2:latest, which means
 # "fall back to DEFAULT_MODEL" — replace any of them to give that agent its own
 # model. So you only need one model pulled to start.
-DEFAULT_MODEL=qwen2.5-coder:7b
-DEFAULT_PRIMARY_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_CODE_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_MATH_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_OPTIMIZATION_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_PHILOSOPHER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_TESTER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_ZIPPER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
+DEFAULT_MODEL=llama3.2:latest
+DEFAULT_PRIMARY_MODEL=llama3.2:latest
+DEFAULT_CODE_MODEL=llama3.2:latest
+DEFAULT_MATH_MODEL=llama3.2:latest
+DEFAULT_OPTIMIZATION_MODEL=llama3.2:latest
+DEFAULT_PHILOSOPHER_MODEL=llama3.2:latest
+DEFAULT_TESTER_MODEL=llama3.2:latest
+DEFAULT_ZIPPER_MODEL=llama3.2:latest
 
 # Context / output / temperature. Per-role NUM_PREDICT / TEMPERATURE override the
 # DEFAULT_* values below; everything else falls back to them.
@@ -60,7 +60,7 @@ TOKEN_SAFETY_MARGIN=256
 # bottom of the terminal, with one-line notices scrolling above it. Off-TTY this
 # is ignored and output is plain.
 LIVE_DISPLAY=true
-LIVE_BUFFER_LINES=3
+LIVE_BUFFER_LINES=25
 
 # How many times to re-ask (with the format reminder) when a model's spawning
 # directives don't parse. "unlimited" = keep asking until it gets it right.

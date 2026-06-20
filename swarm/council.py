@@ -94,7 +94,7 @@ def _confirmation(members: list[Member]) -> str:
     lines = "\n".join(f"{m.agent_type}: {m.task_truncated}: {m.task}" for m in members)
     return ("This is what was collected, according to the requested formatting:\n\n"
             + lines +
-            "\n\nIs this correct?\nExplicitly answer either YES or NO at the very end "
+            "\n\nIs this correct, and are these goals more narrow than any prior goals?\nExplicitly answer either YES or NO at the very end "
             "of your message.")
 
 

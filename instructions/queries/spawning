@@ -6,12 +6,20 @@ These are the agent types:
 You can have multiple agents of the same type, and they can have various support/helper agents that also convene within the council.
 When you list out your directives, do so explicitly in this exact syntax in order for the agents to be spawned correctly:
 AGENT_TYPE: TASK: Expanded explanation of their responsibility.
+Please note this is ALL ONE LINE, DO NOT DEVIATE FROM THIS FORMAT.
+DO NOT TURN THIS INTO A LIST, MAKE IT ONE SENTENCE.
 Where AGENT_TYPE is the agent you choose from the list above, use its exact name.
 And TASK is a short explanation of their job, make it 4 words or less.
 Each TASK must be unique, but each AGENT_TYPE can be repetitive.
+Use the exact layout described here, with a colon to delineate the truncated version of the task from its expanded explanation.
 Agents can have the task of looking over the work of other agents, but they ultimately need to contribute their own thought process to each conversation, rather than just waiting to respond to others, so outline their task clearly in the form of something that's actionable for them.
 Please do not add any messages prior to the listing, this response is for the listing of directives, agents, and the tasks they're assigned.
 After you list the agents out, do not write any other message, and please do not enumerate, add ***asteriks***, or any other kind of signage as the list syntax is sensitive.
 Your response should only consist of: "AGENT_TYPE: TASK: Explanation." responses, with a blank line in between each individual agent-task assignment.
 Be sure to consider the hierarchy being formed, and how people tend to perform when they have to report to too many bosses, or have no accountability to anyone at all, make it an intuitive yet reasonable structure.
+Do not make the same mistakes made prior, do not assign roles to what are currently roles of your current council.
+Do not assign extremely broad roles unless you want infinite recursion of this role of councils and agents, that would be worthless, and the goal would never be accomplished.
+The roles you assign should be more detailed, more precise, more finite in nature than previously presented, otherwise no work will ever get done.
+DO NOT TURN THIS INTO A LIST, MAKE IT ONE SENTENCE.
+And definitely do not grant any member of your list a vague complexity equal to what your original purpose was, narrow down every member of your list to a more precise goal.
 Choose wisely.
