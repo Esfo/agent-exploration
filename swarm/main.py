@@ -57,12 +57,12 @@ def main(argv: list[str] | None = None) -> int:
 
     # Preload the model so the very first message isn't stuck waiting for it.
     model_name = rt.model._model_name("primary")
-    rt.logbook.chat(f"loading model {model_name} … (this can take a moment)")
+    rt.logbook.chat(f"loading model {model_name} ... (this can take a moment)")
     try:
         rt.model.warmup("primary")
     except OllamaError as e:
-        rt.logbook.chat(f"warning: could not load the model — is Ollama running? ({e})")
-    rt.logbook.chat("ready — describe your goal. End a line with \\ to continue it "
+        rt.logbook.chat(f"warning: could not load the model - is Ollama running? ({e})")
+    rt.logbook.chat("ready - describe your goal. End a line with \\ to continue it "
                     "on the next line. (Ctrl-C cancels a running swarm, Ctrl-D quits)")
 
     try:
@@ -84,7 +84,7 @@ def main(argv: list[str] | None = None) -> int:
                 print()
             except KeyboardInterrupt:
                 # Ctrl-C during a swarm: abort it and return to the prompt.
-                rt.logbook.chat("\n[cancelled] swarm stopped — back to you.")
+                rt.logbook.chat("\n[cancelled] swarm stopped - back to you.")
     finally:
         rt.executor.shutdown()
 

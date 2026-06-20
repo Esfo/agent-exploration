@@ -18,3 +18,11 @@ def seed(prefix: str, value: int) -> None:
     """Seed a counter (e.g. when resuming from an existing database)."""
     with _lock:
         _counters[prefix] = max(_counters.get(prefix, 0), value)
+
+
+def next_num(prefix: str) -> int:
+    """A plain incrementing integer (no prefix, no zero-padding)."""
+    with _lock:
+        n = _counters.get(prefix, 0) + 1
+        _counters[prefix] = n
+    return n

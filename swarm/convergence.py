@@ -165,9 +165,9 @@ def _test_loop(rt: Runtime, m: Member, goal: str, last_reply: str) -> None:
             # that shares the first block's language, concatenated in order.
             lang = blocks[0][0]
             code = "\n\n".join(c for (l, c) in blocks if l == lang)
-            rt.logbook.sandbox_run(m.agent_type, m.id, lang)
-            result = run_code(rt.executor, lang, code, rt.agent_dir(m.id))
-            rt.logbook.sandbox_done(m.agent_type, m.id, lang, result)
+            rt.logbook.sandbox_run(m.label, lang)
+            result = run_code(rt.executor, lang, code, rt.agent_dir(m.label))
+            rt.logbook.sandbox_done(m.label, lang, result)
             output = format_result(result)
         ctx.shell_output = output
         _ask(rt, m, "Here is the output of running your code:\n>>RETURN_OUTPUT<<"

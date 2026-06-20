@@ -58,7 +58,7 @@ class Runtime:
         for r in records:
             who = f"{r['agent_type']}_{r['agent_id']}"
             lines.append(f"  {who}: {(r['vote'] or 'no-vote').upper()}")
-        lines.append(f"  tally {tally.pattern} (YAY-NAY) — {tally.status}")
+        lines.append(f"  tally {tally.pattern} (YAY-NAY) - {tally.status}")
         lines.append("")
         with (council_dir / "votes.txt").open("a", encoding="utf-8") as f:
             f.write("\n".join(lines) + "\n")

@@ -49,7 +49,7 @@ def parse_directives(rt: Runtime, text: str) -> list[Member]:
         else:
             task = rest.strip()
             truncated = _truncate(task)
-        members.append(Member(id=ids.next_id("agent"), agent_type=agent_type,
+        members.append(Member(id=str(ids.next_num("agent")), agent_type=agent_type,
                               task=task, task_truncated=truncated))
     # Stable sort into a sensible acting order (coding first, checkers last).
     members.sort(key=lambda m: _ROLE_ORDER.get(m.agent_type, 99))
@@ -91,5 +91,5 @@ def run_council(rt: Runtime, members: list[Member], inherited: list[dict] | None
                              council_dir=council_dir, spawn_subcouncil=spawn_subcouncil)
     payload = run_zipper(rt, result.final_outputs(), inherited, council_dir=council_dir,
                          task=inherited_goal, task_truncated=_truncate(inherited_goal))
-    rt.logbook.chat(f"[{council_id}] council finished — result ready")
+    rt.logbook.chat(f"[{council_id}] council finished - result ready")
     return payload

@@ -97,7 +97,7 @@ def docker_preflight(settings, events=None) -> str:
                    "SANDBOX_REQUIRE_DOCKER=false to allow host execution.")
         else:
             msg = ("WARNING: Docker not reachable and SANDBOX_REQUIRE_DOCKER=false "
-                   "— agent code will run on the HOST with rlimits only, which is "
+                   "- agent code will run on the HOST with rlimits only, which is "
                    "NOT isolation. Start Docker for a real sandbox.")
         if events:
             events.chat(msg)
