@@ -43,21 +43,29 @@ def main(argv: list[str] | None = None) -> int:
     rt = build_runtime()
     docker_preflight(rt.settings, rt.logbook)
     primary = PrimaryAgent(rt)
-    rt.logbook.chat("primary agent ready — describe your goal. (Ctrl-D to quit)")
+    rt.logbook.chat("primary agent ready — describe your goal. "
+                    "(Ctrl-C cancels a running swarm, Ctrl-D quits)")
 
-    if argv:
-        print(primary.send(" ".join(argv)))
-        return 0
-
-    while True:
-        try:
-            line = input("\nyou> ")
-        except (EOFError, KeyboardInterrupt):
-            rt.logbook.chat("\nbye.")
+    try:
+        if argv:
+            print(primary.send(" ".join(argv)))
             return 0
-        if not line.strip():
-            continue
-        print(primary.send(line))
+
+        while True:
+            try:
+                line = input("\nyou> ")
+            except (EOFError, KeyboardInterrupt):
+                rt.logbook.chat("\nbye.")
+                return 0
+            if not line.strip():
+                continue
+            try:
+                print(primary.send(line))
+            except KeyboardInterrupt:
+                # Ctrl-C during a swarm: abort it and return to the prompt.
+                rt.logbook.chat("\n[cancelled] swarm stopped — back to you.")
+    finally:
+        rt.executor.shutdown()
 
 
 if __name__ == "__main__":

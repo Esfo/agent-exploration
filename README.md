@@ -49,7 +49,9 @@ python -m swarm.main "build me X"    # one-shot: give the goal up front
 python -m pytest -q                  # offline tests (mock model, no Ollama/Docker)
 ```
 
-Quit the interactive session with Ctrl-D or Ctrl-C.
+**Ctrl-C** cancels a running swarm and drops you back to the prompt; **Ctrl-D**
+(or Ctrl-C at the empty prompt) quits. Warm sandbox containers are cleaned up on
+quit.
 
 ---
 
@@ -160,9 +162,12 @@ and fluid.
 - Code blocks are **recognised per language** (Python, JS/TS, Ruby, Go, Rust,
   C/C++, Java, PHP, Perl, Lua, R, Julia, Haskell, Bash, SQL, …). Functions split
   across multiple blocks of the same language are run together.
-- Each execution runs in its **own throwaway container** (`docker run --rm`),
-  created and destroyed per run. Execution is sequential, so containers do **not**
-  pile up — at most one runs at a time, and each agent has its own work directory.
+- By default each agent keeps **one warm container running in the background** and
+  reuses it via `docker exec` (`SANDBOX_REUSE_CONTAINER=true`), so container
+  startup is paid once, not per run. It's torn down when you quit. Set the flag to
+  `false` for a throwaway `docker run --rm` per execution instead. Either way
+  execution is sequential, so containers never pile up, and each agent has its
+  own work directory.
 - It's **hardened**: `--network none`, `--cap-drop ALL`,
   `--security-opt no-new-privileges`, read-only root + small tmpfs,
   memory/CPU/PID limits, and a non-root user baked into the image.

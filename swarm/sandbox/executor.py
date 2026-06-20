@@ -53,3 +53,7 @@ class Executor:
 
     def run_shell(self, command: str, work_dir: Path, timeout: int) -> ExecResult:
         raise NotImplementedError
+
+    def shutdown(self) -> None:
+        """Release any long-lived resources (e.g. warm containers). No-op by
+        default; overridden by backends that keep state."""
