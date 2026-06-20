@@ -49,6 +49,7 @@ class PrimaryAgent:
             "content": rt.instr.system() + "\n\n" + rt.instr.read("primary", "agent"),
         }]
         self.goal = ""
+        self._council_count = 0
 
     # ----- turns -----
     def _chat(self, user_text: str) -> str:
@@ -115,8 +116,11 @@ class PrimaryAgent:
         if not members:
             return ("I couldn't turn that into a valid set of agent directives. "
                     "Let's refine the plan.")
-        council_dir = self.rt.next_council_dir(self.rt.primary_dir / "councils")
-        result = run_council(self.rt, members, list(self.messages), self.goal, council_dir)
+        self._council_count += 1
+        label = str(self._council_count)   # top-level councils: 1, 2, 3, ...
+        council_dir = self.rt.primary_dir / "councils" / f"council_{label}"
+        result = run_council(self.rt, members, list(self.messages), self.goal,
+                             council_dir, label)
         # Only the council's RESULT (never its conversation) enters the primary's
         # memory, as the primary's own contribution; it is also saved to the
         # results library.

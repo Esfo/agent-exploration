@@ -22,7 +22,7 @@ def test_council_tree_written(project, tmp_path):
     rt = make_runtime(project, MockClient(_script))
     members = parse_directives(rt, "coding: build it: Build it.\n\nphilosophizing: check: Check it.")
     council_dir = tmp_path / "primary" / "councils" / "council1"
-    run_council(rt, members, [{"role": "user", "content": "context"}], "ship it", council_dir)
+    run_council(rt, members, [{"role": "user", "content": "context"}], "ship it", council_dir, "1")
 
     # Each agent has its own conversation file named by its unique id.
     files = {p.name for p in council_dir.iterdir()}
@@ -47,7 +47,7 @@ def test_transcripts_can_be_disabled(project, tmp_path):
     rt = make_runtime(project, MockClient(_script))
     members = parse_directives(rt, "coding: build it: Build it.")
     council_dir = tmp_path / "primary" / "councils" / "council1"
-    run_council(rt, members, [], "ship it", council_dir)
+    run_council(rt, members, [], "ship it", council_dir, "1")
     # No transcript or votes files written.
     txt = [p for p in council_dir.glob("*.txt")] if council_dir.exists() else []
     assert txt == []

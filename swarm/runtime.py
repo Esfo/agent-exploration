@@ -27,14 +27,6 @@ class Runtime:
         return d
 
     # ----- recursive log tree -----
-    def next_council_dir(self, parent: Path) -> Path:
-        """Allocate the next ``councilN`` directory under ``parent``."""
-        parent.mkdir(parents=True, exist_ok=True)
-        n = sum(1 for p in parent.iterdir() if p.is_dir() and p.name.startswith("council"))
-        d = parent / f"council{n + 1}"
-        d.mkdir(parents=True, exist_ok=True)
-        return d
-
     def write_transcript(self, path: Path, label: str, messages: list[dict]) -> None:
         """Write an agent's full conversation to ``path`` (rewritten as it grows)."""
         if not self.settings.get_bool("WRITE_TRANSCRIPTS", True):
