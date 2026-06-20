@@ -52,4 +52,5 @@ def make_runtime(project_dir, client, *, sink=None) -> Runtime:
     model = Model(settings, client)
     executor = SubprocessExecutor(settings)
     return Runtime(settings=settings, model=model, instr=instr, logbook=logbook,
-                   executor=executor, work_root=settings.path("AGENT_WORKSPACE_DIR"))
+                   executor=executor, work_root=settings.path("SANDBOX_WORKDIR"),
+                   primary_dir=settings.path("PRIMARY_DIR"))

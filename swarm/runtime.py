@@ -4,7 +4,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import ids
 from .instructions import Instructions
 from .logbook import Logbook
 from .model import Model
@@ -17,33 +16,56 @@ class Runtime:
     instr: Instructions
     logbook: Logbook
     executor: object          # sandbox Executor
-    work_root: Path           # workspace/agents
+    work_root: Path           # hidden sandbox scratch root (workspace/.sandbox)
+    primary_dir: Path         # root of the recursive log tree (workspace/primary)
 
+    # ----- sandbox scratch (separate from the log tree) -----
     def agent_dir(self, agent_id: str) -> Path:
+        """A hidden working directory for an agent's sandbox code execution."""
         d = self.work_root / agent_id
         d.mkdir(parents=True, exist_ok=True)
         return d
 
-    def write_transcript(self, agent_id: str, agent_type: str, messages: list[dict]) -> None:
-        """Persist an agent's full conversation to
-        ``workspace/agents/<id>/conversation.md``, rewritten as it grows. This is
-        the behind-the-scenes record of every turn the agent actually kept
-        (ephemeral query turns are intentionally not part of it)."""
+    # ----- recursive log tree -----
+    def next_council_dir(self, parent: Path) -> Path:
+        """Allocate the next ``councilN`` directory under ``parent``."""
+        parent.mkdir(parents=True, exist_ok=True)
+        n = sum(1 for p in parent.iterdir() if p.is_dir() and p.name.startswith("council"))
+        d = parent / f"council{n + 1}"
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+
+    def write_transcript(self, path: Path, label: str, messages: list[dict]) -> None:
+        """Write an agent's full conversation to ``path`` (rewritten as it grows)."""
         if not self.settings.get_bool("WRITE_TRANSCRIPTS", True):
             return
-        out = [f"# Conversation — {agent_type} ({agent_id})", ""]
+        out = [f"# {label}", ""]
         for m in messages:
             out.append(f"## {m.get('role', '?')}")
             out.append((m.get("content", "") or "").rstrip())
             out.append("")
-        (self.agent_dir(agent_id) / "conversation.md").write_text(
-            "\n".join(out), encoding="utf-8")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("\n".join(out), encoding="utf-8")
 
+    def append_vote_log(self, council_dir: Path, round_index: int,
+                        records: list[dict], tally) -> None:
+        """Append a round's voting results to the council's votes log — only the
+        votes and who cast them."""
+        if not self.settings.get_bool("WRITE_TRANSCRIPTS", True):
+            return
+        council_dir.mkdir(parents=True, exist_ok=True)
+        lines = [f"round {round_index}"]
+        for r in records:
+            who = f"{r['agent_type']}_{r['agent_id']}"
+            lines.append(f"  {who}: {(r['vote'] or 'no-vote').upper()}")
+        lines.append(f"  tally {tally.pattern} (YAY-NAY) — {tally.status}")
+        lines.append("")
+        with (council_dir / "votes.txt").open("a", encoding="utf-8") as f:
+            f.write("\n".join(lines) + "\n")
+
+    # ----- results library -----
     def save_result(self, goal: str, text: str) -> Path:
-        """Write a delivered result into the results library and return its path.
-
-        The library is a flat directory of one Markdown file per result — no
-        nested folders — so finished work is easy to find."""
+        from . import ids
         d = Path(self.settings.path("RESULTS_DIR"))
         d.mkdir(parents=True, exist_ok=True)
         path = d / f"{ids.next_id('result')}.md"

@@ -216,9 +216,16 @@ instructions/
 functions/*.py           the real >>...<< functions
 swarm/*.py               the runtime
 settings/main.settings   configuration
+workspace/primary/       the recursive log tree (see below)
+  primary.txt              the primary agent's conversation
+  councils/council1/       a council the primary spawned
+    <agent-id>.txt           each agent's full conversation
+    zipper_<id>.txt          the zipper's conversation
+    votes.txt                each round's votes + who voted what
+    <agent-id>-councils/     councils that agent spawned (nested, recursive)
 workspace/results/       finished results, one file each
-workspace/agents/<id>/   per-agent: conversation.md (full chat) + sandbox files
-logs/votes.jsonl         searchable vote log
+workspace/.sandbox/<id>/ hidden per-agent sandbox scratch (code execution only)
+logs/votes.jsonl         searchable vote log (global)
 ```
 
 ---

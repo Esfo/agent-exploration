@@ -46,6 +46,11 @@ class Member:
     final_output: str = ""
     vote: str | None = None
     waiting: bool = False
+    log_path: object = None        # Path to this member's transcript file
+
+    @property
+    def label(self) -> str:
+        return f"{self.agent_type}_{self.id}"
 
 
 @dataclass
@@ -75,7 +80,8 @@ def _ask(rt: Runtime, m: Member, prompt: str) -> str:
     m.messages.append({"role": "user", "content": prompt})
     reply = rt.model.chat(m.agent_type, m.messages)
     m.messages.append({"role": "assistant", "content": reply})
-    rt.write_transcript(m.id, m.agent_type, m.messages)
+    if m.log_path is not None:
+        rt.write_transcript(m.log_path, m.label, m.messages)
     return reply
 
 
@@ -215,11 +221,12 @@ def _reinitiate(rt: Runtime, members: list[Member], goal: str, spawn_subcouncil)
                     m.messages[-1]["content"] = sub
                 else:
                     m.messages.append({"role": "assistant", "content": sub})
-                rt.write_transcript(m.id, m.agent_type, m.messages)
+                if m.log_path is not None:
+                    rt.write_transcript(m.log_path, m.label, m.messages)
 
 
 def run_convergence(rt: Runtime, members: list[Member], inherited: list[dict] | None,
-                    inherited_goal: str, council_id: str, *,
+                    inherited_goal: str, council_id: str, *, council_dir=None,
                     max_rounds: int | None = None, spawn_subcouncil=None) -> ConvergenceResult:
     """Drive ``members`` through the convergence loop. Always returns FINISHED;
     a non-unanimous round repeats until unanimity or the safety bound."""
@@ -239,6 +246,8 @@ def run_convergence(rt: Runtime, members: list[Member], inherited: list[dict] | 
         records = _convene_and_vote(rt, members, inherited_goal)
         tally = tally_votes([r["vote"] for r in records])
         rt.logbook.log_vote_round(council_id, inherited_goal, rnd, records, tally)
+        if council_dir is not None:
+            rt.append_vote_log(council_dir, rnd, records, tally)
 
         if tally.unanimous_finished:
             for m in members:

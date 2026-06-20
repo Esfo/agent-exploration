@@ -2,22 +2,14 @@
 runtime/state.sqlite*
 runtime/config_cache.json
 logs/*.jsonl
-cache/web/pages/*
-cache/web/index.sqlite*
 
-# Everything agents generate at runtime. Nothing under an agent's directory
-# (work/, output/, terminal/, profiling/, .trash/, logs/, ...) is ever tracked.
-workspace/agents/**
-workspace/project/**
-workspace/project_snapshot/**
-workspace/profiling/**
-workspace/optimization/**
-workspace/shared_readonly/**
+# Everything generated at runtime: the recursive log tree, sandbox scratch, and
+# the results library. Nothing under these is tracked.
+workspace/primary/**
+workspace/.sandbox/**
+workspace/results/**
 # ...but keep the directory placeholders so the tree exists after clone.
 !**/.gitkeep
-
-# Research agent's cached web pages / docs library (sibling of instructions/)
-library/
 
 # Python
 __pycache__/

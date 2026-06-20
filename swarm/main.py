@@ -28,9 +28,9 @@ def build_runtime(settings_path: str = DEFAULT_SETTINGS, client=None) -> Runtime
     logbook = Logbook(settings.path("LOG_DIR"))
     model = Model(settings, client or OllamaClient())
     executor = select_executor(settings)
-    work_root = settings.path("AGENT_WORKSPACE_DIR")
     return Runtime(settings=settings, model=model, instr=instr, logbook=logbook,
-                   executor=executor, work_root=work_root)
+                   executor=executor, work_root=settings.path("SANDBOX_WORKDIR"),
+                   primary_dir=settings.path("PRIMARY_DIR"))
 
 
 def main(argv: list[str] | None = None) -> int:

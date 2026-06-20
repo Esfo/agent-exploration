@@ -109,11 +109,12 @@ class Document:
 
 
 def run_zipper(rt: Runtime, final_outputs: list[tuple[str, str]],
-               inherited: list[dict] | None, *, task: str = "",
+               inherited: list[dict] | None, *, council_dir=None, task: str = "",
                task_truncated: str = "") -> str:
     """Run the zipper workflow and return the upstream payload (prefixed with
     ``FINISHED OUTPUT``)."""
     zid = ids.next_id("zipper")
+    log_path = (council_dir / f"{zid}.txt") if council_dir is not None else None
     ctx = Context(instr=rt.instr, task=task, task_truncated=task_truncated,
                   final_outputs=final_outputs)
     messages: list[dict] = list(inherited or [])
@@ -131,7 +132,8 @@ def run_zipper(rt: Runtime, final_outputs: list[tuple[str, str]],
         messages.append({"role": "user", "content": finish_prompt})
         verdict = rt.model.chat("zipper", messages)
         messages.append({"role": "assistant", "content": verdict})
-        rt.write_transcript(zid, "zipper", messages)
+        if log_path is not None:
+            rt.write_transcript(log_path, f"zipper ({zid})", messages)
         if _last_word(verdict) == "CONFIRM":
             break
 

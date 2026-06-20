@@ -63,13 +63,17 @@ CONVERGENCE_MAX_ROUNDS=6
 # How deep a member's EXPANSION -> SPAWN sub-councils may recurse.
 MAX_SUBSWARM_DEPTH=4
 
-# Write each agent's full conversation to workspace/agents/<id>/conversation.md
-# (the behind-the-scenes council/primary/zipper chats), rewritten as it grows.
+# Write each agent's full conversation to a text file named by its unique id,
+# inside its council folder (a recursive tree under PRIMARY_DIR), plus a per-council
+# votes log. Rewritten as the conversation grows.
 WRITE_TRANSCRIPTS=true
 
 # Directories
 INSTRUCTIONS_DIR=instructions
-AGENT_WORKSPACE_DIR=workspace/agents
+# Root of the recursive log tree: primary.txt + councils/council1/<agent-id>.txt …
+PRIMARY_DIR=workspace/primary
+# Hidden scratch for sandbox code execution (one dir per agent, not in the log tree).
+SANDBOX_WORKDIR=workspace/.sandbox
 RESULTS_DIR=workspace/results
 LOG_DIR=logs
 
