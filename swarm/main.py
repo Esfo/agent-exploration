@@ -38,6 +38,17 @@ def build_runtime(settings_path: str = DEFAULT_SETTINGS, client=None) -> Runtime
                    primary_dir=settings.path("PRIMARY_DIR"))
 
 
+def _reset_workspace(settings) -> None:
+    """Clear the runtime workspace folders so each launch starts fresh."""
+    import shutil
+    for key in ("PRIMARY_DIR", "SANDBOX_WORKDIR", "RESULTS_DIR"):
+        try:
+            path = Path(settings.path(key))
+        except Exception:  # noqa: BLE001 - key not set
+            continue
+        shutil.rmtree(path, ignore_errors=True)
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
 
@@ -53,6 +64,7 @@ def main(argv: list[str] | None = None) -> int:
         argv = argv[1:]
 
     rt = build_runtime()
+    _reset_workspace(rt.settings)        # fresh workspace on every launch
     docker_preflight(rt.settings, rt.logbook)
 
     # Stream the primary's visible replies to stdout chunk-by-chunk.
