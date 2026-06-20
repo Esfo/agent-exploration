@@ -82,6 +82,9 @@ def run_council(rt: Runtime, members: list[Member], inherited: list[dict] | None
         sub_members = parse_directives(rt, directive_text)
         if not sub_members:
             return None
+        roster = ", ".join(s.agent_type for s in sub_members)
+        rt.logbook.chat(f"[{council_id}] {member.label} is spawning a sub-council "
+                        f"({roster}) for: {member.task[:60]}")
         # This agent's councils live beside its chat file, under <agent-id>-councils/.
         sub_dir = rt.next_council_dir(council_dir / f"{member.label}-councils")
         return run_council(rt, sub_members, list(member.messages), member.task,

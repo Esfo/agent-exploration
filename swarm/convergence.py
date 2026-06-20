@@ -250,11 +250,15 @@ def run_convergence(rt: Runtime, members: list[Member], inherited: list[dict] | 
             rt.append_vote_log(council_dir, rnd, records, tally)
 
         if tally.unanimous_finished:
+            rt.logbook.chat(f"[{council_id}] VOTE PASSED - unanimous FINISHED "
+                            f"after {rnd} round(s) - goal: {inherited_goal}")
             for m in members:
                 rt.logbook.agent_finished(m.agent_type, m.task_truncated)
             return ConvergenceResult(council_id, inherited_goal, "FINISHED", rnd, members)
 
         if rnd >= safety:
+            rt.logbook.chat(f"[{council_id}] vote not unanimous after {rnd} round(s); "
+                            f"force-resolving - goal: {inherited_goal}")
             return ConvergenceResult(council_id, inherited_goal, "FINISHED", rnd,
                                      members, force_resolved=True)
 
