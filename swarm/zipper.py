@@ -27,7 +27,10 @@ from .runtime import Runtime
 from .substitution import Context, resolve
 
 _RETAIN = re.compile(r"^\s*RETAIN\s+(.+?)\s*$", re.IGNORECASE)
-_INSERT_RANGE = re.compile(
+# INSERT line N <literal>  -> positional insert into the DOCUMENT at line N.
+_INSERT_POS = re.compile(r"^\s*INSERT\s+line\s+(\d+)\s?(.*)$", re.IGNORECASE)
+# INSERT <agent> line X [to Y] [PREPEND mark] -> append source lines X..Y.
+_INSERT_SRC = re.compile(
     r"^\s*INSERT\s+(.+?)\s+line\s+(\d+)(?:\s+to\s+(\d+))?\s*(?:PREPEND\s+(.*))?$",
     re.IGNORECASE)
 _INSERT_TEXT = re.compile(r"^\s*INSERT\s+TEXT\s+(.*)$", re.IGNORECASE)
@@ -35,7 +38,14 @@ _ZIPPER_MAX_LOOPS = 4
 
 
 class Document:
-    """Assembles a final document from labelled source outputs."""
+    """Assembles a final document from labelled source outputs.
+
+    ``RETAIN`` and source-range ``INSERT`` append to the document in command
+    order. ``INSERT line N <text>`` inserts a literal line at *document*
+    position N, bumping the existing lines down (auto-renumbered): inserting
+    twice at line N leaves the first insertion at line N+1, exactly as the
+    zipper instructions describe (``list.insert`` semantics).
+    """
 
     def __init__(self, final_outputs: list[tuple[str, str]]):
         self.sources = {name: (text or "").splitlines() for name, text in final_outputs}
@@ -58,7 +68,7 @@ class Document:
         if key is not None:
             self.out.extend(self.sources[key])
 
-    def insert(self, name: str, start: int, end: int | None, prepend: str) -> None:
+    def insert_source(self, name: str, start: int, end: int | None, prepend: str) -> None:
         key = self._resolve(name)
         if key is None:
             return
@@ -66,6 +76,12 @@ class Document:
         end = end if end is not None else start
         for ln in lines[max(start - 1, 0):end]:
             self.out.append(f"{prepend}{ln}" if prepend else ln)
+
+    def insert_at(self, line_no: int, text: str) -> None:
+        """Insert a literal line at document position ``line_no`` (1-indexed),
+        bumping later lines down. Out-of-range positions clamp to the ends."""
+        idx = max(0, min(line_no - 1, len(self.out)))
+        self.out.insert(idx, text)
 
     def insert_text(self, text: str) -> None:
         self.out.append(text)
@@ -77,10 +93,13 @@ class Document:
             mt = _INSERT_TEXT.match(raw)
             if mt:
                 self.insert_text(mt.group(1)); applied += 1; continue
-            mr = _INSERT_RANGE.match(raw)
-            if mr:
-                name, x, y, prepend = mr.groups()
-                self.insert(name, int(x), int(y) if y else None, prepend or "")
+            mp = _INSERT_POS.match(raw)
+            if mp:
+                self.insert_at(int(mp.group(1)), mp.group(2)); applied += 1; continue
+            ms = _INSERT_SRC.match(raw)
+            if ms:
+                name, x, y, prepend = ms.groups()
+                self.insert_source(name, int(x), int(y) if y else None, prepend or "")
                 applied += 1; continue
             mk = _RETAIN.match(raw)
             if mk:

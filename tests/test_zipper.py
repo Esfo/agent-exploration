@@ -15,6 +15,25 @@ def test_document_retain_and_insert():
         "```python", "def f():", "    return 1", "```", "# intent: compute one"]
 
 
+def test_document_positional_insert_renumbers():
+    doc = Document([("coding (a1)", "line A\nline B\nline C")])
+    doc.apply("RETAIN coding")               # A, B, C
+    doc.apply("INSERT line 2 X")             # A, X, B, C
+    assert doc.render().splitlines() == ["line A", "X", "line B", "line C"]
+    # Inserting twice at the same line: the first ends up one below the second.
+    doc.apply("INSERT line 2 first\nINSERT line 2 second")
+    assert doc.render().splitlines() == [
+        "line A", "second", "first", "X", "line B", "line C"]
+
+
+def test_document_insert_code_fence_at_position():
+    doc = Document([("coding (a1)", "print('hi')")])
+    doc.apply("RETAIN coding")
+    doc.apply("INSERT line 1 ```python")
+    doc.apply("INSERT line 3 ```")
+    assert doc.render().splitlines() == ["```python", "print('hi')", "```"]
+
+
 def test_run_zipper_workflow(project):
     def script(last_user, system, n):
         if "finalizing the work of a council" in last_user:   # zipper/initiate

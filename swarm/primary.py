@@ -73,11 +73,16 @@ class PrimaryAgent:
         ctx = Context(instr=self.rt.instr, inherited_goal=self.goal)
         directive_text = self._chat(resolve(">>SPAWNING<<", ctx))
         members = parse_directives(self.rt, directive_text)
+        retries = 0
+        while not members and retries < 2:
+            directive_text = self._chat(MALFORMED_REPLY + "\n"
+                                        + resolve(">>SPAWNING<<", ctx))
+            members = parse_directives(self.rt, directive_text)
+            retries += 1
+        self.state = self.CHATTING
         if not members:
-            self.state = self.CHATTING
             return ("I couldn't turn that into a valid set of agent directives. "
                     "Let's refine the plan.")
-        self.state = self.CHATTING
         return run_council(self.rt, members, list(self.messages), self.goal)
 
     # ----- main entry -----

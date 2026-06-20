@@ -119,7 +119,10 @@ def _test_loop(rt: Runtime, m: Member, goal: str, last_reply: str) -> None:
         if not blocks:
             output = "(no runnable code block was found)"
         else:
-            lang, code = blocks[0]
+            # Functions may be split across several code blocks; run every block
+            # that shares the first block's language, concatenated in order.
+            lang = blocks[0][0]
+            code = "\n\n".join(c for (l, c) in blocks if l == lang)
             output = format_result(run_code(rt.executor, lang, code, rt.agent_dir(m.id)))
         ctx.shell_output = output
         _ask(rt, m, "Here is the output of running your code:\n>>RETURN_OUTPUT<<"
