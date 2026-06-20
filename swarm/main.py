@@ -45,13 +45,12 @@ def main(argv: list[str] | None = None) -> int:
         ok = build_image()
         return 0 if ok else 1
 
-    # --oneprompt "task": skip the chat/confirm dialogue and spawn immediately.
-    # With no task given, fall through to the normal interactive chat.
+    # --oneprompt: skip the chat/confirm dialogue and spawn a swarm immediately.
+    # The task can be given on the command line, or typed once at the prompt.
+    # (To use the conversational chat instead, just run without --oneprompt.)
     oneprompt = bool(argv) and argv[0] == "--oneprompt"
     if oneprompt:
         argv = argv[1:]
-        if not " ".join(argv).strip():
-            oneprompt = False  # nothing to run; just enter the chat
 
     rt = build_runtime()
     docker_preflight(rt.settings, rt.logbook)
@@ -73,8 +72,21 @@ def main(argv: list[str] | None = None) -> int:
 
     if oneprompt:
         try:
-            primary.run_once(" ".join(argv))
-            print()
+            task = " ".join(argv).strip()
+            if not task:
+                rt.logbook.chat("one-prompt mode: type your task; the swarm starts "
+                                "immediately. (Ctrl-D to quit)")
+                try:
+                    task = _read_multiline().strip()
+                except (EOFError, KeyboardInterrupt):
+                    return 0
+            if not task:
+                return 0
+            try:
+                primary.run_once(task)
+                print()
+            except KeyboardInterrupt:
+                rt.logbook.chat("\n[cancelled] swarm stopped - back to you.")
             return 0
         finally:
             rt.executor.shutdown()
