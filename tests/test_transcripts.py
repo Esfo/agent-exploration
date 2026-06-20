@@ -37,8 +37,8 @@ def test_council_tree_written(project, tmp_path):
     assert f"coding_{coding_id}: FINISHED" in votes
     assert "tally" in votes and "YAY-NAY" in votes
 
-    # The zipper has its own file too.
-    assert any(name.startswith("zipper_") for name in files)
+    # The zipper has its own file too (one per council, no number).
+    assert "zipper.txt" in files
 
 
 def test_transcripts_can_be_disabled(project, tmp_path):

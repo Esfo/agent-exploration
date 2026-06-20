@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import re
 
-from . import ids
 from .functions import FINISHED_MARKER
 from .runtime import Runtime
 from .substitution import Context, resolve
@@ -113,9 +112,9 @@ def run_zipper(rt: Runtime, final_outputs: list[tuple[str, str]],
                task_truncated: str = "") -> str:
     """Run the zipper workflow and return the upstream payload (prefixed with
     ``FINISHED OUTPUT``)."""
-    zid = f"zipper_{ids.next_num('agent')}"     # numbered with the agents
-    log_path = (council_dir / f"{zid}.txt") if council_dir is not None else None
-    rt.logbook.chat(f"{zid} assembling the final output...")
+    # One zipper per council, so no number is needed.
+    log_path = (council_dir / "zipper.txt") if council_dir is not None else None
+    rt.logbook.chat("zipper assembling the final output...")
     ctx = Context(instr=rt.instr, task=task, task_truncated=task_truncated,
                   final_outputs=final_outputs)
     messages: list[dict] = list(inherited or [])
@@ -134,10 +133,10 @@ def run_zipper(rt: Runtime, final_outputs: list[tuple[str, str]],
         verdict = rt.model.chat("zipper", messages)
         messages.append({"role": "assistant", "content": verdict})
         if log_path is not None:
-            rt.write_transcript(log_path, f"zipper ({zid})", messages)
+            rt.write_transcript(log_path, "zipper", messages)
         if _last_word(verdict) == "CONFIRM":
             break
-    rt.logbook.chat(f"{zid} finished assembling the final output")
+    rt.logbook.chat("zipper finished assembling the final output")
 
     body = doc.render().strip()
     if not body:   # zipper produced nothing usable: fall back to raw outputs
