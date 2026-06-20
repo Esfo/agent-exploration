@@ -13,8 +13,8 @@ import re
 # Re-export the arrow functions + tool registry from the functions package.
 from functions import (  # noqa: F401
     SANDBOX_TOOL, TOOL_DESCRIPTIONS, TOOLS_BY_TYPE, council_rhetoric,
-    document_display, final_output, has_tools, list_agent_types, list_tools,
-    return_output, tools_for)
+    document_display, failure_aggregation, final_output, has_tools,
+    list_agent_types, list_tools, return_output, tools_for)
 
 # --------------------------------------------------------------------------
 # Code-block recognition (for the convergence test/run loop)

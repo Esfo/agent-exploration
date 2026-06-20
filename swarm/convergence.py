@@ -45,6 +45,7 @@ class Member:
     messages: list[dict] = field(default_factory=list)
     final_output: str = ""
     vote: str | None = None
+    vote_statement: str = ""        # the member's full vote reply (reasoning + vote)
     waiting: bool = False
     log_path: object = None        # Path to this member's transcript file
 
@@ -198,6 +199,7 @@ def _convene_and_vote(rt: Runtime, members: list[Member], goal: str) -> list[dic
             vote = parse_vote(reply)
             retries += 1
         m.vote = vote if vote is not None else INCOMPLETE
+        m.vote_statement = reply
         rt.logbook.append(f" {m.vote.upper()}")
         records.append({"agent_id": m.id, "agent_type": m.agent_type, "vote": m.vote})
     return records
@@ -206,7 +208,10 @@ def _convene_and_vote(rt: Runtime, members: list[Member], goal: str) -> list[dic
 def _reinitiate(rt: Runtime, members: list[Member], goal: str, spawn_subcouncil) -> None:
     for m in members:
         rt.logbook.chat(f"{m.label} reconsidering after the vote...")
-        ctx = _ctx(rt, m, goal)
+        # Every OTHER member's vote statement is aggregated for this member to read.
+        failure_votes = [(o.label, o.vote_statement) for o in members
+                         if o is not m and o.vote_statement]
+        ctx = _ctx(rt, m, goal, failure_votes=failure_votes)
         # Vote-failed consolidation: the member reassesses / plans (no choice).
         _ask(rt, m, resolve(rt.instr.read("convergence", "vote-failed"), ctx))
         # Reinitiate: WAIT for the next vote, or CONTINUE working.

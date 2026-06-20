@@ -40,6 +40,7 @@ class Context:
 
     # Populated per phase by the convergence / zipper engines.
     rhetoric: list[tuple[str, str]] = field(default_factory=list)   # (agent_name, output) of OTHERS
+    failure_votes: list[tuple[str, str]] = field(default_factory=list)  # (agent_name, vote statement) of OTHERS
     final_outputs: list[tuple[str, str]] = field(default_factory=list)  # (agent_name, output)
     document: str = ""             # current zipper document
     shell_output: str = ""         # last sandbox output (for RETURN_OUTPUT)
@@ -99,6 +100,8 @@ def _lookup(name: str, ctx: Context, functions) -> str | None:
         return functions.list_tools(ctx)
     if name == "COUNCIL_RHETORIC":
         return functions.council_rhetoric(ctx)
+    if name == "FAILURE_AGGREGATION":
+        return functions.failure_aggregation(ctx)
     if name == "DOCUMENT_DISPLAY":
         return functions.document_display(ctx)
     if name == "FINAL_OUTPUT":

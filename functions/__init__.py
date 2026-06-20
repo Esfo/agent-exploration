@@ -7,6 +7,7 @@ the runtime helpers (code-block recognition, FINISHED OUTPUT extraction).
 """
 from .council_rhetoric import council_rhetoric
 from .document_display import document_display
+from .failure_aggregation import failure_aggregation
 from .final_output import final_output
 from .list_agent_types import list_agent_types
 from .list_tools import list_tools
@@ -15,7 +16,7 @@ from .tools import (SANDBOX_TOOL, TOOL_DESCRIPTIONS, TOOLS_BY_TYPE, has_tools,
                     tools_for)
 
 __all__ = [
-    "council_rhetoric", "document_display", "final_output", "list_agent_types",
-    "list_tools", "return_output",
+    "council_rhetoric", "document_display", "failure_aggregation", "final_output",
+    "list_agent_types", "list_tools", "return_output",
     "SANDBOX_TOOL", "TOOL_DESCRIPTIONS", "TOOLS_BY_TYPE", "has_tools", "tools_for",
 ]

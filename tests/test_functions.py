@@ -33,6 +33,18 @@ def test_council_rhetoric_and_final_output(project):
     assert "coding (agent_0001)" in fo and "line 1: line a" in fo and "line 2: line b" in fo
 
 
+def test_failure_aggregation_excludes_self(project):
+    rt = make_runtime(project, client=None)
+    ctx = Context(instr=rt.instr,
+                  failure_votes=[("coding_2", "looks good\nI vote FINISHED"),
+                                 ("math_3", "needs work\nI vote INCOMPLETE")])
+    out = functions.failure_aggregation(ctx)
+    assert "coding_2:\nlooks good\nI vote FINISHED" in out
+    assert "math_3:\nneeds work\nI vote INCOMPLETE" in out
+    # empty -> placeholder
+    assert "no other votes" in functions.failure_aggregation(Context(instr=rt.instr))
+
+
 def test_list_agent_types(project):
     rt = make_runtime(project, client=None)
     out = functions.list_agent_types(Context(instr=rt.instr))
