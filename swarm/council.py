@@ -26,8 +26,20 @@ _ROLE_ORDER = {"coding": 0, "math": 1, "optimization": 2, "testing": 3,
                "philosophizing": 4}
 
 
+# Dangling words a short task shouldn't end on.
+_TRAILING = {"and", "or", "the", "a", "an", "to", "of", "for", "with", "in", "on"}
+
+
+def _clean_short(text: str) -> str:
+    """Tidy a short task label: drop trailing punctuation and dangling words."""
+    words = (text or "").strip().rstrip(",.;:- ").split()
+    while words and words[-1].lower().strip(",.;:") in _TRAILING:
+        words.pop()
+    return " ".join(words)
+
+
 def _truncate(text: str, words: int = 4) -> str:
-    return " ".join((text or "").split()[:words])
+    return _clean_short(" ".join((text or "").split()[:words]))
 
 
 def parse_directives(rt: Runtime, text: str) -> list[Member]:
@@ -43,7 +55,7 @@ def parse_directives(rt: Runtime, text: str) -> list[Member]:
             continue
         if ":" in rest:
             truncated, _, task = rest.partition(":")
-            truncated, task = truncated.strip(), task.strip()
+            truncated, task = _clean_short(truncated), task.strip()
             if not truncated:
                 truncated = _truncate(task)
         else:

@@ -114,11 +114,11 @@ class PrimaryAgent:
 
     # ----- main entry -----
     def run_once(self, user_text: str) -> str:
-        """Skip the planning/confirm dialogue: treat the prompt as the goal and
+        """Skip the planning/confirm dialogue: derive the goal from the prompt and
         spawn a council on it immediately. Used by --oneprompt."""
         self.messages.append({"role": "user", "content": user_text})
-        self.goal = user_text.strip()
         self._write_log()
+        self.goal = self._derive_goal()
         return self._spawn()
 
     def send(self, user_text: str) -> str:

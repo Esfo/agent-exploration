@@ -11,6 +11,12 @@ import time
 from pathlib import Path
 
 
+def _short(text: str, limit: int = 80) -> str:
+    """One-line, length-capped form for CLI status messages."""
+    text = " ".join((text or "").split())
+    return text if len(text) <= limit else text[:limit].rstrip() + "..."
+
+
 class Logbook:
     def __init__(self, log_dir: Path, sink=print):
         self.log_dir = Path(log_dir)
@@ -42,7 +48,7 @@ class Logbook:
         })
         self.chat(
             f"[{council_id}] round {round_index} vote {tally.pattern} (YAY-NAY) "
-            f"- {tally.status} - goal: {inherited_goal}"
+            f"- {tally.status} - goal: {_short(inherited_goal)}"
         )
 
     # ----- agent lifecycle (one line each) -----

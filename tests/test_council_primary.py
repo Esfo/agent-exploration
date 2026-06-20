@@ -77,6 +77,7 @@ def test_run_once_spawns_immediately(project):
     primary = PrimaryAgent(rt)
     final = primary.run_once("build me a CSV summariser")
     assert "FINISHED OUTPUT" in final
-    assert primary.goal == "build me a CSV summariser"
+    # The goal is summarized via the goal query (not the raw prompt).
+    assert primary.goal == "Build the whole thing."
     # The confirm check was never consulted (state stayed False).
     assert state["ready"] is False
