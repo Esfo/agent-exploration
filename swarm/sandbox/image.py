@@ -45,20 +45,36 @@ WORKDIR /agent
 """.lstrip()
 
 
+def _image_id(tag: str) -> str | None:
+    try:
+        out = subprocess.run(["docker", "images", "-q", tag],
+                             capture_output=True, text=True, timeout=15)
+        return out.stdout.strip() or None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def build_image(tag: str = DEFAULT_TAG, *, log=print) -> bool:
-    """Build the sandbox image. Returns True on success."""
+    """(Re)build the sandbox image, erasing the previous one. Returns True on
+    success. A fresh build with the same tag would otherwise leave the old image
+    dangling; here the replaced image is removed."""
     import shutil
     if shutil.which("docker") is None:
         log("docker is not installed; cannot build the sandbox image.")
         return False
+    old_id = _image_id(tag)
     with tempfile.TemporaryDirectory() as td:
         dockerfile = Path(td) / "Dockerfile"
         dockerfile.write_text(DOCKERFILE, encoding="utf-8")
-        log(f"Building hardened sandbox image {tag} (this can take a while)…")
+        log(f"Building hardened sandbox image {tag} (this can take a while)...")
         try:
             subprocess.run(["docker", "build", "-t", tag, td], check=True)
         except subprocess.CalledProcessError as e:
             log(f"image build failed: {e}")
             return False
+    new_id = _image_id(tag)
+    if old_id and new_id and old_id != new_id:
+        subprocess.run(["docker", "rmi", "-f", old_id], capture_output=True, timeout=60)
+        log(f"removed the previous sandbox image ({old_id[:12]}).")
     log(f"sandbox image {tag} ready.")
     return True
