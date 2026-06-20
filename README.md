@@ -42,9 +42,9 @@ against a `Context`:
 - **values** — `>>AGENT_TYPE<<`, `>>TASK<<`, `>>TASK_TRUNCATED<<`, `>>INHERITED_GOAL<<`
 - **files** — `>>PURPOSE<<`, `>>SPAWNING<<`, `>>EXPANSION<<`, `>>CONVERGENCE_VOTE<<`, `>>INITIATION<<`
 - **functions** — `>>LIST_AGENT_TYPES<<`, `>>LIST_TOOLS<<`, `>>COUNCIL_RHETORIC<<`,
-  `>>DOCUMENT_DISPLAY<<`, `>>FINAL_OUTPUT<<`, `>>RETURN_OUTPUT<<`. Each is real
-  Python living in its own `instructions/functions/<NAME>` file (explanation as
-  comments + the function); `swarm/functions.py` loads and calls them.
+  `>>DOCUMENT_DISPLAY<<`, `>>FINAL_OUTPUT<<`, `>>RETURN_OUTPUT<<`. Each is a real
+  importable function in its own `functions/<name>.py` module (docstring =
+  explanation); `swarm/functions.py` re-exports them for the runtime.
 
 ## Voting & logging
 

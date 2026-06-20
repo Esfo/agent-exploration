@@ -1,96 +1,20 @@
-"""Internal helpers + the loader for the ``>>...<<`` arrow functions.
+"""Bridge to the ``functions`` package + runtime helpers.
 
-The arrow functions themselves live as real Python in the
-``instructions/functions/`` files (``LIST_AGENT_TYPES``, ``LIST_TOOLS``,
-``COUNCIL_RHETORIC``, ``FINAL_OUTPUT``, ``DOCUMENT_DISPLAY``, ``RETURN_OUTPUT``).
-Each such file is the explanation (as comments) plus the function definition; the
-loader here execs the file and calls the function it defines, giving the
-substitution engine a single entry point per arrow. The helpers below (the tool
-registry, code-block recognition, FINISHED OUTPUT extraction) are runtime
-support, not arrow functions, so they stay in the module.
+The six ``>>...<<`` arrow functions are real importable Python in the top-level
+``functions`` package; they are re-exported here so the rest of the runtime has a
+single ``swarm.functions`` import point. The helpers below (per-language
+code-block recognition and FINISHED OUTPUT extraction) are runtime support, not
+arrow functions, so they live here.
 """
 from __future__ import annotations
 
 import re
 
-# --------------------------------------------------------------------------
-# Tools
-# --------------------------------------------------------------------------
-# The only official tool is the docker sandbox for running/testing code. It is
-# granted to the agent types that produce or exercise code.
-SANDBOX_TOOL = "docker_sandbox"
-TOOLS_BY_TYPE: dict[str, list[str]] = {
-    "coding": [SANDBOX_TOOL],
-    "testing": [SANDBOX_TOOL],
-    "optimization": [SANDBOX_TOOL],
-    "math": [SANDBOX_TOOL],
-}
-
-TOOL_DESCRIPTIONS = {
-    SANDBOX_TOOL: ("docker_sandbox — run/test code in the hardened Docker "
-                   "sandbox. Put the code in a fenced code block and it is "
-                   "executed; only what is printed comes back to you."),
-}
-
-
-def tools_for(agent_type: str) -> list[str]:
-    return list(TOOLS_BY_TYPE.get(agent_type, []))
-
-
-def has_tools(agent_type: str) -> bool:
-    return bool(TOOLS_BY_TYPE.get(agent_type))
-
-
-# --------------------------------------------------------------------------
-# Arrow-function loader
-# --------------------------------------------------------------------------
-# The names match the instruction files under instructions/functions/.
-_ARROW_FILES = {
-    "list_agent_types": "LIST_AGENT_TYPES",
-    "list_tools": "LIST_TOOLS",
-    "council_rhetoric": "COUNCIL_RHETORIC",
-    "final_output": "FINAL_OUTPUT",
-    "document_display": "DOCUMENT_DISPLAY",
-    "return_output": "RETURN_OUTPUT",
-}
-
-# Helpers made available to the function files when they are exec'd.
-_INJECT = {"tools_for": tools_for, "has_tools": has_tools,
-           "TOOLS_BY_TYPE": TOOLS_BY_TYPE, "TOOL_DESCRIPTIONS": TOOL_DESCRIPTIONS}
-
-_cache: dict[str, callable] = {}
-
-
-def _load(instr, filename: str):
-    """Exec ``instructions/functions/<filename>`` and return the function it
-    defines (the one new callable created by the file)."""
-    if filename in _cache:
-        return _cache[filename]
-    path = instr.root / "functions" / filename
-    ns = dict(_INJECT)
-    before = set(ns)
-    exec(compile(path.read_text(encoding="utf-8"), str(path), "exec"), ns)  # noqa: S102
-    defined = [v for k, v in ns.items() if k not in before and callable(v)]
-    if not defined:
-        raise RuntimeError(f"{path} does not define a function")
-    fn = defined[0]
-    _cache[filename] = fn
-    return fn
-
-
-def _call(name: str, ctx):
-    return _load(ctx.instr, _ARROW_FILES[name])(ctx)
-
-
-# Thin wrappers so the substitution engine has a stable Python interface; each
-# dispatches to the real function loaded from the instruction file.
-def list_agent_types(ctx) -> str: return _call("list_agent_types", ctx)
-def list_tools(ctx) -> str: return _call("list_tools", ctx)
-def council_rhetoric(ctx) -> str: return _call("council_rhetoric", ctx)
-def final_output(ctx) -> str: return _call("final_output", ctx)
-def document_display(ctx) -> str: return _call("document_display", ctx)
-def return_output(ctx) -> str: return _call("return_output", ctx)
-
+# Re-export the arrow functions + tool registry from the functions package.
+from functions import (  # noqa: F401
+    SANDBOX_TOOL, TOOL_DESCRIPTIONS, TOOLS_BY_TYPE, council_rhetoric,
+    document_display, final_output, has_tools, list_agent_types, list_tools,
+    return_output, tools_for)
 
 # --------------------------------------------------------------------------
 # Code-block recognition (for the convergence test/run loop)

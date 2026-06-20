@@ -89,15 +89,32 @@ def _last_word_choice(text: str, options: tuple[str, ...]) -> str | None:
     return best
 
 
+def _required_choice(rt: Runtime, m: Member, prompt: str,
+                     options: tuple[str, ...]) -> str | None:
+    """Ask ``prompt`` and return one of ``options`` (last-word-wins). If the
+    reply contains neither, re-ask with the malformed-input reply, bounded by
+    ``_RETRY`` — the hard-coded format catch for required-choice turns."""
+    reply = _ask(rt, m, prompt)
+    choice = _last_word_choice(reply, options)
+    tries = 0
+    while choice is None and tries < _RETRY:
+        reply = _ask(rt, m, MALFORMED_REPLY + "\n" + prompt)
+        choice = _last_word_choice(reply, options)
+        tries += 1
+    return choice
+
+
 # --------------------------------------------------------------------------
 # Phases
 # --------------------------------------------------------------------------
 def _initiation(rt: Runtime, m: Member, goal: str, inherited: list[dict]) -> None:
     ctx = _ctx(rt, m, goal)
     m.messages = list(inherited or [])
-    m.messages.append({"role": "system", "content": rt.instr.system()})
+    # One concatenated opening message, in spec order, after the inherited
+    # history: CONVERGENCE_INITIATION, SYSTEM, PURPOSE, TASK, CONVERGENCE_ACTION.
     sections = [
         resolve(rt.instr.read("convergence", "initiation"), ctx),
+        rt.instr.system(),
         resolve(">>PURPOSE<<", ctx),
         f"TASK: {m.task}",
         resolve(rt.instr.read("convergence", "action"), ctx),
@@ -151,17 +168,21 @@ def _convene_and_vote(rt: Runtime, members: list[Member], goal: str) -> list[dic
 def _reinitiate(rt: Runtime, members: list[Member], goal: str, spawn_subcouncil) -> None:
     for m in members:
         ctx = _ctx(rt, m, goal)
+        # Vote-failed consolidation: the member reassesses / plans (no choice).
         _ask(rt, m, resolve(rt.instr.read("convergence", "vote-failed"), ctx))
-        choice_reply = _ask(rt, m, resolve(rt.instr.read("convergence", "reinitiate"), ctx))
-        choice = _last_word_choice(choice_reply, ("WAIT", "CONTINUE"))
+        # Reinitiate: WAIT for the next vote, or CONTINUE working.
+        choice = _required_choice(rt, m, resolve(rt.instr.read("convergence", "reinitiate"), ctx),
+                                  ("WAIT", "CONTINUE"))
         if choice == "WAIT":
             m.waiting = True
             continue
         m.waiting = False
+        # CONTINUE: redo the action (AGENT_INPUT), then the expansion choice.
         action_reply = _ask(rt, m, resolve(rt.instr.read("convergence", "action"), ctx))
         m.final_output = functions.extract_finished_output(action_reply)
-        exp_reply = _ask(rt, m, resolve(rt.instr.read("queries", "expansion"), ctx))
-        if _last_word_choice(exp_reply, ("CONTINUE", "SPAWN")) == "SPAWN" and spawn_subcouncil:
+        expansion = _required_choice(rt, m, resolve(rt.instr.read("queries", "expansion"), ctx),
+                                     ("CONTINUE", "SPAWN"))
+        if expansion == "SPAWN" and spawn_subcouncil:
             m.final_output = spawn_subcouncil(m) or m.final_output
 
 

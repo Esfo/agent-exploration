@@ -1,0 +1,18 @@
+"""document_display — the >>DOCUMENT_DISPLAY<< arrow.
+
+This function manages the final document output of the zipper agent. At the end
+of each zipper agent's editing process, it will always call this function to
+repeat the document back to the agent, and ask whether this is the final output
+or not via ZIPPER_FINISH. If it's not finished, the agent will be able to
+continue editing it. The document is shown with line numbers so the zipper can
+reference specific lines. ``ctx.document`` holds the current state of the document
+being assembled.
+"""
+from __future__ import annotations
+
+
+def document_display(ctx) -> str:
+    if not (ctx.document or "").strip():
+        return "(the document is currently empty)"
+    lines = ctx.document.splitlines()
+    return "\n".join(f"{i}: {ln}" for i, ln in enumerate(lines, 1))

@@ -1,0 +1,20 @@
+"""list_agent_types — the >>LIST_AGENT_TYPES<< arrow.
+
+This function iterates through all the agent instruction files and collects their
+purposes, and presents them in a list-like format. The whole of each agent
+instruction file is that agent's purpose, so the entire file is used as the
+purpose text. The agents are listed out like:
+
+    AGENT_TYPE: PURPOSE
+
+    NEXT_AGENT_TYPE: PURPOSE
+"""
+from __future__ import annotations
+
+
+def list_agent_types(ctx) -> str:
+    blocks = []
+    for name in ctx.instr.agent_types():
+        purpose = ctx.instr.agent_purpose(name).strip()
+        blocks.append(f"{name}: {purpose}")
+    return "\n\n".join(blocks)
