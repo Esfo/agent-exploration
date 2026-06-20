@@ -179,6 +179,7 @@ def _test_loop(rt: Runtime, m: Member, goal: str, last_reply: str) -> None:
 def _convene_and_vote(rt: Runtime, members: list[Member], goal: str) -> list[dict]:
     records = []
     for m in members:
+        rt.logbook.chat(f"{m.label} reviewing the council and voting...")
         rhetoric = [(o.agent_type, o.final_output) for o in members if o is not m]
         ctx = _ctx(rt, m, goal, rhetoric=rhetoric)
         reply = _ask(rt, m, resolve(rt.instr.read("convergence", "convene"), ctx))
@@ -195,6 +196,7 @@ def _convene_and_vote(rt: Runtime, members: list[Member], goal: str) -> list[dic
 
 def _reinitiate(rt: Runtime, members: list[Member], goal: str, spawn_subcouncil) -> None:
     for m in members:
+        rt.logbook.chat(f"{m.label} reconsidering after the vote...")
         ctx = _ctx(rt, m, goal)
         # Vote-failed consolidation: the member reassesses / plans (no choice).
         _ask(rt, m, resolve(rt.instr.read("convergence", "vote-failed"), ctx))
@@ -203,8 +205,10 @@ def _reinitiate(rt: Runtime, members: list[Member], goal: str, spawn_subcouncil)
                                   ("WAIT", "CONTINUE"))
         if choice == "WAIT":
             m.waiting = True
+            rt.logbook.chat(f"{m.label} is waiting for the next vote")
             continue
         m.waiting = False
+        rt.logbook.chat(f"{m.label} is continuing its work")
         # CONTINUE: redo the action (AGENT_INPUT) — this turn IS kept in history.
         action_reply = _ask(rt, m, resolve(rt.instr.read("convergence", "action"), ctx))
         m.final_output = functions.extract_finished_output(action_reply)
@@ -262,4 +266,6 @@ def run_convergence(rt: Runtime, members: list[Member], inherited: list[dict] | 
             return ConvergenceResult(council_id, inherited_goal, "FINISHED", rnd,
                                      members, force_resolved=True)
 
+        rt.logbook.chat(f"[{council_id}] vote not unanimous; council reconsidering "
+                        f"(round {rnd + 1} next)...")
         _reinitiate(rt, members, inherited_goal, spawn_subcouncil)
