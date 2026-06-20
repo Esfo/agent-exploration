@@ -55,11 +55,15 @@ def parse_directives(rt: Runtime, text: str) -> list[Member]:
         if not rt.instr.has_agent_type(agent_type):
             continue
         if ":" in rest:
+            # AGENT_TYPE: TASK: explanation -> the colon delineates the short
+            # task (used verbatim) from its expanded explanation.
             truncated, _, task = rest.partition(":")
-            truncated, task = _clean_short(truncated), task.strip()
+            truncated, task = truncated.strip(), task.strip()
             if not truncated:
                 truncated = _truncate(task)
         else:
+            # Malformed (no colon between task and explanation): fall back to a
+            # word-count truncation of the whole thing.
             task = rest.strip()
             truncated = _truncate(task)
         members.append(Member(id=str(ids.next_num("agent")), agent_type=agent_type,
