@@ -62,20 +62,17 @@ def main(argv: list[str] | None = None) -> int:
 
     primary = PrimaryAgent(rt, on_token=on_token)
 
-    # Preload the model so the very first message isn't stuck waiting for it.
-    model_name = rt.model._model_name("primary")
-    rt.logbook.chat(f"loading model {model_name} ... (this can take a moment)")
+    # Preload the model silently so the first message isn't stuck waiting for it.
+    # The prompt only appears once this returns, which is the ready signal.
     try:
         rt.model.warmup("primary")
     except OllamaError as e:
-        rt.logbook.chat(f"warning: could not load the model - is Ollama running? ({e})")
+        rt.logbook.chat(f"could not load the model - is Ollama running? ({e})")
 
     if oneprompt:
         try:
             task = " ".join(argv).strip()
             if not task:
-                rt.logbook.chat("one-prompt mode: type your task; the swarm starts "
-                                "immediately. (Ctrl-D to quit)")
                 try:
                     task = _read_multiline().strip()
                 except (EOFError, KeyboardInterrupt):
@@ -90,9 +87,6 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         finally:
             rt.executor.shutdown()
-
-    rt.logbook.chat("ready - describe your goal. End a line with \\ to continue it "
-                    "on the next line. (Ctrl-C cancels a running swarm, Ctrl-D quits)")
 
     try:
         if argv:
