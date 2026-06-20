@@ -17,6 +17,19 @@ def test_parse_directives(project):
     assert members[0].task == "Implement the tolerant arrow parser."
 
 
+def test_parse_directives_tolerates_markdown_and_case(project):
+    rt = make_runtime(project, client=None)
+    text = (
+        "- **Coding**: Write parser: Implement the parser.\n"
+        "1. Math : Check complexity: Validate it.\n"
+        "* philosophizing: Judge intent: Make sure.\n"
+        "some prose that should be ignored\n"
+    )
+    members = parse_directives(rt, text)
+    assert [m.agent_type for m in members] == ["coding", "math", "philosophizing"]
+    assert members[0].task_truncated == "Write parser"
+
+
 def test_ends_yes():
     assert _ends_yes("after weighing it, YES") is True
     assert _ends_yes("not yet, NO") is False

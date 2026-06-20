@@ -106,27 +106,22 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print()
 
-    if oneprompt:
-        try:
+    try:
+        if oneprompt:
+            # Spawn immediately on the given/typed task, then stay in the chat.
             task = " ".join(argv).strip()
             if not task:
                 try:
                     task = _read_multiline().strip()
                 except (EOFError, KeyboardInterrupt):
                     return 0
-            if not task:
-                return 0
-            try:
-                deliver(primary.run_once(task))
-            except KeyboardInterrupt:
-                live.finish()
-                rt.logbook.chat("[cancelled] swarm stopped - back to you.")
-            return 0
-        finally:
-            rt.executor.shutdown()
-
-    try:
-        if argv:
+            if task:
+                try:
+                    deliver(primary.run_once(task))
+                except KeyboardInterrupt:
+                    live.finish()
+                    rt.logbook.chat("[cancelled] swarm stopped - back to you.")
+        elif argv:
             deliver(primary.send(" ".join(argv)))
             return 0
 

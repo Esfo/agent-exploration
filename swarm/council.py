@@ -43,17 +43,30 @@ def _truncate(text: str, words: int = 4) -> str:
     return _clean_short(" ".join((text or "").split()[:words]))
 
 
+def _strip_noise(line: str) -> str:
+    """Strip leading list markers / numbering and surrounding markdown so a
+    directive is recognized even when the model dresses it up."""
+    line = line.strip()
+    line = re.sub(r"^([-*+•]\s+|\d+[.)]\s+)", "", line)   # bullets / numbering
+    line = line.replace("**", "").replace("`", "").replace("__", "")
+    return line.strip()
+
+
 def parse_directives(rt: Runtime, text: str) -> list[Member]:
     """Parse ``AGENT_TYPE: TASK: explanation`` lines into council members.
-    Unknown agent types and malformed lines are skipped."""
+    Tolerant of markdown bullets/bold and agent-type capitalization; unknown
+    agent types and malformed lines are skipped."""
+    valid = {t.lower(): t for t in rt.instr.agent_types()}
     members: list[Member] = []
     for raw in (text or "").splitlines():
-        m = _DIRECTIVE.match(raw)
+        m = _DIRECTIVE.match(_strip_noise(raw))
         if not m:
             continue
         agent_type, rest = m.group(1), m.group(2)
-        if not rt.instr.has_agent_type(agent_type):
+        canonical = valid.get(agent_type.lower())
+        if canonical is None:
             continue
+        agent_type = canonical
         if ":" in rest:
             # AGENT_TYPE: TASK: explanation -> the colon delineates the short
             # task (used verbatim) from its expanded explanation.
