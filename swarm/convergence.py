@@ -177,6 +177,9 @@ def _test_loop(rt: Runtime, m: Member, goal: str) -> bool:
             result = run_code(rt.executor, lang, code, rt.agent_dir(m.label))
             rt.logbook.sandbox_done(m.label, lang, result)
             output = format_result(result)
+            live = getattr(rt.model, "live", None)
+            if live is not None:
+                live.show(f"[{m.label} sandbox {lang}]\n{output}")
         ctx.shell_output = output
         _ask(rt, m, "Here is the output of running your code:\n>>RETURN_OUTPUT<<"
              .replace(">>RETURN_OUTPUT<<", functions.return_output(ctx)))

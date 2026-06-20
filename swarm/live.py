@@ -22,6 +22,7 @@ class Live:
         self.buf = ""
         self.drawn = 0
         self.last_line = ""
+        self._reset_pending = False   # clear the buffer on the next feed, not now
 
     # ----- internals -----
     def _width(self) -> int:
@@ -85,21 +86,33 @@ class Live:
         self._render(self._tail_lines())
 
     def begin(self) -> None:
-        """Start a fresh generation in the buffer."""
-        self.buf = ""
-        if self.enabled:
-            self._render([])
+        """Start a fresh generation. The previous buffer content stays visible
+        until the first token arrives, so the buffer never flashes blank during
+        the model's latency."""
+        self._reset_pending = True
 
     def feed(self, delta: str) -> None:
         """Append streamed text to the buffer and redraw it."""
         if not self.enabled:
             return
+        if self._reset_pending:
+            self.buf = ""
+            self._reset_pending = False
         self.buf += delta
+        self._render(self._tail_lines())
+
+    def show(self, text: str) -> None:
+        """Put discrete content (e.g. sandbox output) in the buffer right away."""
+        if not self.enabled:
+            return
+        self.buf = text
+        self._reset_pending = False
         self._render(self._tail_lines())
 
     def finish(self) -> None:
         """Clear the buffer region (e.g. before committing durable output)."""
         self.buf = ""
+        self._reset_pending = False
         if self.enabled:
             sys.stdout.write("\x1b[J")
             sys.stdout.flush()
