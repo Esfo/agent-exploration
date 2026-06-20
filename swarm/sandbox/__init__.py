@@ -17,6 +17,27 @@ from .runner import format_result, run_code
 from .subprocess_backend import SubprocessExecutor
 
 
+class DisabledExecutor(Executor):
+    """Refuses to run code. Used when the docker sandbox is required but
+    unavailable, so we never silently run agent code on the host."""
+
+    backend = "disabled"
+
+    def __init__(self, reason: str):
+        self.reason = reason
+
+    def _blocked(self) -> ExecResult:
+        return ExecResult(exit_code=None, stdout="",
+                          stderr=f"sandbox unavailable: {self.reason}",
+                          duration_ms=0, backend=self.backend)
+
+    def run_python(self, code, work_dir, timeout):
+        return self._blocked()
+
+    def run_shell(self, command, work_dir, timeout):
+        return self._blocked()
+
+
 def docker_available() -> bool:
     if shutil.which("docker") is None:
         return False
@@ -29,15 +50,22 @@ def docker_available() -> bool:
 
 
 def select_executor(settings) -> Executor:
-    """Docker when requested and usable; otherwise subprocess fallback.
+    """Pick the execution backend.
 
-    SANDBOX_BACKEND=docker uses real container isolation. If the daemon isn't
-    reachable, falls back to subprocess so the runtime still works (with the
-    weaker isolation caveat).
+    SANDBOX_BACKEND=docker uses real container isolation. If Docker isn't
+    available and SANDBOX_REQUIRE_DOCKER is true (default), code execution is
+    DISABLED rather than silently falling back to running on the host. Set
+    SANDBOX_REQUIRE_DOCKER=false to explicitly allow the weaker subprocess
+    backend (rlimits only — NOT host isolation).
     """
-    backend = (settings.get("SANDBOX_BACKEND", "subprocess") or "").lower()
-    if backend == "docker" and docker_available():
-        return DockerExecutor(settings)
+    backend = (settings.get("SANDBOX_BACKEND", "docker") or "").lower()
+    if backend == "docker":
+        if docker_available():
+            return DockerExecutor(settings)
+        if settings.get_bool("SANDBOX_REQUIRE_DOCKER", True):
+            return DisabledExecutor("Docker is required but not reachable; "
+                                    "set SANDBOX_REQUIRE_DOCKER=false to allow "
+                                    "host execution (not isolated).")
     return SubprocessExecutor(settings)
 
 
@@ -61,8 +89,16 @@ def docker_preflight(settings, events=None) -> str:
     if backend != "docker":
         return "skipped (backend != docker)"
     if not docker_available():
-        msg = ("SANDBOX_BACKEND=docker but the Docker daemon is not reachable; "
-               "execution will fall back to the subprocess backend.")
+        if settings.get_bool("SANDBOX_REQUIRE_DOCKER", True):
+            msg = ("WARNING: SANDBOX_BACKEND=docker but Docker is not reachable. "
+                   "Code execution is DISABLED (agents can't run code) so nothing "
+                   "runs unsandboxed on your host. Start Docker, run "
+                   "`python -m swarm.main --initiate`, or set "
+                   "SANDBOX_REQUIRE_DOCKER=false to allow host execution.")
+        else:
+            msg = ("WARNING: Docker not reachable and SANDBOX_REQUIRE_DOCKER=false "
+                   "— agent code will run on the HOST with rlimits only, which is "
+                   "NOT isolation. Start Docker for a real sandbox.")
         if events:
             events.chat(msg)
         return "daemon_unavailable"
@@ -82,5 +118,5 @@ def docker_preflight(settings, events=None) -> str:
 
 
 __all__ = ["ExecResult", "Executor", "SubprocessExecutor", "DockerExecutor",
-           "select_executor", "docker_available", "image_present", "docker_preflight",
-           "build_image", "run_code", "format_result"]
+           "DisabledExecutor", "select_executor", "docker_available", "image_present",
+           "docker_preflight", "build_image", "run_code", "format_result"]

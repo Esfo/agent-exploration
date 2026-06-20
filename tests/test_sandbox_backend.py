@@ -60,3 +60,29 @@ def test_executor_shutdown_is_safe(project):
     rt = make_runtime(project, client=None)  # uses SubprocessExecutor
     assert isinstance(rt.executor, SubprocessExecutor)
     rt.executor.shutdown()  # no-op, must not raise
+
+
+def test_select_executor_disables_when_docker_required_and_missing(project, monkeypatch):
+    from swarm import sandbox
+    from swarm.sandbox import DisabledExecutor, SubprocessExecutor, select_executor
+    monkeypatch.setattr(sandbox, "docker_available", lambda: False)
+    s = _settings(project)  # SANDBOX_BACKEND=docker, SANDBOX_REQUIRE_DOCKER=true
+
+    ex = select_executor(s)
+    assert isinstance(ex, DisabledExecutor)
+    # It refuses to run code instead of touching the host.
+    res = ex.run_python("print(1)", "/tmp", 5)
+    assert res.exit_code is None and "sandbox unavailable" in res.stderr
+
+    # Opt-in to host execution only when explicitly allowed.
+    sp = project / "settings" / "main.settings"
+    sp.write_text(sp.read_text().replace("SANDBOX_REQUIRE_DOCKER=true",
+                                         "SANDBOX_REQUIRE_DOCKER=false"))
+    assert isinstance(select_executor(_settings(project)), SubprocessExecutor)
+
+
+def test_model_warmup_loads_and_returns_name(project):
+    from conftest import MockClient
+    rt = make_runtime(project, MockClient(lambda *_: "ok"))
+    name = rt.model.warmup("primary")
+    assert name == "mock-model:latest"

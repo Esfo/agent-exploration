@@ -9,10 +9,15 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+try:                        # gives input() arrow-key / delete / history editing
+    import readline  # noqa: F401
+except ImportError:         # not available on some platforms; input() still works
+    pass
+
 from .instructions import Instructions
 from .logbook import Logbook
 from .model import Model
-from .ollama_client import OllamaClient
+from .ollama_client import OllamaClient, OllamaError
 from .primary import PrimaryAgent
 from .runtime import Runtime
 from .sandbox import build_image, docker_preflight, select_executor
@@ -43,7 +48,15 @@ def main(argv: list[str] | None = None) -> int:
     rt = build_runtime()
     docker_preflight(rt.settings, rt.logbook)
     primary = PrimaryAgent(rt)
-    rt.logbook.chat("primary agent ready — describe your goal. "
+
+    # Preload the model so the very first message isn't stuck waiting for it.
+    model_name = rt.model._model_name("primary")
+    rt.logbook.chat(f"loading model {model_name} … (this can take a moment)")
+    try:
+        rt.model.warmup("primary")
+    except OllamaError as e:
+        rt.logbook.chat(f"warning: could not load the model — is Ollama running? ({e})")
+    rt.logbook.chat("ready — describe your goal. "
                     "(Ctrl-C cancels a running swarm, Ctrl-D quits)")
 
     try:

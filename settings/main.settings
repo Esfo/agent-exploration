@@ -81,6 +81,10 @@ LOG_DIR=logs
 # optimization/math agents). Build the hardened image with `--initiate`.
 SANDBOX_BACKEND=docker
 SANDBOX_IMAGE=recursive-local-swarm-sandbox:latest
+# Require Docker for code execution. If Docker is unavailable, code execution is
+# DISABLED rather than silently running on your host. Set to false only if you
+# accept agent code running on the host (rlimits only, NOT isolated).
+SANDBOX_REQUIRE_DOCKER=true
 # Keep ONE warm container for the whole session (mounts the agents root, each run
 # execs into that agent's subdir) instead of spinning up a throwaway container per
 # run (much faster). false = throwaway `docker run --rm` per execution.

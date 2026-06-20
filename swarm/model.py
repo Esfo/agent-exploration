@@ -56,6 +56,15 @@ class Model:
             temperature = self.s.get_float("DEFAULT_TEMPERATURE", 0.3) or 0.3
         return {"num_ctx": num_ctx, "num_predict": num_predict, "temperature": temperature}
 
+    def warmup(self, role: str = "primary") -> str:
+        """Load the role's model into memory with a tiny request so the first
+        real turn doesn't pay the load cost. Returns the model name."""
+        name = self._model_name(role)
+        self.client.chat(endpoint=self._endpoint(role), model=name,
+                         messages=[{"role": "user", "content": "ready?"}],
+                         options={"num_ctx": 256, "num_predict": 1, "temperature": 0})
+        return name
+
     def chat(self, role: str, messages: list[dict]) -> str:
         """One chat turn for ``role``. Returns the assistant's text.
 
