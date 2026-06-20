@@ -69,21 +69,30 @@ class PrimaryAgent:
         self.messages.append({"role": "assistant", "content": reply})
         return reply
 
+    def _ask_query(self, prompt: str) -> str:
+        """Ask a QUERY turn without persisting it — queries are ephemeral; only
+        the result they return is kept in the conversation (spec)."""
+        return self.rt.model.chat("primary", self.messages + [{"role": "user", "content": prompt}])
+
     def _spawn(self) -> str:
         ctx = Context(instr=self.rt.instr, inherited_goal=self.goal)
-        directive_text = self._chat(resolve(">>SPAWNING<<", ctx))
+        prompt = resolve(">>SPAWNING<<", ctx)
+        directive_text = self._ask_query(prompt)
         members = parse_directives(self.rt, directive_text)
         retries = 0
         while not members and retries < 2:
-            directive_text = self._chat(MALFORMED_REPLY + "\n"
-                                        + resolve(">>SPAWNING<<", ctx))
+            directive_text = self._ask_query(MALFORMED_REPLY + "\n" + prompt)
             members = parse_directives(self.rt, directive_text)
             retries += 1
         self.state = self.CHATTING
         if not members:
             return ("I couldn't turn that into a valid set of agent directives. "
                     "Let's refine the plan.")
-        return run_council(self.rt, members, list(self.messages), self.goal)
+        result = run_council(self.rt, members, list(self.messages), self.goal)
+        # The council's output is inserted into the primary's memory as the
+        # primary's own contribution, so the conversation can continue fluidly.
+        self.messages.append({"role": "assistant", "content": result})
+        return result
 
     # ----- main entry -----
     def send(self, user_text: str) -> str:

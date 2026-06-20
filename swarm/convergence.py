@@ -104,6 +104,24 @@ def _required_choice(rt: Runtime, m: Member, prompt: str,
     return choice
 
 
+def _ask_query(rt: Runtime, m: Member, prompt: str) -> str:
+    """Ask a QUERY turn (queries/*) WITHOUT persisting it to the member's
+    history — queries are ephemeral; only their result is kept (spec)."""
+    return rt.model.chat(m.agent_type, m.messages + [{"role": "user", "content": prompt}])
+
+
+def _query_choice(rt: Runtime, m: Member, prompt: str, options: tuple[str, ...]) -> str | None:
+    """Ephemeral required-choice for a query turn (e.g. EXPANSION)."""
+    reply = _ask_query(rt, m, prompt)
+    choice = _last_word_choice(reply, options)
+    tries = 0
+    while choice is None and tries < _RETRY:
+        reply = _ask_query(rt, m, MALFORMED_REPLY + "\n" + prompt)
+        choice = _last_word_choice(reply, options)
+        tries += 1
+    return choice
+
+
 # --------------------------------------------------------------------------
 # Phases
 # --------------------------------------------------------------------------
@@ -177,13 +195,22 @@ def _reinitiate(rt: Runtime, members: list[Member], goal: str, spawn_subcouncil)
             m.waiting = True
             continue
         m.waiting = False
-        # CONTINUE: redo the action (AGENT_INPUT), then the expansion choice.
+        # CONTINUE: redo the action (AGENT_INPUT) — this turn IS kept in history.
         action_reply = _ask(rt, m, resolve(rt.instr.read("convergence", "action"), ctx))
         m.final_output = functions.extract_finished_output(action_reply)
-        expansion = _required_choice(rt, m, resolve(rt.instr.read("queries", "expansion"), ctx),
-                                     ("CONTINUE", "SPAWN"))
+        # EXPANSION is a QUERY: ephemeral, not kept in the member's history.
+        expansion = _query_choice(rt, m, resolve(rt.instr.read("queries", "expansion"), ctx),
+                                  ("CONTINUE", "SPAWN"))
         if expansion == "SPAWN" and spawn_subcouncil:
-            m.final_output = spawn_subcouncil(m) or m.final_output
+            sub = spawn_subcouncil(m)
+            if sub:
+                m.final_output = sub
+                # The member's AGENT_INPUT BECOMES the spawned council's output:
+                # replace the last assistant turn so its history reads as its own.
+                if m.messages and m.messages[-1]["role"] == "assistant":
+                    m.messages[-1]["content"] = sub
+                else:
+                    m.messages.append({"role": "assistant", "content": sub})
 
 
 def run_convergence(rt: Runtime, members: list[Member], inherited: list[dict] | None,
