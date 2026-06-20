@@ -27,6 +27,8 @@ def make_primary_script(state):
             return "YES" if state["ready"] else "NO"
         if "state the single goal" in last_user:               # goal extraction
             return "Build the whole thing."
+        if "Is this correct?" in last_user:                    # directive confirmation
+            return "YES"
         if "These are the agent types" in last_user:           # SPAWNING query
             return "coding: build it: Build the whole thing."
         out = _council_script(last_user, system, n)

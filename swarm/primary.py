@@ -20,10 +20,10 @@ readiness, Python only parses the verdict of the confirm prompt.
 """
 from __future__ import annotations
 
-from .council import parse_directives, run_council
+from .council import collect_directives, run_council
 from .runtime import Runtime
 from .substitution import Context, resolve
-from .voting import SPAWN_REMINDER, malformed_choice
+from .voting import malformed_choice
 
 
 def _parse_yes_no(text: str) -> bool | None:
@@ -106,22 +106,12 @@ class PrimaryAgent:
     def _spawn(self) -> str:
         ctx = Context(instr=self.rt.instr, inherited_goal=self.goal)
         prompt = resolve(">>SPAWNING<<", ctx)
-        directive_text = self._ask_query(prompt)
-        members = parse_directives(self.rt, directive_text)
-        # Keep re-asking with the format reminder until it gets it right. None/0/
-        # "unlimited" => infinite (the default); a positive number caps it.
-        max_tries = self.rt.settings.get_int("SPAWN_FORMAT_RETRIES", None)
-        tries = 0
-        while not members:
-            if max_tries and tries >= max_tries:
-                return ("I couldn't get the agents listed in the expected format. "
-                        "Let's refine the plan and try again.")
-            tries += 1
-            cap = f"/{max_tries}" if max_tries else ""
-            self.rt.logbook.chat("primary: directives didn't match the expected "
-                                 f"format, asking again (try {tries}{cap})...")
-            directive_text = self._ask_query(SPAWN_REMINDER + "\n" + prompt)
-            members = parse_directives(self.rt, directive_text)
+        # Collect the directives and have the primary confirm them before spawning.
+        members = collect_directives(self.rt, prompt, self._ask_query,
+                                     lambda s: self.rt.logbook.chat(f"primary: {s}"))
+        if not members:
+            return ("I couldn't get the agents listed in the expected format. "
+                    "Let's refine the plan and try again.")
         self._council_count += 1
         label = str(self._council_count)   # top-level councils: 1, 2, 3, ...
         council_dir = self.rt.primary_dir / "councils" / f"council_{label}"

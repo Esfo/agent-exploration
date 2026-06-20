@@ -37,6 +37,15 @@ ZIPPER_COMMAND_REMINDER = (
 _VOTE_RE = re.compile(r"i\s+vote\s+(finished|incomplete)", re.IGNORECASE)
 
 
+def parse_yes_no(text: str) -> bool | None:
+    """True/False from a YES/NO answer (last one wins), or None if neither."""
+    upper = (text or "").upper()
+    yes, no = upper.rfind("YES"), upper.rfind("NO")
+    if yes < 0 and no < 0:
+        return None
+    return yes > no
+
+
 def parse_vote(text: str) -> str | None:
     """Return ``finished`` / ``incomplete`` from a vote message, or ``None`` if
     neither is present. The vote should be the final word, so if both appear the

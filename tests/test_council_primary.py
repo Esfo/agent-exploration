@@ -30,6 +30,28 @@ def test_parse_directives_tolerates_markdown_and_case(project):
     assert members[0].task_truncated == "Write parser"
 
 
+def test_collect_directives_confirmation_loop(project):
+    from swarm.council import collect_directives
+    rt = make_runtime(project, client=None)
+    replies = iter([
+        "coding: build it: Do the work.",   # initial directives
+        "no, that's wrong",                 # confirmation -> NO -> resubmit
+        "coding: build it: Do the work.",   # resubmitted directives
+        "yes that's right",                 # confirmation -> YES -> spawn
+    ])
+    asked = []
+
+    def ask(text):
+        asked.append(text)
+        return next(replies)
+
+    members = collect_directives(rt, "These are the agent types:", ask, lambda s: None)
+    assert [m.agent_type for m in members] == ["coding"]
+    # The collected directive was echoed back for confirmation.
+    assert any("Is this correct?" in t and "coding: build it: Do the work." in t
+               for t in asked)
+
+
 def test_ends_yes():
     assert _ends_yes("after weighing it, YES") is True
     assert _ends_yes("not yet, NO") is False
@@ -46,6 +68,9 @@ def make_script(state):
         # goal-extraction query
         if "state the single goal" in last_user:
             return "Build the whole thing."
+        # directive confirmation step
+        if "Is this correct?" in last_user:
+            return "Looks right. YES"
         # SPAWNING query
         if "These are the agent types" in last_user:
             return "coding: build it: Write the whole thing."

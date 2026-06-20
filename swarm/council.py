@@ -13,7 +13,7 @@ from . import ids
 from .convergence import Member, run_convergence
 from .runtime import Runtime
 from .substitution import Context, resolve
-from .voting import SPAWN_REMINDER
+from .voting import SPAWN_REMINDER, malformed_choice, parse_yes_no
 from .zipper import run_zipper
 
 # AGENT_TYPE: <short task>: <expanded explanation>
@@ -86,6 +86,53 @@ def parse_directives(rt: Runtime, text: str) -> list[Member]:
     return members
 
 
+_RESUBMIT = ("Please resubmit in this exact format, as a single line\n"
+             "AGENT_TYPE: TASK: EXPLANATION")
+
+
+def _confirmation(members: list[Member]) -> str:
+    lines = "\n".join(f"{m.agent_type}: {m.task_truncated}: {m.task}" for m in members)
+    return ("This is what was collected, according to the requested formatting:\n\n"
+            + lines +
+            "\n\nIs this correct?\nExplicitly answer either YES or NO at the very end "
+            "of your message.")
+
+
+def collect_directives(rt: Runtime, spawn_prompt: str, ask, notice):
+    """Get a council's directives from the model, then have it confirm them
+    before spawning. ``ask(text) -> reply`` issues an (ephemeral) model turn;
+    ``notice(text)`` logs a status line. Returns confirmed members, or None if a
+    finite SPAWN_FORMAT_RETRIES cap is hit before parsing.
+
+    Loop: parse (re-asking with the format reminder until it parses) -> echo the
+    collected list and ask YES/NO -> on NO, ask for a resubmission and repeat;
+    on YES, return the members."""
+    max_tries = rt.settings.get_int("SPAWN_FORMAT_RETRIES", None)
+    members = parse_directives(rt, ask(spawn_prompt))
+    tries = 0
+    while True:
+        while not members:
+            if max_tries and tries >= max_tries:
+                return None
+            tries += 1
+            cap = f"/{max_tries}" if max_tries else ""
+            notice(f"directives didn't match the expected format, "
+                   f"asking again (try {tries}{cap})...")
+            members = parse_directives(rt, ask(SPAWN_REMINDER + "\n" + spawn_prompt))
+        # Confirmation step.
+        verdict = ask(_confirmation(members))
+        decision = parse_yes_no(verdict)
+        c = 0
+        while decision is None and c < 2:
+            verdict = ask(malformed_choice("YES", "NO") + "\n" + _confirmation(members))
+            decision = parse_yes_no(verdict)
+            c += 1
+        if decision:
+            return members
+        notice("the collected agent list was rejected; asking for a resubmission...")
+        members = parse_directives(rt, ask(_RESUBMIT))
+
+
 def run_council(rt: Runtime, members: list[Member], inherited: list[dict] | None,
                 inherited_goal: str, council_dir, label: str, *, depth: int = 0) -> str:
     """Run a council to completion and return the zipped FINISHED OUTPUT.
@@ -109,23 +156,16 @@ def run_council(rt: Runtime, members: list[Member], inherited: list[dict] | None
         ctx = Context(instr=rt.instr, agent_type=member.agent_type, task=member.task,
                       task_truncated=member.task_truncated, inherited_goal=inherited_goal)
         prompt = resolve(">>SPAWNING<<", ctx)
-        directive_text = rt.model.chat(
-            member.agent_type, member.messages + [{"role": "user", "content": prompt}])
-        sub_members = parse_directives(rt, directive_text)
-        # None/0/"unlimited" => keep re-asking until it parses (default).
-        max_tries = rt.settings.get_int("SPAWN_FORMAT_RETRIES", None)
-        tries = 0
-        while not sub_members:
-            if max_tries and tries >= max_tries:
-                return None
-            tries += 1
-            cap = f"/{max_tries}" if max_tries else ""
-            rt.logbook.chat(f"[{council_id}] {member.label}: directives didn't match "
-                            f"the expected format, asking again (try {tries}{cap})...")
-            directive_text = rt.model.chat(
-                member.agent_type,
-                member.messages + [{"role": "user", "content": SPAWN_REMINDER + "\n" + prompt}])
-            sub_members = parse_directives(rt, directive_text)
+
+        def ask(text: str) -> str:
+            return rt.model.chat(member.agent_type,
+                                 member.messages + [{"role": "user", "content": text}])
+
+        sub_members = collect_directives(
+            rt, prompt, ask,
+            lambda s: rt.logbook.chat(f"[{council_id}] {member.label}: {s}"))
+        if not sub_members:
+            return None
         child_count[0] += 1
         child_label = f"{label}.{child_count[0]}"
         roster = ", ".join(s.label for s in sub_members)
