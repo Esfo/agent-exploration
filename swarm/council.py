@@ -98,7 +98,7 @@ def run_council(rt: Runtime, members: list[Member], inherited: list[dict] | None
     council_dir.mkdir(parents=True, exist_ok=True)
     for m in members:
         m.log_path = council_dir / f"{m.label}.txt"
-    roster = ", ".join(m.agent_type for m in members)
+    roster = ", ".join(m.label for m in members)
     rt.logbook.chat(f"[{council_id}] convening ({roster}) on: {inherited_goal[:60]}")
 
     child_count = [0]   # sub-councils spawned under THIS council, by any member
@@ -123,7 +123,7 @@ def run_council(rt: Runtime, members: list[Member], inherited: list[dict] | None
             return None
         child_count[0] += 1
         child_label = f"{label}.{child_count[0]}"
-        roster = ", ".join(s.agent_type for s in sub_members)
+        roster = ", ".join(s.label for s in sub_members)
         rt.logbook.chat(f"[{council_id}] {member.label} spawning sub-council "
                         f"{child_label} ({roster}) for: {member.task[:60]}")
         # This agent's councils live beside its chat file, under <agent-id>-councils/.
