@@ -1,5 +1,5 @@
-"""Audit the conversational properties: history accumulation, inheritance, and
-the queries-are-ephemeral / results-are-inserted rule."""
+"""Audit the conversational properties: history accumulation, inheritance, the
+queries-are-ephemeral / results-are-inserted rule, and the hidden confirm check."""
 from conftest import MockClient, make_runtime
 
 from swarm import ids
@@ -21,14 +21,21 @@ def _council_script(last_user, system, n):
     return "ok"
 
 
-def _primary_script(last_user, system, n):
-    if "These are the agent types" in last_user:          # SPAWNING query
-        return "coding: build it: Build the whole thing."
-    if last_user.startswith("I want"):
-        return "Here's the plan. <<READY>>"
-    if last_user.startswith("now also"):                   # follow-up after swarm
-        return "Sure — building on what we just produced."
-    return _council_script(last_user, system, n)
+def make_primary_script(state):
+    def script(last_user, system, n):
+        if "has the user actually agreed" in last_user:        # hidden confirm
+            return "YES" if state["ready"] else "NO"
+        if "These are the agent types" in last_user:           # SPAWNING query
+            return "coding: build it: Build the whole thing."
+        out = _council_script(last_user, system, n)
+        if out != "ok":
+            return out
+        # visible planning turn
+        state["ready"] = last_user.strip().lower().startswith(("yes", "go ahead"))
+        if last_user.startswith("now also"):
+            return "Sure — building on what we just produced."
+        return "Here's the plan. Shall I begin?"
+    return script
 
 
 def test_council_member_history_accumulates(project):
@@ -36,34 +43,45 @@ def test_council_member_history_accumulates(project):
     m = Member(ids.next_id("agent"), "coding", "build it", "build it")
     seed = [{"role": "user", "content": "inherited planning context"}]
     run_convergence(rt, [m], seed, "ship it", "c1", max_rounds=2)
-    # Inherited context is at the front; the member's own turns accumulate after.
     assert m.messages[0]["content"] == "inherited planning context"
     assert any(r["role"] == "assistant" for r in m.messages)
-    # The convene/vote turns are part of the member's ongoing conversation.
     assert any("vote" in r["content"].lower() for r in m.messages if r["role"] == "user")
 
 
-def test_spawning_query_is_ephemeral_and_result_inserted(project):
-    rt = make_runtime(project, MockClient(_primary_script))
+def test_confirm_is_ephemeral_and_invisible(project):
+    state = {"ready": False}
+    rt = make_runtime(project, MockClient(make_primary_script(state)))
+    p = PrimaryAgent(rt)
+    reply = p.send("I want a tool")
+    # The hidden confirm dialogue must never appear in the reply...
+    assert "YES" not in reply and "NO" not in reply
+    # ...nor be persisted in the primary's history.
+    assert not any("has the user actually agreed" in m["content"] for m in p.messages)
+
+
+def test_spawning_query_ephemeral_and_result_inserted(project):
+    state = {"ready": False}
+    rt = make_runtime(project, MockClient(make_primary_script(state)))
     p = PrimaryAgent(rt)
     p.send("I want a tool")
     result = p.send("yes")
 
-    # The SPAWNING query text must NOT be persisted in the primary's history...
-    assert not any("These are the agent types" in msg["content"] for msg in p.messages)
-    # ...but the council's result IS inserted as the primary's own turn.
+    # SPAWNING query is not persisted...
+    assert not any("These are the agent types" in m["content"] for m in p.messages)
+    # ...but the council result IS inserted as the primary's own turn.
     assert p.messages[-1]["role"] == "assistant"
-    assert p.messages[-1]["content"] == result
+    assert "the built thing" in p.messages[-1]["content"]
     assert "the built thing" in result
 
 
 def test_conversation_continues_after_swarm(project):
-    rt = make_runtime(project, MockClient(_primary_script))
+    state = {"ready": False}
+    rt = make_runtime(project, MockClient(make_primary_script(state)))
     p = PrimaryAgent(rt)
     p.send("I want a tool")
-    p.send("yes")
+    p.send("yes")                       # spawns
     n_before = len(p.messages)
-    follow = p.send("now also handle TSV")
-    # A follow-up is a normal conversational turn with the swarm result in context.
+    follow = p.send("now also handle TSV")   # confirm NO -> normal turn
     assert "building on what we just produced" in follow
-    assert len(p.messages) == n_before + 2  # user + assistant
+    # one visible user + one visible assistant turn added (confirm is ephemeral)
+    assert len(p.messages) == n_before + 2

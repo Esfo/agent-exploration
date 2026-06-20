@@ -19,9 +19,11 @@ you ──▶ primary agent ──(plan, then "spawn agents?")──▶ council
 ```
 
 - **Primary agent** (`instructions/primary/agent`) — takes a goal, asks
-  questions, forms a plan, and asks the hard-coded *"Would you like me to spawn
-  agents to complete this task?"*. A yes (parsed in Python) triggers the
-  `>>SPAWNING<<` query and starts a council.
+  questions and shapes a plan in its own words. After every user turn a *hidden*
+  confirm query (`instructions/primary/confirm`) asks the primary itself whether
+  the user has agreed to spawn — invisible to the user and never kept in history;
+  Python only reads its YES/NO. On YES it runs the `>>SPAWNING<<` query and
+  starts a council.
 - **Convergence** (`swarm/convergence.py`, prompts in
   `instructions/convergence/`) — the hard-coded loop. Each member is framed with
   `INITIATION + PURPOSE + TASK + ACTION`, contributes (tool-bearing members can

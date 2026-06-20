@@ -1,7 +1,7 @@
 from conftest import MockClient, make_runtime
 
 from swarm.council import parse_directives
-from swarm.primary import PrimaryAgent, parse_yes
+from swarm.primary import PrimaryAgent, _ends_yes
 
 
 def test_parse_directives(project):
@@ -17,44 +17,51 @@ def test_parse_directives(project):
     assert members[0].task == "Implement the tolerant arrow parser."
 
 
-def test_parse_yes():
-    assert parse_yes("yes please") is True
-    assert parse_yes("no not yet") is False
-    assert parse_yes("maybe possibly") is None
+def test_ends_yes():
+    assert _ends_yes("after weighing it, YES") is True
+    assert _ends_yes("not yet, NO") is False
+    assert _ends_yes("I lean YES but ultimately NO") is False
 
 
-def _full_script(last_user, system, n):
-    # SPAWNING query (checked first: its file also opens with "I want ...")
-    if "These are the agent types" in last_user:
-        return "coding: build it: Write the whole thing."
-    # primary planning turn
-    if last_user.startswith("I want a tool"):
-        return "Here's my plan to build it. <<READY>>"
-    # convergence
-    if "Would you like to run any of your tools" in last_user:
-        return "EXIT"
-    if "vote either FINISHED or INCOMPLETE" in last_user:
-        return "Complete.\nI vote FINISHED"
-    if "Form either a plan or a prototype" in last_user:
-        return "FINISHED OUTPUT\nthe built thing"
-    # zipper
-    if "finalizing the work of a council" in last_user:
-        return "RETAIN coding"
-    if "Is this the final response" in last_user:
-        return "CONFIRM"
-    return "ok"
+def make_script(state):
+    """A model that plans, answers the hidden confirm check, then drives the
+    council + zipper. ``state['ready']`` flips the confirm verdict."""
+    def script(last_user, system, n):
+        # hidden confirm query
+        if "has the user actually agreed" in last_user or "decide one thing only" in last_user:
+            return "Reasoning privately...\n" + ("YES" if state["ready"] else "NO")
+        # SPAWNING query
+        if "These are the agent types" in last_user:
+            return "coding: build it: Write the whole thing."
+        # convergence
+        if "Would you like to run any of your tools" in last_user:
+            return "EXIT"
+        if "vote either FINISHED or INCOMPLETE" in last_user:
+            return "Complete.\nI vote FINISHED"
+        if "Form either a plan or a prototype" in last_user:
+            return "FINISHED OUTPUT\nthe built thing"
+        # zipper
+        if "finalizing the work of a council" in last_user:
+            return "RETAIN coding"
+        if "Is this the final response" in last_user:
+            return "CONFIRM"
+        # a visible planning turn: agreement words set readiness for next confirm
+        state["ready"] = last_user.strip().lower().startswith(("yes", "go ahead", "do it"))
+        return "Here's the plan. Shall I begin?"
+    return script
 
 
-def test_primary_plan_then_spawn(project):
-    rt = make_runtime(project, MockClient(_full_script))
+def test_primary_plans_then_confirms_then_spawns(project):
+    state = {"ready": False}
+    rt = make_runtime(project, MockClient(make_script(state)))
     primary = PrimaryAgent(rt)
 
+    # First turn: still planning, hidden confirm says NO -> just a reply.
     reply = primary.send("I want a tool that does X")
-    assert "Would you like me to spawn agents" in reply
-    assert primary.state == PrimaryAgent.AWAITING_CONFIRM
-    assert "<<READY>>" not in reply
+    assert "Shall I begin?" in reply
+    assert "FINISHED OUTPUT" not in reply
 
-    final = primary.send("yes")
-    assert final.startswith("FINISHED OUTPUT")
+    # User agrees -> hidden confirm says YES -> swarm runs, result appended.
+    final = primary.send("yes, go ahead")
+    assert "FINISHED OUTPUT" in final
     assert "the built thing" in final
-    assert primary.state == PrimaryAgent.CHATTING
