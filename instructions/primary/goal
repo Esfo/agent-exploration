@@ -1,0 +1,4 @@
+This is a behind-the-scenes question that the user will never see and that you will not remember.
+Based on your whole conversation with the user, state the single goal the agents should accomplish.
+Write it as one clear, self-contained sentence describing the actual task, not a greeting or pleasantry.
+Respond with only that one sentence.

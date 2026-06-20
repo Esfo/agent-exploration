@@ -63,6 +63,20 @@ class PrimaryAgent:
         queries are ephemeral and invisible; only their result matters (spec)."""
         return self.rt.model.chat("primary", self.messages + [{"role": "user", "content": prompt}])
 
+    # ----- the goal the council inherits -----
+    def _derive_goal(self) -> str:
+        """Ask the primary, behind the scenes, to state the actual task as one
+        sentence — so the council's inherited goal reflects the conversation, not
+        whatever the first message happened to be. Ephemeral and invisible."""
+        ctx = Context(instr=self.rt.instr)
+        reply = self._ask_query(resolve(self.rt.instr.read("primary", "goal"), ctx))
+        for line in (reply or "").splitlines():
+            if line.strip():
+                return line.strip()
+        # Fallback: the most recent real user message.
+        return next((m["content"].strip() for m in reversed(self.messages)
+                     if m["role"] == "user"), "").strip()
+
     # ----- the hidden confirm check -----
     def _confirm(self) -> bool:
         """Ask the primary, behind the scenes, whether the user has agreed to
@@ -102,9 +116,8 @@ class PrimaryAgent:
     def send(self, user_text: str) -> str:
         """Feed a user message; return the primary's reply, or (once the hidden
         confirm verdict is YES) the reply followed by the swarm's result."""
-        if not self.goal:
-            self.goal = user_text.strip()
         reply = self._chat(user_text)
         if self._confirm():
+            self.goal = self._derive_goal()
             return reply + "\n\n" + self._spawn()
         return reply

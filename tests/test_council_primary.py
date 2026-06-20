@@ -30,6 +30,9 @@ def make_script(state):
         # hidden confirm query
         if "has the user actually agreed" in last_user or "decide one thing only" in last_user:
             return "Reasoning privately...\n" + ("YES" if state["ready"] else "NO")
+        # goal-extraction query
+        if "state the single goal" in last_user:
+            return "Build the whole thing."
         # SPAWNING query
         if "These are the agent types" in last_user:
             return "coding: build it: Write the whole thing."

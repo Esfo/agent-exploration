@@ -18,6 +18,13 @@ from .zipper import run_zipper
 # AGENT_TYPE: <short task>: <expanded explanation>
 _DIRECTIVE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.+)$")
 
+# The order council members act in. The model lists directives in an arbitrary
+# order; we sort them into a sensible, deterministic pipeline-ish order so the
+# producer (coding) goes before the checkers (testing/philosophizing). Unknown
+# roles keep their listed order, after the known ones.
+_ROLE_ORDER = {"coding": 0, "math": 1, "optimization": 2, "testing": 3,
+               "philosophizing": 4}
+
 
 def _truncate(text: str, words: int = 4) -> str:
     return " ".join((text or "").split()[:words])
@@ -44,6 +51,8 @@ def parse_directives(rt: Runtime, text: str) -> list[Member]:
             truncated = _truncate(task)
         members.append(Member(id=ids.next_id("agent"), agent_type=agent_type,
                               task=task, task_truncated=truncated))
+    # Stable sort into a sensible acting order (coding first, checkers last).
+    members.sort(key=lambda m: _ROLE_ORDER.get(m.agent_type, 99))
     return members
 
 
