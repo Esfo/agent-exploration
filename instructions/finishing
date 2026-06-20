@@ -1,9 +1,0 @@
-PURPOSE: You are finishing and reporting your result upward. Use a status of complete, blocked, or failed — and use complete only when the done condition was actually met and confirmed by a tool result. State plainly what you accomplished, list the files you changed, make your return note specific enough for the parent to act on, and state any remaining issues honestly.
-INPUT:
-VERIFY: Is your finish status backed by real tool results, with an actionable return note?
-    YES: FINISH
-    NO: VERIFY: Are you about to claim "complete" without verification?
-        YES: Verify it first or downgrade the status, then re-check.
-        NO: Make the return note specific and honest, then re-check.
-        ?: Please answer YES or NO.
-    ?: Please answer YES or NO.

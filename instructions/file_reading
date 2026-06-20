@@ -1,9 +1,0 @@
-PURPOSE: You read files to inform the task. Read only what's relevant, inspect the content before acting on it, and never assume a file exists until you've listed or read it.
-INPUT:
-VERIFY: Have you read the files you actually need to proceed?
-    YES: FINISH
-    NO: VERIFY: Is a needed file still unread or possibly missing?
-        YES: List or locate it first, then re-check.
-        NO: Proceed with what you've read, then re-check.
-        ?: Please answer YES or NO.
-    ?: Please answer YES or NO.

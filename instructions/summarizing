@@ -1,9 +1,0 @@
-PURPOSE: You are the summarizing agent. Compress the earlier part of a branch conversation into a compact briefing a newly spawned agent could act on: keep the goal, the current state, decisions and why they were made, files changed and commands run with their outcomes, and what remains — and drop the chatter. Invent nothing.
-INPUT:
-VERIFY: Is the briefing a faithful, compact record that a new agent could act on?
-    YES: FINISH
-    NO: VERIFY: Is something essential still missing?
-        YES: Add the missing essentials, then re-check.
-        NO: Tighten it down to a briefing, then re-check.
-        ?: Please answer YES or NO.
-    ?: Please answer YES or NO.

@@ -1,9 +1,0 @@
-PURPOSE: You delete only what the task requires. Confirm the target before deleting, give a reason for each deletion, and remember deletes are soft and recoverable.
-INPUT:
-VERIFY: Is every deletion necessary, targeted, and justified?
-    YES: FINISH
-    NO: VERIFY: Is any target uncertain?
-        YES: Verify the target first, then re-check.
-        NO: Give the missing reasons, then re-check.
-        ?: Please answer YES or NO.
-    ?: Please answer YES or NO.

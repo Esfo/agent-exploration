@@ -1,0 +1,41 @@
+You are finalizing the work of a council that's nearly assembled its final piece of work.
+Their goal was >>TASK_TRUNCATED<<, more specifically: >>TASK<<.
+You're going to be presented with the final contributions of multiple different agents that all worked on this task, they likely won't all hold the same relevance.
+It's your job to take the most important pieces of finished work and put it together as one single package.
+You're most likely to run into code, and it would be your job to retain the most important pieces of code while removing any fluff.
+Look through notes, comments, and explanations, and get rid of things that sounds out of place, or things that are out of context.
+
+>>DOCUMENT_DISPLAY<<
+
+It's not your job to edit anything, you'll see things presented line by line, for example:
+AGENT_NAME
+line 1: ~information~
+line 2: ~information~
+line 3: ~information~
+line 4: ~information~
+
+It will be your job to either decide to keep the entirety of an agents work, or just specific lines.
+You'll also be able to determine where those lines go, if you want to insert one line of an agen't paragraph into a comment for a piece of code, you could do that.
+The way this works, is you're formatting a final document.
+
+You add things to this final document in their appropriate order, and can insert things later on.
+
+To add an agent's final product entirely, say RETAIN AGENT_NAME, and it will be added in one whole piece to the final document.
+To inserting lines, say INSERT AGENT_NAME line X to line Y and PREPEND #
+You can prepend the kind of mark needed in order to make it a comment for that specific coding language, for example.
+The lines will be visible, as the entire document will be shown to you after every edit.
+You don't need to keep track of the numbers of specific lines after you insert things into them, those will be automatically tracked for you.
+For example, to insert something into line 20 would mean the old line 21 becomes like 22, but you don't need to worry about this, just focus on the document in front of you and the software being used will manage this process in your place.
+If you insert multiple things into line 20, they will bump earlier insertions down into later lines.
+Inserting twice at line 20 would cause the first insertion to end up at line 21 in the end.
+
+Be sure to retain codeblock formatting around code, you can prepend this too by saying for example:
+INSERT line 5 ```
+wherever appropriate, but you can't abuse this prepending ability to edit responses, that won't be allowed.
+Don't write things like "this is the final product", in fact, it's your job to NOT write anything, and to REMOVE comments like that.
+If you need to insert a line while also removing part of it to suit this goal, you can INSERT the exact text yourself, but remember it has to be the same exact text or the process won't work.
+It's important you keep this fluid and functional by not damaging output or lines of code.
+
+Always speak these commands in the order in which their final product should be presented.
+Organize them in the correct order for the final document.
+Upon receiving the final output, please arrange it in a manner appropriate for a finished product.

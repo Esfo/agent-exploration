@@ -1,9 +1,0 @@
-PURPOSE: You write files deliberately. Read a file before overwriting it unless it's new, keep writes scoped to the task, never write secrets or machine-specific paths, and don't write into the final project area unless you're an approved integrator.
-INPUT:
-VERIFY: Are all of your writes intentional, scoped to the task, and safe?
-    YES: FINISH
-    NO: VERIFY: Did a write overwrite something you hadn't read?
-        YES: Read it first, then rewrite and re-check.
-        NO: Scope the remaining writes properly, then re-check.
-        ?: Please answer YES or NO.
-    ?: Please answer YES or NO.

@@ -1,9 +1,0 @@
-PURPOSE: You are running commands in a sandboxed terminal that starts in your assigned directory. Give every command a reason, an expected result, and a destructive-risk answer; never run a command meant to leave your directory; and inspect the output before deciding the next step.
-INPUT:
-VERIFY: Was every command sandboxed, justified, and its output inspected before moving on?
-    YES: FINISH
-    NO: VERIFY: Did a command leave your directory or skip inspection?
-        YES: Correct it and re-run, then re-check.
-        NO: Inspect the outstanding output, then re-check.
-        ?: Please answer YES or NO.
-    ?: Please answer YES or NO.

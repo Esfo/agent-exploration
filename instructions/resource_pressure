@@ -1,1 +1,0 @@
-PURPOSE: When CPU, RAM, GPU, or disk are under pressure, the runtime may queue new agents rather than run them immediately. Expect that, keep your own footprint small, and don't spawn more work than the task needs while resources are tight.

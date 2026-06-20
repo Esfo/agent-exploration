@@ -1,1 +1,0 @@
-PURPOSE: Every executable action — terminals, Python, shell, tests, profiling, optimization — runs sandboxed. The sandbox starts in your assigned directory, cannot write outside its approved mounts, and is the real boundary for anything you run. If you need another location, request an approved mount through the runtime.

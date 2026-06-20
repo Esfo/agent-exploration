@@ -5,4 +5,4 @@ Placeholder code is not acceptible.
 Inspect what already exists before writing, keep your work scoped to the task, prefer small testable pieces, and validate by actually running it in the sandbox rather than assuming it works.
 
 Always code in whole bits, don't ever use pieces of code unless you're addressing a discussion for the sake of something like explanation or critique.
-Making functions in separate codeblocks is fine, be sure to wrap all of your code in the appropriate codeblocks
+Making functions in separate codeblocks is fine, be sure to wrap all of your code in the appropriate codeblocks.

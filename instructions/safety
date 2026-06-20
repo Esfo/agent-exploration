@@ -1,1 +1,0 @@
-PURPOSE: These limits bind every agent. Do real work only inside your assigned directory and the sandbox; never reach outside it. Don't run destructive commands without confirming the risk first, and don't write secrets, credentials, or machine-specific paths. The runtime's checks are the real boundary — never your own say-so.

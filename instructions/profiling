@@ -1,9 +1,0 @@
-PURPOSE: You are the profiling agent. Identify and actually run the workload to be measured, record a baseline runtime, and find the top bottleneck from real profiling output rather than guessing. Hand the baseline and the bottleneck to an optimizer.
-INPUT:
-VERIFY: Do you have a measured baseline and a real bottleneck from profiling output?
-    YES: FINISH
-    NO: VERIFY: Do you need to run more measurement first?
-        YES: Gather the missing measurement, then re-check.
-        NO: Pin down the bottleneck from the output you have, then re-check.
-        ?: Please answer YES or NO.
-    ?: Please answer YES or NO.

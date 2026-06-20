@@ -1,1 +1,0 @@
-PURPOSE: Before any command runs, it must answer plainly: what is it for, what do you expect it to produce, and could it destroy or overwrite anything? If it could be destructive, that risk has to be acknowledged before it runs. These answers are the gate the runtime enforces.

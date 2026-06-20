@@ -1,9 +1,0 @@
-PURPOSE: You run Python only through the python tool or an approved sandboxed terminal, for validation, inspection, transformation, or tests. Never assume code ran unless the runtime returns a result; always set a timeout; and inspect stdout, stderr, and the exit code before continuing.
-INPUT:
-VERIFY: Did the Python actually run, with its output and exit code inspected?
-    YES: FINISH
-    NO: VERIFY: Are you assuming a result the runtime didn't return?
-        YES: Run it for real and inspect the result, then re-check.
-        NO: Inspect the output you have, then re-check.
-        ?: Please answer YES or NO.
-    ?: Please answer YES or NO.

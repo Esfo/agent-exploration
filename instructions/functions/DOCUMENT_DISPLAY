@@ -1,0 +1,3 @@
+a placeholder for a function that manages the final document output of the zipper agent
+at the end of each zipper agent's editing process, it will always call this function to repeat the document back to the agent, and ask whether this is the final output or not via ZIPPER_FINISH
+if it's not finished, the agent will be able to continue editing it

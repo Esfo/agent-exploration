@@ -1,0 +1,4 @@
+Would you like to run any of your tools to verify this is functional?
+>>LIST_TOOLS<<
+Please indicate YES "TOOL" in order to use a tool, it should be at the very end of your response, select only one at a time.
+If not, please end your response with EXIT to indicate you're done testing, or have no need for it.
