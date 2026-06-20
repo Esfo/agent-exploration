@@ -56,6 +56,12 @@ SUMMARIZE_ON_OVERFLOW=true
 SUMMARIZE_RECENT_FRACTION=0.5
 TOKEN_SAFETY_MARGIN=256
 
+# Live display: stream the running model's output into a pinned buffer at the
+# bottom of the terminal, with one-line notices scrolling above it. Off-TTY this
+# is ignored and output is plain.
+LIVE_DISPLAY=true
+LIVE_BUFFER_LINES=3
+
 # Convergence / recursion bounds.
 # A council loops response->vote until every member votes FINISHED; this is the
 # safety bound that force-resolves the loop so it can never run unbounded.

@@ -29,6 +29,7 @@ class Model:
         self.s = settings
         self.client = client
         self.summarizer = Summarizer(self)
+        self.live = None   # optional Live display; internal calls stream into it
 
     def _prefix(self, role: str) -> str:
         return ROLE_PREFIX.get(role, "DEFAULT")
@@ -78,8 +79,16 @@ class Model:
         """One chat turn for ``role``. Returns the assistant's text.
 
         The history is first compressed in place if it exceeds the role's
-        context budget (top-down summarize-on-overflow)."""
+        context budget (top-down summarize-on-overflow). When a live display is
+        attached, the generation streams into its bottom buffer."""
         self.summarizer.fit(role, messages)
+        if self.live is not None and hasattr(self.client, "chat_stream"):
+            self.live.begin()
+            resp = self.client.chat_stream(
+                endpoint=self._endpoint(role), model=self._model_name(role),
+                messages=messages, options=self._options(role),
+                on_token=self.live.feed)
+            return (resp.content or "").strip()
         resp = self.client.chat(
             endpoint=self._endpoint(role),
             model=self._model_name(role),

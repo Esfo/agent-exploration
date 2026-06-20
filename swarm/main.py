@@ -15,6 +15,7 @@ except ImportError:         # not available on some platforms; input() still wor
     pass
 
 from .instructions import Instructions
+from .live import Live
 from .logbook import Logbook
 from .model import Model
 from .ollama_client import OllamaClient, OllamaError
@@ -65,21 +66,36 @@ def main(argv: list[str] | None = None) -> int:
 
     rt = build_runtime()
     _reset_workspace(rt.settings)        # fresh workspace on every launch
+
+    # Live display: model generation streams into a pinned bottom buffer; the
+    # one-line notices scroll above it. Falls back to plain output off-TTY.
+    live = Live(height=rt.settings.get_int("LIVE_BUFFER_LINES", 3) or 3,
+                enabled=rt.settings.get_bool("LIVE_DISPLAY", True))
+    if live.enabled:
+        rt.logbook.sink = live.log
+        rt.model.live = live
+        primary = PrimaryAgent(rt, on_token=None)
+    else:
+        def on_token(delta: str) -> None:
+            sys.stdout.write(delta)
+            sys.stdout.flush()
+        primary = PrimaryAgent(rt, on_token=on_token)
+
     docker_preflight(rt.settings, rt.logbook)
 
-    # Stream the primary's visible replies to stdout chunk-by-chunk.
-    def on_token(delta: str) -> None:
-        sys.stdout.write(delta)
-        sys.stdout.flush()
-
-    primary = PrimaryAgent(rt, on_token=on_token)
-
     # Preload the model silently so the first message isn't stuck waiting for it.
-    # The prompt only appears once this returns, which is the ready signal.
     try:
         rt.model.warmup("primary")
     except OllamaError as e:
         rt.logbook.chat(f"could not load the model - is Ollama running? ({e})")
+
+    def deliver(text: str) -> None:
+        """Show a turn's durable output (committed above the live buffer)."""
+        if live.enabled:
+            live.finish()
+            live.log(text)
+        else:
+            print()
 
     if oneprompt:
         try:
@@ -92,25 +108,24 @@ def main(argv: list[str] | None = None) -> int:
             if not task:
                 return 0
             try:
-                primary.run_once(task)
-                print()
+                deliver(primary.run_once(task))
             except KeyboardInterrupt:
-                rt.logbook.chat("\n[cancelled] swarm stopped - back to you.")
+                live.finish()
+                rt.logbook.chat("[cancelled] swarm stopped - back to you.")
             return 0
         finally:
             rt.executor.shutdown()
 
     try:
         if argv:
-            primary.send(" ".join(argv))
-            print()
+            deliver(primary.send(" ".join(argv)))
             return 0
 
         while True:
             try:
                 line = _read_multiline()
             except EOFError:           # Ctrl-D: quit
-                rt.logbook.chat("\nbye.")
+                rt.logbook.chat("bye.")
                 return 0
             except KeyboardInterrupt:  # Ctrl-C at the prompt: ignore, new prompt
                 print()
@@ -118,12 +133,13 @@ def main(argv: list[str] | None = None) -> int:
             if not line.strip():
                 continue
             try:
-                primary.send(line)   # streams to stdout as it generates
-                print()
+                deliver(primary.send(line))
             except KeyboardInterrupt:
                 # Ctrl-C during a swarm: abort it and return to the prompt.
-                rt.logbook.chat("\n[cancelled] swarm stopped - back to you.")
+                live.finish()
+                rt.logbook.chat("[cancelled] swarm stopped - back to you.")
     finally:
+        live.finish()
         rt.executor.shutdown()
 
 
