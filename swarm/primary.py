@@ -108,14 +108,17 @@ class PrimaryAgent:
         prompt = resolve(">>SPAWNING<<", ctx)
         directive_text = self._ask_query(prompt)
         members = parse_directives(self.rt, directive_text)
-        retries = 0
-        while not members and retries < 2:
+        max_tries = self.rt.settings.get_int("SPAWN_FORMAT_RETRIES", 6) or 6
+        tries = 0
+        while not members and tries < max_tries:
+            tries += 1
+            self.rt.logbook.chat(f"primary: directives didn't match the expected "
+                                 f"format, asking again ({tries}/{max_tries})...")
             directive_text = self._ask_query(MALFORMED_REPLY + "\n" + prompt)
             members = parse_directives(self.rt, directive_text)
-            retries += 1
         if not members:
-            return ("I couldn't turn that into a valid set of agent directives. "
-                    "Let's refine the plan.")
+            return ("I couldn't get the agents listed in the expected format. "
+                    "Let's refine the plan and try again.")
         self._council_count += 1
         label = str(self._council_count)   # top-level councils: 1, 2, 3, ...
         council_dir = self.rt.primary_dir / "councils" / f"council_{label}"

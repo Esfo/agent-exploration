@@ -112,13 +112,16 @@ def run_council(rt: Runtime, members: list[Member], inherited: list[dict] | None
         directive_text = rt.model.chat(
             member.agent_type, member.messages + [{"role": "user", "content": prompt}])
         sub_members = parse_directives(rt, directive_text)
+        max_tries = rt.settings.get_int("SPAWN_FORMAT_RETRIES", 6) or 6
         tries = 0
-        while not sub_members and tries < 2:
+        while not sub_members and tries < max_tries:
+            tries += 1
+            rt.logbook.chat(f"[{council_id}] {member.label}: directives didn't match "
+                            f"the expected format, asking again ({tries}/{max_tries})...")
             directive_text = rt.model.chat(
                 member.agent_type,
                 member.messages + [{"role": "user", "content": MALFORMED_REPLY + "\n" + prompt}])
             sub_members = parse_directives(rt, directive_text)
-            tries += 1
         if not sub_members:
             return None
         child_count[0] += 1
