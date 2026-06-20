@@ -26,7 +26,7 @@ VOTE_REMINDER = (
 
 SPAWN_REMINDER = (
     "I'm sorry, I couldn't read the agent list. List each agent on its own line in "
-    "exactly this layout:\nAGENT_TYPE: TASK: explanation\nAGENT_TYPE must be one of "
+    "exactly this layout:\nAGENT_TYPE: TASK: Explanation\nAGENT_TYPE must be one of "
     "the agent types provided, TASK must be four words or fewer, and the expanded "
     "explanation follows the second colon. Output only those lines, nothing else.")
 
