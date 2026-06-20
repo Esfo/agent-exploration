@@ -46,12 +46,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if ok else 1
 
     # --oneprompt "task": skip the chat/confirm dialogue and spawn immediately.
+    # With no task given, fall through to the normal interactive chat.
     oneprompt = bool(argv) and argv[0] == "--oneprompt"
     if oneprompt:
         argv = argv[1:]
         if not " ".join(argv).strip():
-            print('usage: python -m swarm.main --oneprompt "your task"')
-            return 2
+            oneprompt = False  # nothing to run; just enter the chat
 
     rt = build_runtime()
     docker_preflight(rt.settings, rt.logbook)
