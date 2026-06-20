@@ -62,19 +62,8 @@ class DockerExecutor(Executor):
         return argv
 
     def _default_mounts(self, work_dir: Path) -> list[tuple[str, str, str]]:
-        base = work_dir.parent  # workspace/agents/<id>
-        mounts = [
-            (str(base / "input"), "/input", "ro"),
-            (str(base / "output"), "/output", "rw"),
-        ]
-        for key, dest in (("PROJECT_SNAPSHOT_DIR", "/project_snapshot"),
-                          ("SHARED_READONLY_DIR", "/shared_readonly"),
-                          ("WEB_CACHE_DIR", "/web_cache")):
-            try:
-                mounts.append((str(self.s.path(key)), dest, "ro"))
-            except Exception:  # noqa: BLE001 - missing optional dir
-                pass
-        return mounts
+        # The agent work dir is the only writable mount; nothing else is exposed.
+        return []
 
     # ----- execution -----
     def _truncate(self, text: str, kind: str) -> tuple[str, bool]:

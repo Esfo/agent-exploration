@@ -1,66 +1,77 @@
 # recursive_local_swarm
 
-A local, chat-driven, recursively-agentic LLM swarm that runs on Ollama. You talk
-to a **chat_agent** (the root agent); it decides (per editable instruction files) whether to
-answer directly or spawn a recursive swarm of agents that write code, run it in a
-sandbox, reconcile each other's work, and report back. Runtime is **pure stdlib**
-(no third-party deps).
+A local, chat-driven, recursively-agentic LLM swarm that runs on Ollama. You
+talk to a **primary agent** (the plan-setter); once you agree on a plan it spawns
+a **council** of agents that converge on a finished answer, hands the result to a
+**zipper agent** for final assembly, and returns it. Runtime is pure stdlib
+(no third-party deps); `pytest` is dev-only.
 
-## Docs
+## How it works
 
-- [`docs/PLAN.md`](docs/PLAN.md) — build status + design decisions
-- [`docs/CHECKS.md`](docs/CHECKS.md) — instruction files (how agents follow them)
-- [`docs/CONTEXT.md`](docs/CONTEXT.md) — conversation inheritance, purpose, summarizer
-- [`docs/COMMANDS.md`](docs/COMMANDS.md) — chat & slash command reference
+```
+you ──▶ primary agent ──(plan, then "spawn agents?")──▶ council
+                                                          │
+                            convergence loop: response ─▶ test ─▶ convene ─▶ vote
+                                                          │            │
+                                  (any member may EXPAND ─▶ SPAWN a sub-council)
+                                                          ▼
+                                          unanimous FINISHED ─▶ zipper ─▶ result
+```
 
-## What's implemented
+- **Primary agent** (`instructions/primary/agent`) — takes a goal, asks
+  questions, forms a plan, and asks the hard-coded *"Would you like me to spawn
+  agents to complete this task?"*. A yes (parsed in Python) triggers the
+  `>>SPAWNING<<` query and starts a council.
+- **Convergence** (`swarm/convergence.py`, prompts in
+  `instructions/convergence/`) — the hard-coded loop. Each member is framed with
+  `INITIATION + PURPOSE + TASK + ACTION`, contributes (tool-bearing members can
+  run code in the sandbox first), then everyone reads each other's work
+  (`CONVENE`) and votes. A non-unanimous round feeds back the reasoning and lets
+  each member WAIT or CONTINUE; a continuing member can work alone or SPAWN its
+  own sub-council. It loops until every member votes FINISHED.
+- **Zipper** (`swarm/zipper.py`, prompts in `instructions/zipper/`) — assembles
+  the members' final outputs into one document via `RETAIN`/`INSERT` commands,
+  confirms it, and returns it with a `FINISHED OUTPUT` header.
 
-Tested offline with a mock model (no Ollama needed):
+## The `>>ARROW<<` substitution engine
 
-- **Core loop** — settings/instruction/prompt loaders; model probe (auto context
-  size via `/api/show`); per-role model selection from settings; stdlib Ollama
-  client; SQLite state; tolerant `<<tool:...>>` parser; unlimited recursive
-  spawning.
-- **Execution** — path/command/cwd guards (Python force-jails every file write
-  into the agent's dir; the agent never picks the location); sandboxed
-  `python`/`shell` and persistent terminals behind one `Executor` interface with
-  **subprocess and Docker** backends (Docker auto-selected when the daemon is up).
-  Tool timeouts come from the agent's call, not settings.
-- **Web** — `curl`/`search_web_cache`/`read_cached_page` with an SSRF guard and a
-  freshness-based on-disk cache.
-- **Reconciliation** — `request_review`/`request_integration`/`request_testing`/
-  `request_fix` spawn the matching agent role.
-- **Code pipeline** — a spawned `coding_agent` work-unit runs as three models in sequence,
-  each fed the previous one's output: **coding_agent → testing_agent → philosopher**, each
-  following its own instruction file.
-- **Profiling/optimization** — `profile` (cProfile + baseline) and `optimize`
-  (sandboxed before/after validation).
-- **Scheduler** — stdlib resource monitor (RAM/CPU/VRAM/disk); GPU/CPU agent
-  concurrency **measured at startup** (`swarm/calibration.py`), not hand-set;
-  parallel agents over a thread-safe shared DB.
-- **Memory & branching** — `/remember`/`/forget`/`/memories`; `/branch`.
-- **Instruction files** ([CHECKS.md](docs/CHECKS.md)) — each `instructions/*.txt`
-  is an ordered list of instructions the agent follows; the model per role is set
-  in `settings/main.settings`. Verification is done by spawned checker agents,
-  not a runtime gate.
-- **Conversation inheritance** ([CONTEXT.md](docs/CONTEXT.md)) — each recursive
-  agent inherits the full branch conversation (incl. the parent's model output)
-  plus a unique purpose; an over-large branch is compressed by a **summarizer
-  agent** before children inherit it.
-- **Live display** — one terminal line per active agent that updates in place;
-  each agent's conversation is also written to
-  `workspace/agents/<id>/logs/conversation.md` in real time.
-- **Live control** — background-threaded swarms with `/pause` `/resume` `/cancel`
-  `/stop-after-current-wave`.
+`swarm/substitution.py` is the chat parser that ties instruction files, queries,
+and functions together. Every `>>NAME<<` marker is resolved (recursively)
+against a `Context`:
 
-Remaining work is real-model tuning of the instruction files.
+- **values** — `>>AGENT_TYPE<<`, `>>TASK<<`, `>>TASK_TRUNCATED<<`, `>>INHERITED_GOAL<<`
+- **files** — `>>PURPOSE<<`, `>>SPAWNING<<`, `>>EXPANSION<<`, `>>CONVERGENCE_VOTE<<`, `>>INITIATION<<`
+- **functions** (`swarm/functions.py`) — `>>LIST_AGENT_TYPES<<`, `>>LIST_TOOLS<<`,
+  `>>COUNCIL_RHETORIC<<`, `>>DOCUMENT_DISPLAY<<`, `>>FINAL_OUTPUT<<`, `>>RETURN_OUTPUT<<`
 
-## Reality check for low-tier local models
+## Voting & logging
 
-The biggest risk is tool-call reliability: a quantized 7B model will sometimes
-emit malformed `<<tool:>>` blocks. The parser is deliberately forgiving and the
-loop feeds corrections back. With recursion unbounded and every code unit
-spawning three agents, convergence depends on the instruction files — they are
-what make agents finish, defer, or stop spawning. The defense against a model
-"hallucinating" success is the spawned checker pipeline (coding_agent → testing_agent →
-philosopher), each following its own instruction file.
+Each council round prints a one-line `X-X (YAY-NAY)` tally with the status
+(FINISHED/INCOMPLETE) and the inherited goal, and appends a full record (agent
+types + individual votes) to `logs/votes.jsonl` for later search.
+
+## Tools & sandbox
+
+The only official tool is the **Docker sandbox** for running/testing code,
+granted to the coding/testing/optimization/math agents. The sandbox is hardened
+(`--network none`, `--cap-drop ALL`, `--security-opt no-new-privileges`,
+read-only root + tmpfs, memory/cpu/pids limits, non-root user in the image).
+Code blocks are recognised per language (`swarm/functions.py`,
+`swarm/sandbox/runner.py`).
+
+Build the hardened multi-language image once:
+
+```
+python -m swarm.main --initiate
+```
+
+## Run
+
+```
+python -m swarm.main                 # interactive chat with the primary agent
+python -m swarm.main "build me X"    # one-shot goal
+python -m pytest -q                  # offline tests (mock model, no Ollama)
+```
+
+Set your model in `settings/main.settings` (`DEFAULT_MODEL`, optional per-role
+`DEFAULT_<ROLE>_MODEL`).

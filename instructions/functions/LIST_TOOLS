@@ -1,2 +1,4 @@
-list all tools that a specific agent has access to, there will be a list somewhere
-for now this is just for coding agents that can run things in docker
+This function lists all the tools that a specific agent has access to.
+The tools are defined in TOOLS_BY_TYPE in swarm/functions.py, keyed by agent type.
+For now this is just the docker sandbox, granted to the coding, testing, optimization, and math agents that can run and test things in docker.
+It is implemented as list_tools in swarm/functions.py and is reached through the >>LIST_TOOLS<< arrow.

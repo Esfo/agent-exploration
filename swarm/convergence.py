@@ -1,355 +1,196 @@
-"""The convergence process: a group of spawned agents hold a round-based group
-conversation and vote until they unanimously agree the work is FINISHED.
+"""The convergence process.
 
-This is what happens every time a group of agents is spawned together. Each agent
-inherits the same conversation (the shared INPUT) but carries its own PURPOSE
-(its AGENT_TYPE angle). Per round:
+This is the hard-coded loop that drives a spawned council of agents toward a
+finished answer to their inherited goal. The prompt wording lives in the
+``instructions/convergence/`` files; this module concatenates and sequences them
+exactly as specified and runs the response → test → convene → vote → (reinitiate)
+loop until every member votes FINISHED.
 
-  1. Response phase — every agent produces a response (a plan or an execution).
-     All responses are aggregated and fed back into every agent.
-  2. Vote phase — every agent makes an articulate assessment and ends with exactly
-     "I vote FINISHED" or "I vote INCOMPLETE". Votes are collected by simple text
-     match (the vote must be the final word).
+Per member, the opening turn is one concatenated prompt::
 
-If every agent votes FINISHED, convergence is complete and the result is handed
-off to the zipper process. If any agent votes INCOMPLETE, the collective reasoning
-is consolidated, fed back to every agent, and the vote round repeats — up to
-CONVERGENCE_MAX_ROUNDS.
+    CONVERGENCE_INITIATION
+    PURPOSE                (the agent's instruction file)
+    TASK: <task>
+    CONVERGENCE_ACTION
 
-Prompt wording matches the master spec. Model calls are direct single-turn chats
-(like the summarizer) so the loop is deterministic and bounded; richer per-agent
-tool execution can be layered into the response phase later.
+with the system instruction delivered as the system message and the spawning
+conversation inherited ahead of it. The member then produces AGENT_INPUT;
+tool-bearing members may run a CONVERGENCE_TEST loop in the sandbox first. Once
+every member has contributed, all members read each other's work
+(CONVERGENCE_CONVENE) and vote (CONVERGENCE_VOTE). A non-unanimous round feeds
+back the collective reasoning (vote-failed), lets each member WAIT or CONTINUE
+(reinitiate), and — on CONTINUE — re-runs the action and offers EXPANSION
+(CONTINUE working alone, or SPAWN a sub-council). The loop then repeats.
 """
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
 
-# ----- spec prompt wording -----
+from . import functions
+from .runtime import Runtime
+from .sandbox import format_result, run_code
+from .substitution import Context, resolve
+from .voting import (INCOMPLETE, MALFORMED_REPLY, parse_vote, tally_votes)
 
-INITIATION = (
-    "Don't be pushed around, stand your ground and only agree when it's reasonable "
-    "to do so. Your job is to work together with the other agents to deliver a "
-    "finished project."
-)
-
-RESPONSE_PROMPT = (
-    "Please give the most appropriate response at this level of the project, "
-    "either plan or execute."
-)
-
-VOTE_PROMPT = (
-    "Has every aspect of this work met the standard intended by its creation?\n"
-    "From your perspective, considering the {agent_type} angle of this project, and "
-    "the {goal_type} of this project, would you vote to say this work is complete, "
-    "or does it need more work?\n"
-    "Please make an articulate assessment from your point of view as {agent_type}, "
-    "then at the end of your argument vote either FINISHED or INCOMPLETE at the very "
-    "end.\n"
-    'Say "I vote FINISHED" or "I vote INCOMPLETE", do not say both of these '
-    "together.\n"
-    "Do not write anything after your vote, it should be the final word."
-)
-
-INCOMPLETE_FEEDBACK = (
-    "The vote failed, here's the collective reasoning, please read this "
-    "consolidation and respond appropriately with a reassessment from your "
-    "perspective of {agent_type} regarding {goal_type}.\n"
-    "Please articulate the priorities of each assessment offered here, and please "
-    "articulate where your next assessment will stand with respect to the rest of "
-    "the work being done.\n"
-    "Please complete your work as {agent_type} for {goal_type} in attempting to "
-    "bring this project to a close.\n\n"
-    "COLLECTIVE REASONING:\n{reasoning}"
-)
-
-FINISHED = "finished"
-INCOMPLETE = "incomplete"
-
-_VOTE_RE = re.compile(r"i\s+vote\s+(finished|incomplete)", re.IGNORECASE)
-
-
-def parse_vote(text: str) -> str | None:
-    """Return 'finished' / 'incomplete' from an agent's vote message, or None.
-
-    The vote is meant to be the final word, so if a message somehow contains both
-    (against instruction), the LAST occurrence wins.
-    """
-    matches = _VOTE_RE.findall(text or "")
-    if not matches:
-        return None
-    return matches[-1].lower()
+_RETRY = 2
+_TEST_MAX_STEPS = 4
 
 
 @dataclass
-class AgentVote:
-    agent_id: str
-    role: str
-    vote: str | None          # FINISHED / INCOMPLETE / None (unparseable)
-    reasoning: str            # the full vote message
-
-
-@dataclass
-class RoundResult:
-    index: int
-    responses: list[dict] = field(default_factory=list)   # {agent_id, role, response}
-    votes: list[AgentVote] = field(default_factory=list)
-    unanimous_finished: bool = False
+class Member:
+    id: str
+    agent_type: str
+    task: str
+    task_truncated: str
+    messages: list[dict] = field(default_factory=list)
+    final_output: str = ""
+    vote: str | None = None
+    waiting: bool = False
 
 
 @dataclass
 class ConvergenceResult:
-    finished: bool            # always True — convergence never ends INCOMPLETE
-    rounds: list[RoundResult]
-    goal_type: str
-    consolidation: str        # last round's aggregated responses (handoff payload)
-    force_resolved: bool = False   # hit the safety bound without genuine unanimity
+    council_id: str
+    inherited_goal: str
+    status: str                       # FINISHED (always, possibly force-resolved)
+    rounds: int
+    members: list[Member]
+    force_resolved: bool = False
 
-    @property
-    def round_count(self) -> int:
-        return len(self.rounds)
-
-    def as_dict(self) -> dict:
-        return {
-            "finished": self.finished,
-            "force_resolved": self.force_resolved,
-            "rounds": self.round_count,
-            "goal_type": self.goal_type,
-            "consolidation": self.consolidation,
-            "votes": [
-                {"round": r.index,
-                 "votes": [{"agent_id": v.agent_id, "role": v.role, "vote": v.vote}
-                           for v in r.votes]}
-                for r in self.rounds
-            ],
-        }
+    def final_outputs(self) -> list[tuple[str, str]]:
+        """Each member's last contribution, labelled by agent type + id."""
+        return [(f"{m.agent_type} ({m.id})", m.final_output) for m in self.members]
 
 
-def _purpose(agent: dict, goal_type: str) -> str:
-    role = agent.get("role", "agent")
-    task = (agent.get("task") or "").strip()
-    lines = [
-        f"You are the {role} agent. Your AGENT_TYPE is {role}; the GOAL_TYPE of "
-        f"this project is {goal_type}.",
-        INITIATION,
+def _ctx(rt: Runtime, m: Member, goal: str, **extra) -> Context:
+    c = Context(instr=rt.instr, agent_type=m.agent_type, task=m.task,
+                task_truncated=m.task_truncated, inherited_goal=goal,
+                tools=functions.tools_for(m.agent_type))
+    for k, v in extra.items():
+        setattr(c, k, v)
+    return c
+
+
+def _ask(rt: Runtime, m: Member, prompt: str) -> str:
+    m.messages.append({"role": "user", "content": prompt})
+    reply = rt.model.chat(m.agent_type, m.messages)
+    m.messages.append({"role": "assistant", "content": reply})
+    return reply
+
+
+def _last_word_choice(text: str, options: tuple[str, ...]) -> str | None:
+    """Return whichever option appears last in the text (case-insensitive)."""
+    upper = (text or "").upper()
+    best, best_pos = None, -1
+    for opt in options:
+        pos = upper.rfind(opt)
+        if pos > best_pos:
+            best, best_pos = opt, pos
+    return best
+
+
+# --------------------------------------------------------------------------
+# Phases
+# --------------------------------------------------------------------------
+def _initiation(rt: Runtime, m: Member, goal: str, inherited: list[dict]) -> None:
+    ctx = _ctx(rt, m, goal)
+    m.messages = list(inherited or [])
+    m.messages.append({"role": "system", "content": rt.instr.system()})
+    sections = [
+        resolve(rt.instr.read("convergence", "initiation"), ctx),
+        resolve(">>PURPOSE<<", ctx),
+        f"TASK: {m.task}",
+        resolve(rt.instr.read("convergence", "action"), ctx),
     ]
-    if task:
-        lines.append(f"Your specific angle / task:\n{task}")
-    return "\n\n".join(lines)
+    reply = _ask(rt, m, "\n\n".join(s for s in sections if s.strip()))
+    m.final_output = functions.extract_finished_output(reply)
+    if functions.has_tools(m.agent_type):
+        _test_loop(rt, m, goal, reply)
 
 
-def _chat(ctx, agent: dict, messages: list[dict], *, temperature: float | None = None) -> str:
-    """One direct chat turn for an agent (mirrors the summarizer's call path)."""
-    opts = {
-        "num_ctx": int(agent.get("num_ctx") or 8192),
-        "num_predict": int(agent.get("num_predict") or 1024),
-        "temperature": float(temperature if temperature is not None
-                             else (agent.get("temperature") or 0.4)),
-    }
-    endpoint = agent.get("ollama_endpoint")
-    model = agent.get("selected_model")
-    if ctx.scheduler is not None:
-        with ctx.scheduler.inference_slot(agent.get("execution_class", "cpu"), agent["id"]):
-            resp = ctx.client.chat(endpoint=endpoint, model=model, messages=messages, options=opts)
-    else:
-        resp = ctx.client.chat(endpoint=endpoint, model=model, messages=messages, options=opts)
-    try:
-        ctx.db.save_model_call(agent["id"], resp.telemetry)
-    except Exception:  # noqa: BLE001 - telemetry logging must never break the loop
-        pass
-    return (resp.content or "").strip()
+def _test_loop(rt: Runtime, m: Member, goal: str, last_reply: str) -> None:
+    for _ in range(_TEST_MAX_STEPS):
+        ctx = _ctx(rt, m, goal)
+        ans = _ask(rt, m, resolve(rt.instr.read("convergence", "test"), ctx))
+        if _last_word_choice(ans, ("EXIT", "YES")) != "YES":
+            return
+        code_reply = _ask(rt, m, resolve(rt.instr.read("convergence", "test-confirm"), ctx))
+        blocks = functions.extract_code_blocks(code_reply)
+        if not blocks:
+            output = "(no runnable code block was found)"
+        else:
+            lang, code = blocks[0]
+            output = format_result(run_code(rt.executor, lang, code, rt.agent_dir(m.id)))
+        ctx.shell_output = output
+        _ask(rt, m, "Here is the output of running your code:\n>>RETURN_OUTPUT<<"
+             .replace(">>RETURN_OUTPUT<<", functions.return_output(ctx)))
+        if _last_word_choice(code_reply, ("EXIT",)) == "EXIT":
+            return
 
 
-def _aggregate_responses(responses: list[dict]) -> str:
-    return "\n\n".join(
-        f"[{r['role']} ({r['agent_id']})]\n{r['response']}".strip()
-        for r in responses
-    )
+def _convene_and_vote(rt: Runtime, members: list[Member], goal: str) -> list[dict]:
+    records = []
+    for m in members:
+        rhetoric = [(o.agent_type, o.final_output) for o in members if o is not m]
+        ctx = _ctx(rt, m, goal, rhetoric=rhetoric)
+        reply = _ask(rt, m, resolve(rt.instr.read("convergence", "convene"), ctx))
+        vote = parse_vote(reply)
+        retries = 0
+        while vote is None and retries < _RETRY:
+            reply = _ask(rt, m, MALFORMED_REPLY + "\n" + resolve(">>CONVERGENCE_VOTE<<", ctx))
+            vote = parse_vote(reply)
+            retries += 1
+        m.vote = vote if vote is not None else INCOMPLETE
+        records.append({"agent_id": m.id, "agent_type": m.agent_type, "vote": m.vote})
+    return records
 
 
-def _agent_program(ctx, agent):
-    """Parse the agent's primary instruction file as an executable VERIFY program,
-    or return None if it has none / isn't a program."""
-    from .instruction_program import parse_program
-    from .model_selector import ROLE_PRIMARY_FILE
-    role = agent.get("role", "")
-    entry = ROLE_PRIMARY_FILE.get(role)
-    if not entry:
-        return None
-    rel = ctx.settings.get(entry[0])
-    if not rel:
-        return None
-    path = ctx.settings.root / rel
-    if not path.exists():
-        return None
-    prog = parse_program(path.read_text(encoding="utf-8"))
-    return prog if prog.is_executable else None
+def _reinitiate(rt: Runtime, members: list[Member], goal: str, spawn_subcouncil) -> None:
+    for m in members:
+        ctx = _ctx(rt, m, goal)
+        _ask(rt, m, resolve(rt.instr.read("convergence", "vote-failed"), ctx))
+        choice_reply = _ask(rt, m, resolve(rt.instr.read("convergence", "reinitiate"), ctx))
+        choice = _last_word_choice(choice_reply, ("WAIT", "CONTINUE"))
+        if choice == "WAIT":
+            m.waiting = True
+            continue
+        m.waiting = False
+        action_reply = _ask(rt, m, resolve(rt.instr.read("convergence", "action"), ctx))
+        m.final_output = functions.extract_finished_output(action_reply)
+        exp_reply = _ask(rt, m, resolve(rt.instr.read("queries", "expansion"), ctx))
+        if _last_word_choice(exp_reply, ("CONTINUE", "SPAWN")) == "SPAWN" and spawn_subcouncil:
+            m.final_output = spawn_subcouncil(m) or m.final_output
 
 
-def _program_vote(ctx, agent, shared, purpose):
-    """Decide an agent's vote by executing its instruction program. The agent is
-    framed by its program (PURPOSE + guidance) with INPUT: hard-substituted by the
-    shared convergence context; each VERIFY question is asked of the model and
-    reaching FINISH casts a FINISHED vote. Returns (vote, reasoning) or None if no
-    program applies."""
-    from .instruction_program import messages_to_text, run_program
-    prog = _agent_program(ctx, agent)
-    if prog is None:
-        return None
-
-    # Frame the agent with its program and the substituted INPUT (spec behavior).
-    sys_text = prog.system_text() + "\n\n" + purpose
-    input_text = prog.render_input(messages_to_text(shared))
-    base = [{"role": "system", "content": sys_text}]
-    if input_text:
-        base.append({"role": "user", "content": "INPUT:\n" + input_text})
-
-    asked: list[str] = []
-
-    def ask(question: str) -> str:
-        asked.append(question)
-        msgs = base + [
-            {"role": "user", "content": question
-             + '\nAnswer with a short YES or NO and a brief reason.'},
-        ]
-        return _chat(ctx, agent, msgs)
-
-    out = run_program(prog, ask, max_loops=ctx.settings.get_int("VERIFY_MAX_LOOPS", 6) or 6)
-    vote = FINISHED if out.finished else INCOMPLETE
-    reasoning = (f"[program vote via {len(asked)} verify step(s)] "
-                 + " | ".join(f"{s.question}->{s.answer}" for s in out.log if s.kind == "verify"))
-    return vote, reasoning
-
-
-def _aggregate_reasoning(votes: list[AgentVote]) -> str:
-    out = []
-    for v in votes:
-        tag = (v.vote or "no-vote").upper()
-        out.append(f"[{v.role} ({v.agent_id}) — voted {tag}]\n{v.reasoning}".strip())
-    return "\n\n".join(out)
-
-
-def run_convergence(ctx, agents: list[dict], inherited: list[dict] | None,
-                    goal_type: str, *, max_rounds: int | None = None,
-                    escalate=None) -> ConvergenceResult:
-    """Drive a group of agents through response→vote rounds until unanimous
-    FINISHED. Convergence NEVER ends INCOMPLETE: a non-unanimous round triggers
-    ``escalate(round, agents, dissenters)`` — which adds peer agents and/or has a
-    dissenting agent take its job over as its own sub-swarm — and the loop
-    continues. `max_rounds` is only a safety bound that force-resolves the loop so
-    it can never run unbounded; it still returns finished=True (force_resolved).
-
-    `agents` are already-created agent records; their role is the AGENT_TYPE.
-    `inherited` is the shared branch conversation (INPUT).
-    """
-    agents = list(agents)
-    if not agents:
-        return ConvergenceResult(finished=True, rounds=[], goal_type=goal_type,
-                                 consolidation="")
+def run_convergence(rt: Runtime, members: list[Member], inherited: list[dict] | None,
+                    inherited_goal: str, council_id: str, *,
+                    max_rounds: int | None = None, spawn_subcouncil=None) -> ConvergenceResult:
+    """Drive ``members`` through the convergence loop. Always returns FINISHED;
+    a non-unanimous round repeats until unanimity or the safety bound."""
+    if not members:
+        return ConvergenceResult(council_id, inherited_goal, "FINISHED", 0, [])
 
     safety = max_rounds if max_rounds is not None else (
-        ctx.settings.get_int("CONVERGENCE_MAX_ROUNDS", 4) or 4)
+        rt.settings.get_int("CONVERGENCE_MAX_ROUNDS", 6) or 6)
 
-    shared: list[dict] = list(inherited or [])
-    rounds: list[RoundResult] = []
-    last_consolidation = ""
+    for m in members:
+        rt.logbook.agent_started(m.agent_type, m.task_truncated)
+        _initiation(rt, m, inherited_goal, inherited)
 
-    i = 0
+    rnd = 0
     while True:
-        i += 1
-        rnd = RoundResult(index=i)
+        rnd += 1
+        records = _convene_and_vote(rt, members, inherited_goal)
+        tally = tally_votes([r["vote"] for r in records])
+        rt.logbook.log_vote_round(council_id, inherited_goal, rnd, records, tally)
 
-        # --- response phase: each agent plans or executes ---
-        for agent in agents:
-            purpose = _purpose(agent, goal_type)
-            msgs = shared + [
-                {"role": "system", "content": purpose},
-                {"role": "user", "content": RESPONSE_PROMPT},
-            ]
-            response = _chat(ctx, agent, msgs)
-            rnd.responses.append({"agent_id": agent["id"], "role": agent.get("role", "agent"),
-                                  "response": response})
+        if tally.unanimous_finished:
+            for m in members:
+                rt.logbook.agent_finished(m.agent_type, m.task_truncated)
+            return ConvergenceResult(council_id, inherited_goal, "FINISHED", rnd, members)
 
-        consolidation = _aggregate_responses(rnd.responses)
-        last_consolidation = consolidation
-        # Feed every agent the aggregation before they vote.
-        shared = shared + [{"role": "user",
-                            "content": f"[CONVERGENCE round {i} — aggregated responses]\n"
-                                       + consolidation}]
+        if rnd >= safety:
+            return ConvergenceResult(council_id, inherited_goal, "FINISHED", rnd,
+                                     members, force_resolved=True)
 
-        # --- vote phase ---
-        use_program = ctx.settings.get_bool("INSTRUCTION_PROGRAM_VOTING", True)
-        for agent in agents:
-            purpose = _purpose(agent, goal_type)
-            pv = _program_vote(ctx, agent, shared, purpose) if use_program else None
-            if pv is not None:
-                vote, reasoning = pv
-            else:
-                vote_q = VOTE_PROMPT.format(agent_type=agent.get("role", "agent"),
-                                            goal_type=goal_type)
-                msgs = shared + [
-                    {"role": "system", "content": purpose},
-                    {"role": "user", "content": vote_q},
-                ]
-                reasoning = _chat(ctx, agent, msgs)
-                vote = parse_vote(reasoning)
-            rnd.votes.append(AgentVote(agent_id=agent["id"], role=agent.get("role", "agent"),
-                                       vote=vote, reasoning=reasoning))
-
-        _log_votes(ctx, agents, rnd)
-
-        rnd.unanimous_finished = bool(rnd.votes) and all(v.vote == FINISHED for v in rnd.votes)
-        rounds.append(rnd)
-
-        if rnd.unanimous_finished:
-            return ConvergenceResult(finished=True, rounds=rounds, goal_type=goal_type,
-                                     consolidation=last_consolidation)
-
-        # Not unanimous → consolidate reasoning and feed it back to everyone.
-        reasoning_blob = _aggregate_reasoning(rnd.votes)
-        feedback = INCOMPLETE_FEEDBACK.format(
-            agent_type="each agent", goal_type=goal_type, reasoning=reasoning_blob)
-        shared = shared + [{"role": "user", "content": feedback}]
-
-        # Escalate: convergence never terminates INCOMPLETE. The escalation adds
-        # peer agents and/or sub-swarms a dissenting agent, then the loop repeats.
-        dissenters = [a for a in agents
-                      if any(v.agent_id == a["id"] and v.vote != FINISHED for v in rnd.votes)]
-        if escalate is not None:
-            try:
-                new_peers = escalate(rnd, agents, dissenters) or []
-            except Exception:  # noqa: BLE001 - escalation must not crash convergence
-                new_peers = []
-            have = {a["id"] for a in agents}
-            for p in new_peers:
-                if p and p.get("id") not in have:
-                    agents.append(p)
-                    have.add(p["id"])
-
-        # Safety valve: never loop unbounded. Force-resolve to FINISHED (recorded).
-        if i >= safety:
-            return ConvergenceResult(finished=True, rounds=rounds, goal_type=goal_type,
-                                     consolidation=last_consolidation, force_resolved=True)
-
-
-def _log_votes(ctx, agents, rnd: RoundResult) -> None:
-    """Record each round's votes to logs + emit a one-line chat summary."""
-    events = getattr(ctx, "events", None)
-    swarm_id = (agents[0].get("swarm_id") if agents else None)
-    tally = {}
-    for v in rnd.votes:
-        tally[v.vote or "no-vote"] = tally.get(v.vote or "no-vote", 0) + 1
-    if events is not None:
-        try:
-            events._jsonl("convergence.jsonl", {
-                "swarm_id": swarm_id, "round": rnd.index, "tally": tally,
-                "votes": [{"agent_id": v.agent_id, "role": v.role, "vote": v.vote}
-                          for v in rnd.votes],
-            })
-        except Exception:  # noqa: BLE001
-            pass
-        try:
-            summary = ", ".join(f"{k.upper()}:{n}" for k, n in sorted(tally.items()))
-            events.chat(f"convergence round {rnd.index} votes — {summary}")
-        except Exception:  # noqa: BLE001
-            pass
+        _reinitiate(rt, members, inherited_goal, spawn_subcouncil)

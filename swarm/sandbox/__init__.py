@@ -12,6 +12,8 @@ import shutil
 
 from .docker_backend import DockerExecutor
 from .executor import ExecResult, Executor
+from .image import build_image
+from .runner import format_result, run_code
 from .subprocess_backend import SubprocessExecutor
 
 
@@ -80,4 +82,5 @@ def docker_preflight(settings, events=None) -> str:
 
 
 __all__ = ["ExecResult", "Executor", "SubprocessExecutor", "DockerExecutor",
-           "select_executor", "docker_available", "image_present", "docker_preflight"]
+           "select_executor", "docker_available", "image_present", "docker_preflight",
+           "build_image", "run_code", "format_result"]

@@ -15,7 +15,7 @@ REQUIRED_KEYS = (
     "OLLAMA_GPU_ENDPOINT",
     "OLLAMA_CPU_ENDPOINT",
     "DEFAULT_MODEL",
-    "DATABASE_PATH",
+    "INSTRUCTIONS_DIR",
 )
 
 _TRUE = {"true", "1", "yes", "on"}

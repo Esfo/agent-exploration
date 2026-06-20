@@ -3,340 +3,71 @@
 # ==================================================
 
 RUNTIME_NAME=recursive_local_swarm
-RUNTIME_VERSION=0.1
+RUNTIME_VERSION=0.2
 
-# Ollama endpoints
+# Ollama endpoints (GPU/CPU routing per role below).
 OLLAMA_GPU_ENDPOINT=http://localhost:11434
 OLLAMA_CPU_ENDPOINT=http://localhost:11434
 
-# Default model. Every role falls back to this unless overridden below or in an
-# instruction file's MODEL: line, so you only need one model pulled to start.
+# Default model. Every role falls back to this unless its DEFAULT_<ROLE>_MODEL
+# is set to a real model name, so you only need one model pulled to start.
 DEFAULT_MODEL=qwen2.5-coder:7b
-DEFAULT_PROGENITOR_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_PLANNER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_SPAWNER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
+DEFAULT_PRIMARY_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
 DEFAULT_CODE_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_TERMINAL_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_PYTHON_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_SHELL_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_RESEARCH_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_FILE_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_REVIEW_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_INTEGRATION_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_TESTER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_FIX_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_PROFILING_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
+DEFAULT_MATH_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
 DEFAULT_OPTIMIZATION_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_FINISH_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-
-# Model override rules
-ALLOW_INSTRUCTION_FILE_MODEL_OVERRIDE=true
-ALLOW_PHASE_MODEL_SWITCHING=true
-IF_INSTRUCTION_FILE_MODEL_MISSING=use_main_settings_default
-IF_INSTRUCTION_FILE_MODEL_INVALID=fail_agent_start
-IF_MODEL_NOT_INSTALLED=fail_agent_start
-
-# Context sizes.
-# "auto" => probe the model via /api/show and use its native context_length.
-# A number => hard cap (the smaller of this and the model's native limit is used).
-PROGENITOR_NUM_CTX=auto
-PLANNER_NUM_CTX=auto
-SPAWNER_NUM_CTX=auto
-CODE_NUM_CTX=auto
-TERMINAL_NUM_CTX=auto
-PYTHON_NUM_CTX=auto
-SHELL_NUM_CTX=auto
-RESEARCH_NUM_CTX=auto
-FILE_NUM_CTX=auto
-REVIEW_NUM_CTX=auto
-INTEGRATION_NUM_CTX=auto
-TESTER_NUM_CTX=auto
-FIX_NUM_CTX=auto
-PROFILING_NUM_CTX=auto
-OPTIMIZATION_NUM_CTX=auto
-FINISH_NUM_CTX=auto
-
-# Optional hard ceiling applied to any auto-detected context (0 = no ceiling).
-# Useful on a laptop GPU where a model's native 128k context will not fit in VRAM.
-MAX_AUTO_NUM_CTX=16384
-
-# Output reservations
-DEFAULT_NUM_PREDICT=2048
-PROGENITOR_NUM_PREDICT=4096
-PLANNER_NUM_PREDICT=4096
-SPAWNER_NUM_PREDICT=2048
-CODE_NUM_PREDICT=4096
-TERMINAL_NUM_PREDICT=2048
-PYTHON_NUM_PREDICT=2048
-SHELL_NUM_PREDICT=2048
-RESEARCH_NUM_PREDICT=2048
-REVIEW_NUM_PREDICT=2048
-INTEGRATION_NUM_PREDICT=4096
-TESTER_NUM_PREDICT=2048
-FIX_NUM_PREDICT=4096
-PROFILING_NUM_PREDICT=2048
-OPTIMIZATION_NUM_PREDICT=4096
-FINISH_NUM_PREDICT=2048
-
-# Token budgeting
-TOKEN_SAFETY_MARGIN=256
-SUMMARIZE_CONTEXT_WHEN_OVER_BUDGET=true
-MAX_CONTEXT_SUMMARY_TOKENS=2048
-
-# Spawn-inherit overflow: if a branch conversation is too large for a child to
-# inherit, spawn a summarizer agent to compress the first SUMMARIZE_FRACTION of
-# it; the summary is prepended to the rest and handed to the children.
-SUMMARIZE_ON_SPAWN_OVERFLOW=true
-SUMMARIZE_FRACTION=0.6
-# 0 = derive the trigger from the parent's context budget; >0 = explicit token cap.
-SUMMARIZE_SPAWN_MAX_TOKENS=0
-DEFAULT_SUMMARIZER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-SUMMARIZER_NUM_CTX=auto
-SUMMARIZER_NUM_PREDICT=1024
-SUMMARIZER_TEMPERATURE=0.2
-INSTRUCTION_SUMMARIZING=instructions/summarizing
-
-# Code work-unit pipeline: every spawned "coding_agent" is run as a sequence of
-# three models, one at a time, each fed the previous one's output:
-#   1) coding_agent  - writes the code, self-questions via its checks, runs it
-#   2) testing_agent - verifies the code is up to spec / fits the bigger picture
-#   3) philosopher   - verifies it meets the human-level intent, reports to parent
-CODE_PIPELINE_ENABLED=true
-
-# Convergence process: a spawned group of agents holds response->vote rounds and
-# loops until every agent votes "I vote FINISHED" (or this round cap is hit).
-CONVERGENCE_ENABLED=true
-CONVERGENCE_MAX_ROUNDS=4
-# Drive each agent's convergence vote by executing its instruction file as a
-# VERIFY/FINISH program (reaching FINISH = "I vote FINISHED"). Falls back to a
-# free-form vote for roles whose instruction file isn't an executable program.
-INSTRUCTION_PROGRAM_VOTING=true
-VERIFY_MAX_LOOPS=6
-# Convergence never ends INCOMPLETE: dissent escalates by adding peer agents or by
-# a dissenting agent taking its job over as its own sub-swarm. This bounds how deep
-# that form-(b) sub-swarming may recurse.
-MAX_SUBSWARM_DEPTH=4
-
-# Zipper process: after a group converges FINISHED, the zipper moves the group's
-# deliverables into PROJECT_DIR and writes/updates the doc manifest. It is a
-# hard-coded YES/NO gate; Python performs the moves.
-ZIPPER_ENABLED=true
-DEFAULT_ZIPPER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-ZIPPER_NUM_CTX=auto
-ZIPPER_NUM_PREDICT=512
-ZIPPER_TEMPERATURE=0.0
-INSTRUCTION_ZIPPER=instructions/zipper_agent
-DEFAULT_CODE_CHECKER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
 DEFAULT_PHILOSOPHER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-CODE_CHECKER_NUM_CTX=auto
-CODE_CHECKER_NUM_PREDICT=2048
-CODE_CHECKER_TEMPERATURE=0.1
-PHILOSOPHER_NUM_CTX=auto
-PHILOSOPHER_NUM_PREDICT=2048
-PHILOSOPHER_TEMPERATURE=0.3
-ROUTE_CODE_CHECKER_TO_GPU=true
-ROUTE_PHILOSOPHER_TO_CPU=true
-INSTRUCTION_CODE_CHECKING=instructions/testing_agent
-INSTRUCTION_PHILOSOPHIZING=instructions/philosophizing
+DEFAULT_TESTER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
+DEFAULT_ZIPPER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
 
-# Temperatures
-PROGENITOR_TEMPERATURE=0.4
-PLANNER_TEMPERATURE=0.3
-SPAWNER_TEMPERATURE=0.25
+# Context / output / temperature (per role; fall back to the DEFAULT_* below).
+DEFAULT_NUM_CTX=8192
+DEFAULT_NUM_PREDICT=2048
+DEFAULT_TEMPERATURE=0.3
+
+PRIMARY_NUM_PREDICT=4096
+PRIMARY_TEMPERATURE=0.4
+CODE_NUM_PREDICT=4096
 CODE_TEMPERATURE=0.15
-TERMINAL_TEMPERATURE=0.1
-PYTHON_TEMPERATURE=0.1
-SHELL_TEMPERATURE=0.1
-RESEARCH_TEMPERATURE=0.2
-FILE_TEMPERATURE=0.0
-REVIEW_TEMPERATURE=0.1
-INTEGRATION_TEMPERATURE=0.1
-TESTER_TEMPERATURE=0.1
-FIX_TEMPERATURE=0.15
-PROFILING_TEMPERATURE=0.1
+MATH_TEMPERATURE=0.2
+OPTIMIZATION_NUM_PREDICT=4096
 OPTIMIZATION_TEMPERATURE=0.15
-FINISH_TEMPERATURE=0.0
+PHILOSOPHER_TEMPERATURE=0.3
+TESTER_TEMPERATURE=0.1
+ZIPPER_NUM_PREDICT=1024
+ZIPPER_TEMPERATURE=0.0
 
-# Recursive spawning behavior
-RECURSIVE_SPAWNING_ENABLED=true
-AGENTS_MAY_SPAWN_CHILDREN=true
-CHILD_AGENTS_MAY_SPAWN_CHILDREN=true
-USER_MANUAL_SUBTASK_ASSIGNMENT_REQUIRED=false
-
-# Recursion controls.
-# Agents are meant to go DEEPER, not retreat. No ceilings by default.
-MAX_RECURSION_DEPTH=unlimited
-MAX_TOTAL_AGENTS_PER_SWARM=unlimited
-MAX_CHILDREN_PER_AGENT=unlimited
-MAX_SPAWN_CALLS_PER_AGENT=unlimited
-
-# Resource behavior.
-# GPU/CPU agent concurrency is MEASURED at startup by a calibration test-run
-# (VRAM-per-model and core count), not set by hand. Leave these = auto; the
-# calibration overrides them in-memory. A number forces a fixed value.
-MAX_ACTIVE_AGENTS_TOTAL=auto
-MAX_ACTIVE_GPU_AGENTS=auto
-MAX_ACTIVE_CPU_AGENTS=auto
-MAX_ACTIVE_SANDBOXES=auto
-MAX_ACTIVE_TERMINALS=auto
-MAX_ACTIVE_WEB_FETCHES=2
-MAX_RAM_PERCENT=80
-MAX_CPU_PERCENT=85
-MAX_VRAM_PERCENT=85
-MAX_DISK_USAGE_PERCENT=90
-RESOURCE_SAMPLE_INTERVAL_SECONDS=2
-RESOURCE_PRESSURE_ACTION=queue_new_agents
-COOLDOWN_SECONDS_AFTER_OOM=60
-# Fraction of detected VRAM/cores the calibration may use for agent concurrency.
-CALIBRATION_VRAM_FRACTION=0.9
-CALIBRATION_CPU_FRACTION=1.0
-
-# Routing
-ROUTE_PROGENITOR_TO_GPU=true
-ROUTE_PLANNER_TO_GPU=true
-ROUTE_SPAWNER_TO_GPU=true
+# Routing: which roles run on the GPU endpoint vs the CPU endpoint.
+ROUTE_PRIMARY_TO_GPU=true
 ROUTE_CODE_TO_GPU=true
-ROUTE_TERMINAL_TO_CPU=true
-ROUTE_RESEARCH_TO_CPU=true
-ROUTE_FILE_TASKS_TO_CPU=true
-ROUTE_REVIEW_TO_CPU_IF_GPU_BUSY=true
-ROUTE_INTEGRATION_TO_GPU=true
-ROUTE_TESTER_TO_CPU=true
-ROUTE_FIX_TO_GPU=true
-ROUTE_PROFILING_TO_CPU=true
+ROUTE_MATH_TO_GPU=false
 ROUTE_OPTIMIZATION_TO_GPU=true
-ROUTE_FINISH_TO_CPU=true
+ROUTE_PHILOSOPHER_TO_GPU=false
+ROUTE_TESTER_TO_GPU=false
+ROUTE_ZIPPER_TO_GPU=false
+
+# Convergence / recursion bounds.
+# A council loops response->vote until every member votes FINISHED; this is the
+# safety bound that force-resolves the loop so it can never run unbounded.
+CONVERGENCE_MAX_ROUNDS=6
+# How deep a member's EXPANSION -> SPAWN sub-councils may recurse.
+MAX_SUBSWARM_DEPTH=4
 
 # Directories
 ROOT_DIR=.
-SETTINGS_DIR=settings
 INSTRUCTIONS_DIR=instructions
-PROMPTS_DIR=prompts
-RUNTIME_DIR=runtime
 WORKSPACE_DIR=workspace
 AGENT_WORKSPACE_DIR=workspace/agents
-PROJECT_DIR=workspace/project
-PROJECT_SNAPSHOT_DIR=workspace/project_snapshot
-SHARED_READONLY_DIR=workspace/shared_readonly
-WEB_CACHE_DIR=cache/web
+RUNTIME_DIR=runtime
 LOG_DIR=logs
-DATABASE_PATH=runtime/state.sqlite
 
-# Sandboxing
-SANDBOX_ALL_TERMINAL_EXECUTION=true
-SANDBOX_ALL_PYTHON_EXECUTION=true
-SANDBOX_ALL_SHELL_EXECUTION=true
-SANDBOX_ALL_TEST_EXECUTION=true
-SANDBOX_ALL_PROFILING_EXECUTION=true
-SANDBOX_ALL_OPTIMIZATION_EXECUTION=true
+# Sandbox (the only official tool: run/test code for the coding/testing/
+# optimization/math agents). Build the hardened image with `--initiate`.
 SANDBOX_BACKEND=docker
-SANDBOX_IMAGE=python:3.12-slim
+SANDBOX_IMAGE=recursive-local-swarm-sandbox:latest
 SANDBOX_NETWORK_DEFAULT=none
-SANDBOX_ALLOW_NETWORK_FOR_WEB_FETCH=false
-SANDBOX_ALLOW_NETWORK_FOR_RESEARCH_TERMINALS=false
 SANDBOX_MEMORY_MB=2048
 SANDBOX_CPUS=2
 SANDBOX_PIDS_LIMIT=256
 SANDBOX_READ_ONLY_ROOT=true
-SANDBOX_DROP_CAPABILITIES=true
-SANDBOX_NO_NEW_PRIVILEGES=true
-
-# Directory confinement inside sandbox
-TERMINALS_START_IN_AGENT_DIRECTORY=true
-TERMINALS_MUST_REMAIN_IN_AGENT_DIRECTORY=true
-ENFORCE_CWD_BEFORE_EVERY_COMMAND=true
-ENFORCE_CWD_AFTER_EVERY_COMMAND=true
-RESET_CWD_AFTER_EVERY_COMMAND=true
-ENFORCE_PATHS_IN_PYTHON_RUNTIME=true
-ALLOW_AGENT_WRITE_OUTSIDE_ASSIGNED_DIR=false
-ALLOW_WORKER_WRITE_PROJECT_DIR=false
-ALLOW_INTEGRATOR_WRITE_PROJECT_DIR=true
-SOFT_DELETE=true
 MAX_FILE_WRITE_MB=5
-MAX_AGENT_DIR_MB=200
-
-# Python and shell execution are always available. Timeouts come from the agent's
-# tool call (guided by its instruction files), NOT from hard-coded settings.
-# Network is governed by the sandbox (SANDBOX_NETWORK_DEFAULT), not per-tool flags.
-
-# Command questioning
-COMMAND_QUESTIONING_ENABLED=true
-COMMAND_QUESTION_FILE=instructions/command_questioning
-BLOCK_COMMAND_IF_DESTRUCTIVE_SCORE_HIGH=true
-REQUIRE_COMMAND_REASON=true
-REQUIRE_COMMAND_EXPECTED_RESULT=true
-REQUIRE_COMMAND_DIRECTORY=true
-REQUIRE_COMMAND_DESTRUCTIVE_RISK_ANSWER=true
-
-# Web
-WEB_ACCESS_ENABLED=true
-WEB_DEFAULT_TIMEOUT_SECONDS=20
-WEB_MAX_DOWNLOAD_MB=10
-WEB_DEFAULT_MAX_AGE_HOURS=168
-WEB_BLOCK_PRIVATE_IPS=true
-WEB_REUSE_CACHE_BY_DEFAULT=true
-WEB_ALLOW_HTTP=false
-
-# Progress reporting
-PROGRESS_REPORTING_ENABLED=true
-CHAT_SHOW_AGENT_START=true
-CHAT_SHOW_AGENT_PROGRESS=true
-CHAT_SHOW_AGENT_FINISH=true
-CHAT_SHOW_SPAWN_EVENTS=true
-CHAT_SHOW_COMPLETION_PERCENT=true
-CHAT_SHOW_AGENT_NOTES=true
-CHAT_SHOW_FILE_SUMMARIES=true
-CHAT_SHOW_COMMAND_SUMMARIES=true
-CHAT_SHOW_MODEL_USED=true
-CHAT_SHOW_SANDBOX_USED=true
-CHAT_SHOW_PROFILING_SUMMARIES=true
-CHAT_SHOW_OPTIMIZATION_SUMMARIES=true
-
-# Profiling
-PROFILING_ENABLED=true
-PROFILING_INSTRUCTION_FILE=instructions/profiling
-PROFILING_OUTPUT_DIR=workspace/profiling
-PROFILE_PYTHON_WITH_CPROFILE=true
-PROFILE_COMMAND_RUNTIME=true
-PROFILE_MODEL_CALLS=true
-PROFILE_TOOL_CALLS=true
-
-# Optimization
-OPTIMIZATION_ENABLED=true
-OPTIMIZATION_INSTRUCTION_FILE=instructions/optimization
-OPTIMIZATION_OUTPUT_DIR=workspace/optimization
-OPTIMIZATION_REQUIRES_PROFILING_FIRST=true
-OPTIMIZATION_SHOULD_RUN_VALIDATION=true
-
-# Instruction files
-INSTRUCTION_GLOBAL=instructions/global
-INSTRUCTION_PROGENITOR=instructions/chat_agent
-INSTRUCTION_PLANNING=instructions/planning
-INSTRUCTION_SPAWNING=instructions/spawning
-INSTRUCTION_CODING=instructions/coding_agent
-INSTRUCTION_TERMINAL=instructions/terminal_execution
-INSTRUCTION_PYTHON=instructions/python_execution
-INSTRUCTION_SHELL=instructions/shell_execution
-INSTRUCTION_COMMAND_QUESTIONING=instructions/command_questioning
-INSTRUCTION_CURL=instructions/curl_web
-INSTRUCTION_FILE_READING=instructions/file_reading
-INSTRUCTION_FILE_WRITING=instructions/file_writing
-INSTRUCTION_FILE_DELETING=instructions/file_deleting
-INSTRUCTION_FINISHING=instructions/finishing
-INSTRUCTION_REVIEW=instructions/review
-INSTRUCTION_INTEGRATION=instructions/integration
-INSTRUCTION_TESTING=instructions/testing
-INSTRUCTION_FIXING=instructions/fixing
-INSTRUCTION_PROFILING=instructions/profiling
-INSTRUCTION_OPTIMIZATION=instructions/optimization
-INSTRUCTION_PROGRESS=instructions/progress_reporting
-INSTRUCTION_RESOURCE_PRESSURE=instructions/resource_pressure
-INSTRUCTION_SANDBOXING=instructions/sandboxing
-INSTRUCTION_SAFETY=instructions/safety
-
-# Prompt files
-PROMPT_BASE=prompts/agent_base.txt
-PROMPT_TOOL_FORMAT=prompts/tool_format.txt
-PROMPT_CONTEXT_PACKET=prompts/context_packet.txt
-PROMPT_TERMINAL_FORMAT=prompts/terminal_command_format.txt
-PROMPT_FINAL_RESULT=prompts/final_result.txt

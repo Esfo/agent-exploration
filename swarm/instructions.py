@@ -1,78 +1,67 @@
-"""Instruction & prompt file loader.
+"""Instruction-file loader.
 
-Format:
-    PURPOSE: ...
-    001. ...
-    002. ...
+Every instruction file is ONE prompt. The whole file is its content (no
+numbered lines, no ``PURPOSE:`` prefix) and it is always used together. This
+module just reads files verbatim and discovers the available agent types.
 
-Each numbered line is an instruction the agent follows, kept in exact order.
-Blank lines and '#' comments are ignored. The model for a role is chosen in
-settings/main.settings, NOT in the instruction file. A legacy leading 'MODEL:'
-line, if present, is accepted and ignored.
+Layout under ``instructions/``::
+
+    system                      system-wide prompt (before every role prompt,
+                                except the zipper)
+    primary/agent               the primary (plan-setting) agent
+    coding, math, ...           one file per agent type (the whole file is the
+                                agent's purpose)
+    convergence/<name>          the hard-coded convergence prompts
+    queries/<name>              repeatable single-prompt queries (spawning, ...)
+    zipper/<name>               the zipper workflow prompts
+    functions/<name>            explanations for the real functions in
+                                ``swarm/functions.py`` (not loaded as prompts)
+
+Agent types are simply the top-level files in ``instructions/`` other than
+``system`` (directories are reserved for the workflows above).
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from pathlib import Path
+
+# Files that are top-level but are NOT agent types.
+_NON_AGENT_FILES = {"system"}
 
 
 class InstructionError(Exception):
     pass
 
 
-@dataclass
-class InstructionFile:
-    path: Path
-    purpose: str
-    lines: list[str] = field(default_factory=list)        # numbered instructions, in order
-    # Non-numbered free text (used by prompt files like agent_base.txt).
-    body: list[str] = field(default_factory=list)
+class Instructions:
+    """Reads instruction files relative to the ``instructions/`` directory."""
 
-    def render(self) -> str:
-        """Render the instruction content for injection into a prompt."""
-        out: list[str] = []
-        if self.purpose:
-            out.append(f"PURPOSE: {self.purpose}")
-        for i, ln in enumerate(self.lines, 1):
-            out.append(f"{i:03d}. {ln}")
-        out.extend(self.body)
-        return "\n".join(out)
+    def __init__(self, root: Path):
+        self.root = Path(root)
+        if not self.root.is_dir():
+            raise InstructionError(f"instructions directory not found: {self.root}")
 
+    def read(self, *parts: str) -> str:
+        """Return the verbatim text of an instruction file, e.g.
+        ``read("convergence", "vote")`` or ``read("coding")``."""
+        path = self.root.joinpath(*parts)
+        if not path.is_file():
+            raise InstructionError(f"instruction file not found: {path}")
+        return path.read_text(encoding="utf-8").rstrip("\n")
 
-def parse_instruction_file(path: str | Path) -> InstructionFile:
-    path = Path(path)
-    if not path.exists():
-        raise InstructionError(f"instruction file not found: {path}")
-    raw_lines = path.read_text(encoding="utf-8").splitlines()
+    def system(self) -> str:
+        return self.read("system")
 
-    purpose = ""
-    numbered: list[str] = []
-    body: list[str] = []
+    def agent_purpose(self, agent_type: str) -> str:
+        """The whole instruction file for an agent type IS its purpose."""
+        return self.read(agent_type)
 
-    for raw in raw_lines:
-        stripped = raw.strip()
-        if not stripped or stripped.startswith("#"):
-            continue
-        if stripped.startswith("MODEL:"):
-            continue  # legacy line; the model comes from settings now
-        if stripped.startswith("PURPOSE:"):
-            purpose = stripped[len("PURPOSE:"):].strip()
-            continue
-        head, sep, rest = stripped.partition(".")
-        if sep and head.strip().isdigit():
-            numbered.append(rest.strip())
-        else:
-            body.append(raw.rstrip())
+    def agent_types(self) -> list[str]:
+        """Every top-level instruction file that names an agent type."""
+        out = []
+        for p in sorted(self.root.iterdir()):
+            if p.is_file() and p.name not in _NON_AGENT_FILES:
+                out.append(p.name)
+        return out
 
-    return InstructionFile(path=path, purpose=purpose, lines=numbered, body=body)
-
-
-def load_all(settings, keys: list[str]) -> dict[str, InstructionFile]:
-    """Load a set of instruction files by their settings keys."""
-    loaded: dict[str, InstructionFile] = {}
-    for key in keys:
-        rel = settings.get(key)
-        if not rel:
-            continue
-        loaded[key] = parse_instruction_file(settings.root / rel)
-    return loaded
+    def has_agent_type(self, agent_type: str) -> bool:
+        return (self.root / agent_type).is_file() and agent_type not in _NON_AGENT_FILES
