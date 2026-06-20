@@ -1,8 +1,13 @@
-"""Real implementations of the ``>>...<<`` functions.
+"""Internal helpers + the loader for the ``>>...<<`` arrow functions.
 
-The text files under ``instructions/functions/`` are the human-readable
-explanations of each of these; the executable versions live here and are wired
-into the substitution engine (:mod:`swarm.substitution`).
+The arrow functions themselves live as real Python in the
+``instructions/functions/`` files (``LIST_AGENT_TYPES``, ``LIST_TOOLS``,
+``COUNCIL_RHETORIC``, ``FINAL_OUTPUT``, ``DOCUMENT_DISPLAY``, ``RETURN_OUTPUT``).
+Each such file is the explanation (as comments) plus the function definition; the
+loader here execs the file and calls the function it defines, giving the
+substitution engine a single entry point per arrow. The helpers below (the tool
+registry, code-block recognition, FINISHED OUTPUT extraction) are runtime
+support, not arrow functions, so they stay in the module.
 """
 from __future__ import annotations
 
@@ -37,73 +42,54 @@ def has_tools(agent_type: str) -> bool:
 
 
 # --------------------------------------------------------------------------
-# Substitution functions (called by swarm.substitution._lookup)
+# Arrow-function loader
 # --------------------------------------------------------------------------
-def list_agent_types(ctx) -> str:
-    """List every agent type and its purpose, formatted as::
+# The names match the instruction files under instructions/functions/.
+_ARROW_FILES = {
+    "list_agent_types": "LIST_AGENT_TYPES",
+    "list_tools": "LIST_TOOLS",
+    "council_rhetoric": "COUNCIL_RHETORIC",
+    "final_output": "FINAL_OUTPUT",
+    "document_display": "DOCUMENT_DISPLAY",
+    "return_output": "RETURN_OUTPUT",
+}
 
-        AGENT_TYPE: PURPOSE
+# Helpers made available to the function files when they are exec'd.
+_INJECT = {"tools_for": tools_for, "has_tools": has_tools,
+           "TOOLS_BY_TYPE": TOOLS_BY_TYPE, "TOOL_DESCRIPTIONS": TOOL_DESCRIPTIONS}
 
-        NEXT_AGENT_TYPE: PURPOSE
-    """
-    blocks = []
-    for name in ctx.instr.agent_types():
-        purpose = ctx.instr.agent_purpose(name).strip()
-        blocks.append(f"{name}: {purpose}")
-    return "\n\n".join(blocks)
-
-
-def list_tools(ctx) -> str:
-    """List the tools the current agent has access to."""
-    tools = ctx.tools or tools_for(ctx.agent_type)
-    if not tools:
-        return "You have no tools available."
-    return "\n".join(TOOL_DESCRIPTIONS.get(t, t) for t in tools)
+_cache: dict[str, callable] = {}
 
 
-def council_rhetoric(ctx) -> str:
-    """Aggregate the OTHER members' contributions for one member to read::
-
-        coding:
-        ~response~
-
-        philosophizing:
-        ~response~
-    """
-    if not ctx.rhetoric:
-        return "(no other contributions yet)"
-    parts = []
-    for name, output in ctx.rhetoric:
-        parts.append(f"{name}:\n{(output or '').strip()}")
-    return "\n\n".join(parts)
-
-
-def final_output(ctx) -> str:
-    """Format every agent's final output line-by-line for the zipper::
-
-        AGENT_NAME
-        line 1: ~text~
-        line 2: ~text~
-    """
-    parts = []
-    for name, output in ctx.final_outputs:
-        lines = (output or "").splitlines() or [""]
-        body = "\n".join(f"line {i}: {ln}" for i, ln in enumerate(lines, 1))
-        parts.append(f"{name}\n{body}")
-    return "\n\n".join(parts)
+def _load(instr, filename: str):
+    """Exec ``instructions/functions/<filename>`` and return the function it
+    defines (the one new callable created by the file)."""
+    if filename in _cache:
+        return _cache[filename]
+    path = instr.root / "functions" / filename
+    ns = dict(_INJECT)
+    before = set(ns)
+    exec(compile(path.read_text(encoding="utf-8"), str(path), "exec"), ns)  # noqa: S102
+    defined = [v for k, v in ns.items() if k not in before and callable(v)]
+    if not defined:
+        raise RuntimeError(f"{path} does not define a function")
+    fn = defined[0]
+    _cache[filename] = fn
+    return fn
 
 
-def document_display(ctx) -> str:
-    """Show the zipper's current document with line numbers."""
-    if not (ctx.document or "").strip():
-        return "(the document is currently empty)"
-    lines = ctx.document.splitlines()
-    return "\n".join(f"{i}: {ln}" for i, ln in enumerate(lines, 1))
+def _call(name: str, ctx):
+    return _load(ctx.instr, _ARROW_FILES[name])(ctx)
 
 
-def return_output(ctx) -> str:
-    """Return the last sandbox/shell output to the agent."""
-    return ctx.shell_output or "(no output)"
+# Thin wrappers so the substitution engine has a stable Python interface; each
+# dispatches to the real function loaded from the instruction file.
+def list_agent_types(ctx) -> str: return _call("list_agent_types", ctx)
+def list_tools(ctx) -> str: return _call("list_tools", ctx)
+def council_rhetoric(ctx) -> str: return _call("council_rhetoric", ctx)
+def final_output(ctx) -> str: return _call("final_output", ctx)
+def document_display(ctx) -> str: return _call("document_display", ctx)
+def return_output(ctx) -> str: return _call("return_output", ctx)
 
 
 # --------------------------------------------------------------------------

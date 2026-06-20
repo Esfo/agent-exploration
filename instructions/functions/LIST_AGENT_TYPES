@@ -1,7 +1,14 @@
-This function iterates through all the agent instruction files and collects their purposes, and presents them in a list-like format.
-The whole of each agent instruction file is that agent's purpose, so the entire file is used as the purpose text.
-Make sure the agents are listed out like:
-AGENT_TYPE: PURPOSE
--blank line-
-NEXT AGENT_TYPE: PURPOSE
-It is implemented as list_agent_types in swarm/functions.py and is reached through the >>LIST_AGENT_TYPES<< arrow.
+# This function iterates through all the agent instruction files and collects their purposes, and presents them in a list-like format.
+# The whole of each agent instruction file is that agent's purpose, so the entire file is used as the purpose text.
+# Make sure the agents are listed out like:
+# AGENT_TYPE: PURPOSE
+# -blank line-
+# NEXT AGENT_TYPE: PURPOSE
+# It is reached through the >>LIST_AGENT_TYPES<< arrow.
+
+def list_agent_types(ctx):
+    blocks = []
+    for name in ctx.instr.agent_types():
+        purpose = ctx.instr.agent_purpose(name).strip()
+        blocks.append(f"{name}: {purpose}")
+    return "\n\n".join(blocks)

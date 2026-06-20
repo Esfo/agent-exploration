@@ -1,4 +1,11 @@
-This function lists all the tools that a specific agent has access to.
-The tools are defined in TOOLS_BY_TYPE in swarm/functions.py, keyed by agent type.
-For now this is just the docker sandbox, granted to the coding, testing, optimization, and math agents that can run and test things in docker.
-It is implemented as list_tools in swarm/functions.py and is reached through the >>LIST_TOOLS<< arrow.
+# This function lists all the tools that a specific agent has access to.
+# The tools are defined in TOOLS_BY_TYPE in swarm/functions.py, keyed by agent type.
+# For now this is just the docker sandbox, granted to the coding, testing, optimization, and math agents that can run and test things in docker.
+# It is reached through the >>LIST_TOOLS<< arrow.
+# tools_for and TOOL_DESCRIPTIONS are provided to this file by the loader.
+
+def list_tools(ctx):
+    tools = ctx.tools or tools_for(ctx.agent_type)
+    if not tools:
+        return "You have no tools available."
+    return "\n".join(TOOL_DESCRIPTIONS.get(t, t) for t in tools)

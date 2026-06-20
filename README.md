@@ -41,8 +41,10 @@ against a `Context`:
 
 - **values** — `>>AGENT_TYPE<<`, `>>TASK<<`, `>>TASK_TRUNCATED<<`, `>>INHERITED_GOAL<<`
 - **files** — `>>PURPOSE<<`, `>>SPAWNING<<`, `>>EXPANSION<<`, `>>CONVERGENCE_VOTE<<`, `>>INITIATION<<`
-- **functions** (`swarm/functions.py`) — `>>LIST_AGENT_TYPES<<`, `>>LIST_TOOLS<<`,
-  `>>COUNCIL_RHETORIC<<`, `>>DOCUMENT_DISPLAY<<`, `>>FINAL_OUTPUT<<`, `>>RETURN_OUTPUT<<`
+- **functions** — `>>LIST_AGENT_TYPES<<`, `>>LIST_TOOLS<<`, `>>COUNCIL_RHETORIC<<`,
+  `>>DOCUMENT_DISPLAY<<`, `>>FINAL_OUTPUT<<`, `>>RETURN_OUTPUT<<`. Each is real
+  Python living in its own `instructions/functions/<NAME>` file (explanation as
+  comments + the function); `swarm/functions.py` loads and calls them.
 
 ## Voting & logging
 
