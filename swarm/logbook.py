@@ -22,11 +22,20 @@ class Logbook:
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.sink = sink
+        self.append_sink = None   # optional: tack text onto the last printed line
 
     # ----- chat (one line each, not part of any agent's history) -----
     def chat(self, line: str) -> None:
         if self.sink is not None:
             self.sink(line)
+
+    def append(self, suffix: str) -> None:
+        """Tack ``suffix`` onto the last chat line (via the live display); falls
+        back to emitting it as its own line."""
+        if self.append_sink is not None:
+            self.append_sink(suffix)
+        else:
+            self.chat(suffix.strip())
 
     # ----- jsonl -----
     def _append(self, name: str, obj: dict) -> None:

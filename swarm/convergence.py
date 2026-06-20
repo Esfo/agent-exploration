@@ -198,6 +198,7 @@ def _convene_and_vote(rt: Runtime, members: list[Member], goal: str) -> list[dic
             vote = parse_vote(reply)
             retries += 1
         m.vote = vote if vote is not None else INCOMPLETE
+        rt.logbook.append(f" {m.vote.upper()}")
         records.append({"agent_id": m.id, "agent_type": m.agent_type, "vote": m.vote})
     return records
 

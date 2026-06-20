@@ -73,6 +73,7 @@ def main(argv: list[str] | None = None) -> int:
                 enabled=rt.settings.get_bool("LIVE_DISPLAY", True))
     if live.enabled:
         rt.logbook.sink = live.log
+        rt.logbook.append_sink = live.append_last
         rt.model.live = live
         primary = PrimaryAgent(rt, on_token=None)
     else:

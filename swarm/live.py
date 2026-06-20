@@ -21,6 +21,7 @@ class Live:
         self.enabled = enabled and sys.stdout.isatty()
         self.buf = ""
         self.drawn = 0
+        self.last_line = ""
 
     # ----- internals -----
     def _width(self) -> int:
@@ -69,7 +70,19 @@ class Live:
         for ln in str(line).split("\n"):
             sys.stdout.write("\x1b[J")     # clear current status block
             sys.stdout.write(ln + "\n")    # durable scroll line; cursor -> new top
+            self.last_line = ln
             self._render(self._tail_lines())
+
+    def append_last(self, suffix: str) -> None:
+        """Tack ``suffix`` onto the last durable line, in place."""
+        if not self.enabled:
+            print(suffix.strip())
+            return
+        self.last_line += suffix
+        sys.stdout.write("\x1b[J")            # clear status block
+        sys.stdout.write("\x1b[1A\r\x1b[2K")  # up to the last scroll line, clear it
+        sys.stdout.write(self.last_line + "\n")
+        self._render(self._tail_lines())
 
     def begin(self) -> None:
         """Start a fresh generation in the buffer."""
