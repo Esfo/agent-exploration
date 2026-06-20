@@ -1,0 +1,11 @@
+this is a placeholder for a function here
+this needs to be a function that aggregates all the outputs of a council's members into one response to give to each model
+each model will not receive their own response, but will receive the response of every other model, all aggregated into a form like:
+
+Philosophy Agent:
+~response~
+
+Coding Agent:
+~response~
+
+this function does not aggregate their entire chat, just the response they made prior to convening, labeled as AGENT_INPUT in the convergence explanation

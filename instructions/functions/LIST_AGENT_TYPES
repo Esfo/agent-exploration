@@ -1,0 +1,5 @@
+this file should be replaced with a simple script that iterates through all the agent instruction files and collects their PURPOSE: statements, and presents them in a list-like format
+make sure the agents are listed out like:
+AGENT_TYPE: PURPOSE
+-blank line-
+NEXT AGENT_TYPE: PURPOSE

@@ -1,0 +1,17 @@
+I want you to consider the following, as you have a choice to make:
+You've decided to spawn a council to solve the task at hand, you're allowed one council at a time, and they'll do any work you need to a greater level of detail than any individual can manage alone.
+There are various agent types that can assist with your task, I need you to decide what tasks need to be solved, in as much detail as possible, and I need you to assign specific agents to each one.
+These are the agent types:
+>>LIST_AGENT_TYPES<<
+You can have multiple agents of the same type, and they can have various support/helper agents that also convene within the council.
+When you list out your directives, do so explicitly in this exact syntax in order for the agents to be spawned correctly:
+AGENT_TYPE: TASK: Expanded explanation of their responsibility.
+Where AGENT_TYPE is the agent you choose from the list above, use its exact name.
+And TASK is a short explanation of their job, make it 4 words or less.
+Each TASK must be unique, but each AGENT_TYPE can be repetitive.
+Agents can have the task of looking over the work of other agents, but they ultimately need to contribute their own thought process to each conversation, rather than just waiting to respond to others, so outline their task clearly in the form of something that's actionable for them.
+Please do not add any messages prior to the listing, this response is for the listing of directives, agents, and the tasks they're assigned.
+After you list the agents out, do not write any other message, and please do not enumerate, add ***asteriks***, or any other kind of signage as the list syntax is sensitive.
+Your response should only consist of: "AGENT_TYPE: TASK: Explanation." responses, with a blank line in between each individual agent-task assignment.
+Be sure to consider the hierarchy being formed, and how people tend to perform when they have to report to too many bosses, or have no accountability to anyone at all, make it an intuitive yet reasonable structure.
+Choose wisely.
