@@ -217,7 +217,7 @@ functions/*.py           the real >>...<< functions
 swarm/*.py               the runtime
 settings/main.settings   configuration
 workspace/results/       finished results, one file each
-workspace/agents/<id>/   per-agent sandbox work directories
+workspace/agents/<id>/   per-agent: conversation.md (full chat) + sandbox files
 logs/votes.jsonl         searchable vote log
 ```
 

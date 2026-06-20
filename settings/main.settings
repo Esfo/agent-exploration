@@ -63,6 +63,10 @@ CONVERGENCE_MAX_ROUNDS=6
 # How deep a member's EXPANSION -> SPAWN sub-councils may recurse.
 MAX_SUBSWARM_DEPTH=4
 
+# Write each agent's full conversation to workspace/agents/<id>/conversation.md
+# (the behind-the-scenes council/primary/zipper chats), rewritten as it grows.
+WRITE_TRANSCRIPTS=true
+
 # Directories
 INSTRUCTIONS_DIR=instructions
 AGENT_WORKSPACE_DIR=workspace/agents

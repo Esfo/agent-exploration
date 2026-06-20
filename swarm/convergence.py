@@ -75,6 +75,7 @@ def _ask(rt: Runtime, m: Member, prompt: str) -> str:
     m.messages.append({"role": "user", "content": prompt})
     reply = rt.model.chat(m.agent_type, m.messages)
     m.messages.append({"role": "assistant", "content": reply})
+    rt.write_transcript(m.id, m.agent_type, m.messages)
     return reply
 
 
@@ -214,6 +215,7 @@ def _reinitiate(rt: Runtime, members: list[Member], goal: str, spawn_subcouncil)
                     m.messages[-1]["content"] = sub
                 else:
                     m.messages.append({"role": "assistant", "content": sub})
+                rt.write_transcript(m.id, m.agent_type, m.messages)
 
 
 def run_convergence(rt: Runtime, members: list[Member], inherited: list[dict] | None,

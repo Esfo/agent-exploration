@@ -48,6 +48,7 @@ class PrimaryAgent:
         self.messages.append({"role": "user", "content": user_text})
         reply = self.rt.model.chat("primary", self.messages)
         self.messages.append({"role": "assistant", "content": reply})
+        self.rt.write_transcript("primary", "primary", self.messages)
         return reply
 
     def _ask_query(self, prompt: str) -> str:
@@ -82,6 +83,7 @@ class PrimaryAgent:
         # memory, as the primary's own contribution; it is also saved to the
         # results library.
         self.messages.append({"role": "assistant", "content": result})
+        self.rt.write_transcript("primary", "primary", self.messages)
         path = self.rt.save_result(self.goal, result)
         self.rt.logbook.chat(f"result saved to {path}")
         return result

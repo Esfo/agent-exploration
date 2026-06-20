@@ -24,6 +24,21 @@ class Runtime:
         d.mkdir(parents=True, exist_ok=True)
         return d
 
+    def write_transcript(self, agent_id: str, agent_type: str, messages: list[dict]) -> None:
+        """Persist an agent's full conversation to
+        ``workspace/agents/<id>/conversation.md``, rewritten as it grows. This is
+        the behind-the-scenes record of every turn the agent actually kept
+        (ephemeral query turns are intentionally not part of it)."""
+        if not self.settings.get_bool("WRITE_TRANSCRIPTS", True):
+            return
+        out = [f"# Conversation — {agent_type} ({agent_id})", ""]
+        for m in messages:
+            out.append(f"## {m.get('role', '?')}")
+            out.append((m.get("content", "") or "").rstrip())
+            out.append("")
+        (self.agent_dir(agent_id) / "conversation.md").write_text(
+            "\n".join(out), encoding="utf-8")
+
     def save_result(self, goal: str, text: str) -> Path:
         """Write a delivered result into the results library and return its path.
 

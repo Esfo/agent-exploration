@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import re
 
+from . import ids
 from .functions import FINISHED_MARKER
 from .runtime import Runtime
 from .substitution import Context, resolve
@@ -112,6 +113,7 @@ def run_zipper(rt: Runtime, final_outputs: list[tuple[str, str]],
                task_truncated: str = "") -> str:
     """Run the zipper workflow and return the upstream payload (prefixed with
     ``FINISHED OUTPUT``)."""
+    zid = ids.next_id("zipper")
     ctx = Context(instr=rt.instr, task=task, task_truncated=task_truncated,
                   final_outputs=final_outputs)
     messages: list[dict] = list(inherited or [])
@@ -129,6 +131,7 @@ def run_zipper(rt: Runtime, final_outputs: list[tuple[str, str]],
         messages.append({"role": "user", "content": finish_prompt})
         verdict = rt.model.chat("zipper", messages)
         messages.append({"role": "assistant", "content": verdict})
+        rt.write_transcript(zid, "zipper", messages)
         if _last_word(verdict) == "CONFIRM":
             break
 
