@@ -62,9 +62,9 @@ TOKEN_SAFETY_MARGIN=256
 LIVE_DISPLAY=true
 LIVE_BUFFER_LINES=3
 
-# How many times to re-ask (with the malformed-format reminder) when a model's
-# spawning directives don't parse, before giving up on that spawn.
-SPAWN_FORMAT_RETRIES=6
+# How many times to re-ask (with the format reminder) when a model's spawning
+# directives don't parse. "unlimited" = keep asking until it gets it right.
+SPAWN_FORMAT_RETRIES=unlimited
 
 # Convergence / recursion bounds.
 # A council loops response->vote until every member votes FINISHED; this is the

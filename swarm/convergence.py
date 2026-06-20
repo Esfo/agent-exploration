@@ -30,7 +30,8 @@ from . import functions
 from .runtime import Runtime
 from .sandbox import format_result, run_code
 from .substitution import Context, resolve
-from .voting import (INCOMPLETE, MALFORMED_REPLY, parse_vote, tally_votes)
+from .voting import (INCOMPLETE, VOTE_REMINDER, malformed_choice, parse_vote,
+                     tally_votes)
 
 _RETRY = 2
 _TEST_MAX_STEPS = 4
@@ -106,7 +107,7 @@ def _required_choice(rt: Runtime, m: Member, prompt: str,
     choice = _last_word_choice(reply, options)
     tries = 0
     while choice is None and tries < _RETRY:
-        reply = _ask(rt, m, MALFORMED_REPLY + "\n" + prompt)
+        reply = _ask(rt, m, malformed_choice(*options) + "\n" + prompt)
         choice = _last_word_choice(reply, options)
         tries += 1
     return choice
@@ -124,7 +125,7 @@ def _query_choice(rt: Runtime, m: Member, prompt: str, options: tuple[str, ...])
     choice = _last_word_choice(reply, options)
     tries = 0
     while choice is None and tries < _RETRY:
-        reply = _ask_query(rt, m, MALFORMED_REPLY + "\n" + prompt)
+        reply = _ask_query(rt, m, malformed_choice(*options) + "\n" + prompt)
         choice = _last_word_choice(reply, options)
         tries += 1
     return choice
@@ -198,7 +199,7 @@ def _convene_and_vote(rt: Runtime, members: list[Member], goal: str) -> list[dic
         vote = parse_vote(reply)
         retries = 0
         while vote is None and retries < _RETRY:
-            reply = _ask(rt, m, MALFORMED_REPLY + "\n" + resolve(">>CONVERGENCE_VOTE<<", ctx))
+            reply = _ask(rt, m, VOTE_REMINDER + "\n" + resolve(">>CONVERGENCE_VOTE<<", ctx))
             vote = parse_vote(reply)
             retries += 1
         m.vote = vote if vote is not None else INCOMPLETE

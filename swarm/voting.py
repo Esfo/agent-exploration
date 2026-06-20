@@ -7,10 +7,32 @@ from dataclasses import dataclass
 FINISHED = "finished"
 INCOMPLETE = "incomplete"
 
-# Hard-coded reply whenever a required response can't be parsed (vote, spawn,
-# expansion, ...). The same line is reused everywhere a format is expected.
+# Hard-coded replies for when a required response can't be parsed. Each scenario
+# gets its own reminder that emphasizes the exact format expected there.
 MALFORMED_REPLY = ("I'm sorry I didn't catch that, please follow the "
                    "aforementioned format.")
+
+
+def malformed_choice(*options: str) -> str:
+    """Reminder for a required one-of choice (WAIT/CONTINUE, YES/NO, ...)."""
+    opts = " or ".join(options)
+    return ("I'm sorry, I didn't catch that. Your reply must end with exactly "
+            f"one of these words: {opts}.")
+
+
+VOTE_REMINDER = (
+    "I'm sorry, I didn't catch your vote. End your reply with exactly "
+    "'I vote FINISHED' or 'I vote INCOMPLETE' as the final words, and nothing after.")
+
+SPAWN_REMINDER = (
+    "I'm sorry, I couldn't read the agent list. List each agent on its own line in "
+    "exactly this layout:\nAGENT_TYPE: TASK: explanation\nAGENT_TYPE must be one of "
+    "the agent types provided, TASK must be four words or fewer, and the expanded "
+    "explanation follows the second colon. Output only those lines, nothing else.")
+
+ZIPPER_COMMAND_REMINDER = (
+    "I'm sorry, I didn't catch a valid command. Respond only with RETAIN <AGENT_NAME> "
+    "or INSERT ... commands, one per line, in the order the final document should read.")
 
 _VOTE_RE = re.compile(r"i\s+vote\s+(finished|incomplete)", re.IGNORECASE)
 

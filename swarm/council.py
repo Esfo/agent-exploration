@@ -13,7 +13,7 @@ from . import ids
 from .convergence import Member, run_convergence
 from .runtime import Runtime
 from .substitution import Context, resolve
-from .voting import MALFORMED_REPLY
+from .voting import SPAWN_REMINDER
 from .zipper import run_zipper
 
 # AGENT_TYPE: <short task>: <expanded explanation>
@@ -112,18 +112,20 @@ def run_council(rt: Runtime, members: list[Member], inherited: list[dict] | None
         directive_text = rt.model.chat(
             member.agent_type, member.messages + [{"role": "user", "content": prompt}])
         sub_members = parse_directives(rt, directive_text)
-        max_tries = rt.settings.get_int("SPAWN_FORMAT_RETRIES", 6) or 6
+        # None/0/"unlimited" => keep re-asking until it parses (default).
+        max_tries = rt.settings.get_int("SPAWN_FORMAT_RETRIES", None)
         tries = 0
-        while not sub_members and tries < max_tries:
+        while not sub_members:
+            if max_tries and tries >= max_tries:
+                return None
             tries += 1
+            cap = f"/{max_tries}" if max_tries else ""
             rt.logbook.chat(f"[{council_id}] {member.label}: directives didn't match "
-                            f"the expected format, asking again ({tries}/{max_tries})...")
+                            f"the expected format, asking again (try {tries}{cap})...")
             directive_text = rt.model.chat(
                 member.agent_type,
-                member.messages + [{"role": "user", "content": MALFORMED_REPLY + "\n" + prompt}])
+                member.messages + [{"role": "user", "content": SPAWN_REMINDER + "\n" + prompt}])
             sub_members = parse_directives(rt, directive_text)
-        if not sub_members:
-            return None
         child_count[0] += 1
         child_label = f"{label}.{child_count[0]}"
         roster = ", ".join(s.label for s in sub_members)

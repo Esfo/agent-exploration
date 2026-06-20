@@ -25,7 +25,7 @@ import re
 from .functions import FINISHED_MARKER
 from .runtime import Runtime
 from .substitution import Context, resolve
-from .voting import MALFORMED_REPLY
+from .voting import ZIPPER_COMMAND_REMINDER, malformed_choice
 
 _RETRY = 2
 _RETAIN = re.compile(r"^\s*RETAIN\s+(.+?)\s*$", re.IGNORECASE)
@@ -132,7 +132,7 @@ def run_zipper(rt: Runtime, final_outputs: list[tuple[str, str]],
         # No recognizable RETAIN/INSERT command: re-ask with the malformed reply.
         tries = 0
         while applied == 0 and tries < _RETRY:
-            messages.append({"role": "user", "content": MALFORMED_REPLY})
+            messages.append({"role": "user", "content": ZIPPER_COMMAND_REMINDER})
             reply = rt.model.chat("zipper", messages)
             messages.append({"role": "assistant", "content": reply})
             applied = doc.apply(reply)
@@ -145,7 +145,7 @@ def run_zipper(rt: Runtime, final_outputs: list[tuple[str, str]],
         # Verdict must be CONFIRM or CONTINUE; re-ask if it's neither.
         tries = 0
         while _last_word(verdict) is None and tries < _RETRY:
-            messages.append({"role": "user", "content": MALFORMED_REPLY})
+            messages.append({"role": "user", "content": malformed_choice("CONFIRM", "CONTINUE")})
             verdict = rt.model.chat("zipper", messages)
             messages.append({"role": "assistant", "content": verdict})
             tries += 1
