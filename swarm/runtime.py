@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import ids
 from .instructions import Instructions
 from .logbook import Logbook
 from .model import Model
@@ -22,3 +23,15 @@ class Runtime:
         d = self.work_root / agent_id
         d.mkdir(parents=True, exist_ok=True)
         return d
+
+    def save_result(self, goal: str, text: str) -> Path:
+        """Write a delivered result into the results library and return its path.
+
+        The library is a flat directory of one Markdown file per result — no
+        nested folders — so finished work is easy to find."""
+        d = Path(self.settings.path("RESULTS_DIR"))
+        d.mkdir(parents=True, exist_ok=True)
+        path = d / f"{ids.next_id('result')}.md"
+        path.write_text(f"# Result\n\n_Goal: {goal.strip()}_\n\n{text.strip()}\n",
+                        encoding="utf-8")
+        return path

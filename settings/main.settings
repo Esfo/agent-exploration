@@ -46,6 +46,18 @@ ROUTE_PHILOSOPHER_TO_GPU=false
 ROUTE_TESTER_TO_GPU=false
 ROUTE_ZIPPER_TO_GPU=false
 
+# Summarize-on-overflow: when an agent's history exceeds its context budget, the
+# oldest turns are compressed into a briefing (top-down) and the latest context is
+# kept verbatim. SUMMARIZE_RECENT_FRACTION is how much of the budget to reserve
+# for the kept-verbatim recent turns.
+SUMMARIZE_ON_OVERFLOW=true
+SUMMARIZE_RECENT_FRACTION=0.5
+TOKEN_SAFETY_MARGIN=256
+DEFAULT_SUMMARIZER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
+SUMMARIZER_NUM_PREDICT=1024
+SUMMARIZER_TEMPERATURE=0.2
+ROUTE_SUMMARIZER_TO_GPU=false
+
 # Convergence / recursion bounds.
 # A council loops response->vote until every member votes FINISHED; this is the
 # safety bound that force-resolves the loop so it can never run unbounded.
@@ -58,6 +70,7 @@ ROOT_DIR=.
 INSTRUCTIONS_DIR=instructions
 WORKSPACE_DIR=workspace
 AGENT_WORKSPACE_DIR=workspace/agents
+RESULTS_DIR=workspace/results
 RUNTIME_DIR=runtime
 LOG_DIR=logs
 

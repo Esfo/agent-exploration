@@ -89,9 +89,12 @@ class PrimaryAgent:
             return ("I couldn't turn that into a valid set of agent directives. "
                     "Let's refine the plan.")
         result = run_council(self.rt, members, list(self.messages), self.goal)
-        # The council's output is inserted into the primary's memory as the
-        # primary's own contribution, so the conversation can continue fluidly.
+        # The council's RESULT (not its conversation) is inserted into the
+        # primary's memory as the primary's own contribution, so the chat can
+        # continue fluidly. The result is also saved to the results library.
         self.messages.append({"role": "assistant", "content": result})
+        path = self.rt.save_result(self.goal, result)
+        self.rt.logbook.chat(f"result saved to {path}")
         return result
 
     # ----- main entry -----

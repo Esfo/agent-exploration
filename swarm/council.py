@@ -52,6 +52,8 @@ def run_council(rt: Runtime, members: list[Member], inherited: list[dict] | None
     """Run a council to completion and return the zipped FINISHED OUTPUT."""
     council_id = ids.next_id("council")
     max_depth = rt.settings.get_int("MAX_SUBSWARM_DEPTH", 4) or 4
+    roster = ", ".join(m.agent_type for m in members)
+    rt.logbook.chat(f"[{council_id}] council convening ({roster}) on: {inherited_goal[:60]}")
 
     def spawn_subcouncil(member: Member) -> str | None:
         if depth >= max_depth:
@@ -69,5 +71,7 @@ def run_council(rt: Runtime, members: list[Member], inherited: list[dict] | None
 
     result = run_convergence(rt, members, inherited, inherited_goal, council_id,
                              spawn_subcouncil=spawn_subcouncil)
-    return run_zipper(rt, result.final_outputs(), inherited,
-                      task=inherited_goal, task_truncated=_truncate(inherited_goal))
+    payload = run_zipper(rt, result.final_outputs(), inherited,
+                         task=inherited_goal, task_truncated=_truncate(inherited_goal))
+    rt.logbook.chat(f"[{council_id}] council finished — result ready")
+    return payload

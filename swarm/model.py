@@ -7,6 +7,8 @@ sensible fallbacks. GPU vs CPU endpoint is chosen by ``ROUTE_<PREFIX>_TO_GPU``.
 """
 from __future__ import annotations
 
+from .summarizer import Summarizer
+
 # role -> settings prefix
 ROLE_PREFIX = {
     "primary": "PRIMARY",
@@ -16,6 +18,7 @@ ROLE_PREFIX = {
     "philosophizing": "PHILOSOPHER",
     "testing": "TESTER",
     "zipper": "ZIPPER",
+    "summarizer": "SUMMARIZER",
 }
 
 _PLACEHOLDER = "<PLACEHOLDER_OLLAMA_MODEL>"
@@ -25,6 +28,7 @@ class Model:
     def __init__(self, settings, client):
         self.s = settings
         self.client = client
+        self.summarizer = Summarizer(self)
 
     def _prefix(self, role: str) -> str:
         return ROLE_PREFIX.get(role, "DEFAULT")
@@ -53,7 +57,11 @@ class Model:
         return {"num_ctx": num_ctx, "num_predict": num_predict, "temperature": temperature}
 
     def chat(self, role: str, messages: list[dict]) -> str:
-        """One chat turn for ``role``. Returns the assistant's text."""
+        """One chat turn for ``role``. Returns the assistant's text.
+
+        The history is first compressed in place if it exceeds the role's
+        context budget (top-down summarize-on-overflow)."""
+        self.summarizer.fit(role, messages)
         resp = self.client.chat(
             endpoint=self._endpoint(role),
             model=self._model_name(role),
