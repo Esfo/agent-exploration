@@ -3,24 +3,18 @@
 # ==================================================
 
 RUNTIME_NAME=recursive_local_swarm
-RUNTIME_VERSION=0.2
 
 # Ollama endpoints (GPU/CPU routing per role below).
 OLLAMA_GPU_ENDPOINT=http://localhost:11434
 OLLAMA_CPU_ENDPOINT=http://localhost:11434
 
-# Default model. Every role falls back to this unless its DEFAULT_<ROLE>_MODEL
-# is set to a real model name, so you only need one model pulled to start.
+# The model every role uses. To override a single role, add a line like
+# DEFAULT_CODE_MODEL=... (roles: PRIMARY, CODE, MATH, OPTIMIZATION, PHILOSOPHER,
+# TESTER, ZIPPER). Anything not overridden falls back to DEFAULT_MODEL.
 DEFAULT_MODEL=qwen2.5-coder:7b
-DEFAULT_PRIMARY_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_CODE_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_MATH_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_OPTIMIZATION_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_PHILOSOPHER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_TESTER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-DEFAULT_ZIPPER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
 
-# Context / output / temperature (per role; fall back to the DEFAULT_* below).
+# Context / output / temperature. Per-role NUM_PREDICT / TEMPERATURE override the
+# DEFAULT_* values below; everything else falls back to them.
 DEFAULT_NUM_CTX=8192
 DEFAULT_NUM_PREDICT=2048
 DEFAULT_TEMPERATURE=0.3
@@ -49,14 +43,10 @@ ROUTE_ZIPPER_TO_GPU=false
 # Summarize-on-overflow: when an agent's history exceeds its context budget, the
 # oldest turns are compressed into a briefing (top-down) and the latest context is
 # kept verbatim. SUMMARIZE_RECENT_FRACTION is how much of the budget to reserve
-# for the kept-verbatim recent turns.
+# for the kept-verbatim recent turns. Summarization uses the agent's own model.
 SUMMARIZE_ON_OVERFLOW=true
 SUMMARIZE_RECENT_FRACTION=0.5
 TOKEN_SAFETY_MARGIN=256
-DEFAULT_SUMMARIZER_MODEL=<PLACEHOLDER_OLLAMA_MODEL>
-SUMMARIZER_NUM_PREDICT=1024
-SUMMARIZER_TEMPERATURE=0.2
-ROUTE_SUMMARIZER_TO_GPU=false
 
 # Convergence / recursion bounds.
 # A council loops response->vote until every member votes FINISHED; this is the
@@ -66,12 +56,9 @@ CONVERGENCE_MAX_ROUNDS=6
 MAX_SUBSWARM_DEPTH=4
 
 # Directories
-ROOT_DIR=.
 INSTRUCTIONS_DIR=instructions
-WORKSPACE_DIR=workspace
 AGENT_WORKSPACE_DIR=workspace/agents
 RESULTS_DIR=workspace/results
-RUNTIME_DIR=runtime
 LOG_DIR=logs
 
 # Sandbox (the only official tool: run/test code for the coding/testing/
