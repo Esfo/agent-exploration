@@ -61,11 +61,11 @@ class Logbook:
         )
 
     # ----- agent lifecycle (one line each) -----
-    def agent_started(self, agent_type: str, task_truncated: str) -> None:
-        self.chat(f"{agent_type} started {task_truncated}")
+    def agent_started(self, label: str, task_truncated: str) -> None:
+        self.chat(f"{label} started {task_truncated}")
 
-    def agent_finished(self, agent_type: str, task_truncated: str) -> None:
-        self.chat(f"{agent_type} finished {task_truncated}")
+    def agent_finished(self, label: str, task_truncated: str) -> None:
+        self.chat(f"{label} finished {task_truncated}")
 
     # ----- sandbox (one line each) -----
     def sandbox_run(self, label: str, lang: str) -> None:

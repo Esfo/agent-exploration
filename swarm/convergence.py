@@ -250,7 +250,7 @@ def run_convergence(rt: Runtime, members: list[Member], inherited: list[dict] | 
         rt.settings.get_int("CONVERGENCE_MAX_ROUNDS", 6) or 6)
 
     for m in members:
-        rt.logbook.agent_started(m.agent_type, m.task_truncated)
+        rt.logbook.agent_started(m.label, m.task_truncated)
         _initiation(rt, m, inherited_goal, inherited)
 
     rnd = 0
@@ -266,7 +266,7 @@ def run_convergence(rt: Runtime, members: list[Member], inherited: list[dict] | 
             rt.logbook.chat(f"[{council_id}] VOTE PASSED - unanimous FINISHED "
                             f"after {rnd} round(s) - goal: {inherited_goal}")
             for m in members:
-                rt.logbook.agent_finished(m.agent_type, m.task_truncated)
+                rt.logbook.agent_finished(m.label, m.task_truncated)
             return ConvergenceResult(council_id, inherited_goal, "FINISHED", rnd, members)
 
         if rnd >= safety:
