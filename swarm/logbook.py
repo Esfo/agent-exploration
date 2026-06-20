@@ -51,3 +51,16 @@ class Logbook:
 
     def agent_finished(self, agent_type: str, task_truncated: str) -> None:
         self.chat(f"{agent_type} finished {task_truncated}")
+
+    # ----- sandbox (one line each) -----
+    def sandbox_run(self, agent_type: str, agent_id: str, lang: str) -> None:
+        self.chat(f"{agent_type} ({agent_id}) running {lang} in the sandbox…")
+
+    def sandbox_done(self, agent_type: str, agent_id: str, lang: str, result) -> None:
+        if result is None:
+            status = "no runnable code"
+        elif getattr(result, "timed_out", False):
+            status = "timed out"
+        else:
+            status = f"exit {result.exit_code}"
+        self.chat(f"{agent_type} ({agent_id}) sandbox {lang} done — {status}")
