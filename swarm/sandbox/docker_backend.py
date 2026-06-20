@@ -2,13 +2,14 @@
 
 Runs python/shell inside a hardened container:
     --network none (default), --memory, --cpus, --pids-limit,
-    --read-only root + tmpfs, --cap-drop ALL, --security-opt no-new-privileges,
-    the agent work dir mounted read/write at /agent (workdir).
+    --read-only root + tmpfs, --cap-drop ALL, --security-opt no-new-privileges.
 
-By default a **persistent** container is kept warm per agent work directory and
-reused via ``docker exec`` (set up once, torn down at shutdown), so we don't pay
-container-startup cost on every run. Set ``SANDBOX_REUSE_CONTAINER=false`` to
-fall back to a throwaway ``docker run --rm`` per execution.
+By default a **single** warm container is kept running for the whole session and
+reused via ``docker exec`` (``SANDBOX_REUSE_CONTAINER=true``). It mounts the
+shared agents root (``workspace/agents``) once; each execution just ``exec``s
+with its working directory set to that agent's subdirectory. The container is
+torn down on shutdown. Set the flag to ``false`` to fall back to a throwaway
+``docker run --rm`` per execution.
 
 Same Executor interface as the subprocess backend, so select_executor() swaps it
 in transparently when SANDBOX_BACKEND=docker and docker is installed.
@@ -38,7 +39,8 @@ class DockerExecutor(Executor):
         self.pids = settings.get_int("SANDBOX_PIDS_LIMIT", 256) or 256
         self.network = settings.get("SANDBOX_NETWORK_DEFAULT", "none") or "none"
         self.reuse = settings.get_bool("SANDBOX_REUSE_CONTAINER", True)
-        self._containers: dict[str, str] = {}   # work_dir -> container name
+        self._container: str | None = None      # the single session container
+        self._mount_root: Path | None = None     # host dir mounted at /agents
 
     # ----- hardening flags shared by run and the persistent daemon -----
     def _hardening(self) -> list[str]:
@@ -55,22 +57,23 @@ class DockerExecutor(Executor):
             argv += ["--read-only", "--tmpfs", "/tmp:rw,size=64m"]
         return argv
 
-    def _mount(self, work_dir: Path) -> list[str]:
-        return ["-v", f"{Path(work_dir).resolve()}:/agent:rw", "-w", "/agent",
-                "-e", "HOME=/agent", "-e", "PYTHONPATH=/agent", "-e", "PYTHONUNBUFFERED=1"]
-
-    # ----- throwaway run (fallback / reuse=false) -----
+    # ----- throwaway run (reuse=false): mount just this agent dir at /agent -----
     def build_run_argv(self, work_dir: Path, inner: list[str]) -> list[str]:
-        return (["docker", "run", "--rm"] + self._hardening() + self._mount(work_dir)
-                + [self.image] + inner)
+        mount = ["-v", f"{Path(work_dir).resolve()}:/agent:rw", "-w", "/agent",
+                 "-e", "HOME=/agent", "-e", "PYTHONPATH=/agent", "-e", "PYTHONUNBUFFERED=1"]
+        return (["docker", "run", "--rm"] + self._hardening() + mount + [self.image] + inner)
 
-    # ----- persistent container (default) -----
-    def build_daemon_argv(self, work_dir: Path, name: str) -> list[str]:
+    # ----- single session container: mount the agents ROOT at /agents -----
+    def build_daemon_argv(self, root: Path, name: str) -> list[str]:
+        mount = ["-v", f"{Path(root).resolve()}:/agents:rw"]
         return (["docker", "run", "-d", "--rm", "--name", name] + self._hardening()
-                + self._mount(work_dir) + [self.image, "sleep", "infinity"])
+                + mount + [self.image, "sleep", "infinity"])
 
-    def build_exec_argv(self, name: str, inner: list[str]) -> list[str]:
-        return ["docker", "exec", "-w", "/agent", name] + inner
+    def build_exec_argv(self, name: str, subdir: str, inner: list[str]) -> list[str]:
+        workdir = f"/agents/{subdir}"
+        return ["docker", "exec", "-w", workdir,
+                "-e", f"HOME={workdir}", "-e", f"PYTHONPATH={workdir}",
+                "-e", "PYTHONUNBUFFERED=1", name] + inner
 
     def _alive(self, name: str) -> bool:
         try:
@@ -80,27 +83,33 @@ class DockerExecutor(Executor):
         except Exception:  # noqa: BLE001
             return False
 
-    def _ensure_container(self, work_dir: Path) -> str | None:
-        key = str(Path(work_dir).resolve())
-        name = self._containers.get(key)
-        if name and self._alive(name):
-            return name
+    def _session_container(self, work_dir: Path) -> str | None:
+        """Return the one session container, starting it (mounting the agents
+        root) on first use. Returns None if it can't be created."""
+        root = Path(work_dir).resolve().parent
+        if self._container and self._alive(self._container) and self._mount_root == root:
+            return self._container
+        if self._container and self._mount_root not in (None, root):
+            return None  # a different root than the live container — can't reuse
         name = "rls_" + ids.next_id("sbx")
         try:
-            subprocess.run(self.build_daemon_argv(work_dir, name),
+            subprocess.run(self.build_daemon_argv(root, name),
                            capture_output=True, timeout=60, check=True)
         except Exception:  # noqa: BLE001 - fall back to throwaway runs
             return None
-        self._containers[key] = name
+        self._container = name
+        self._mount_root = root
         return name
 
     def shutdown(self) -> None:
-        for name in list(self._containers.values()):
+        if self._container:
             try:
-                subprocess.run(["docker", "rm", "-f", name], capture_output=True, timeout=15)
+                subprocess.run(["docker", "rm", "-f", self._container],
+                               capture_output=True, timeout=15)
             except Exception:  # noqa: BLE001
                 pass
-        self._containers.clear()
+        self._container = None
+        self._mount_root = None
 
     # ----- execution -----
     def _truncate(self, text: str) -> tuple[str, bool]:
@@ -135,11 +144,15 @@ class DockerExecutor(Executor):
         )
 
     def _argv_for(self, work_dir: Path, inner: list[str]) -> list[str]:
-        """Reuse a warm container when enabled; otherwise a throwaway run."""
+        """Reuse the one session container when enabled; else a throwaway run.
+
+        ``inner`` paths are relative to the agent's working directory, which is
+        set to /agent (throwaway) or /agents/<id> (exec) — so the same inner
+        works for both."""
         if self.reuse:
-            name = self._ensure_container(work_dir)
+            name = self._session_container(work_dir)
             if name:
-                return self.build_exec_argv(name, inner)
+                return self.build_exec_argv(name, Path(work_dir).name, inner)
         return self.build_run_argv(work_dir, inner)
 
     def run_python(self, code: str, work_dir: Path, timeout: int) -> ExecResult:
@@ -149,7 +162,7 @@ class DockerExecutor(Executor):
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(code)
         rel = Path(script).name
-        argv = self._argv_for(work_dir, ["python", f"/agent/.runtime/{rel}"])
+        argv = self._argv_for(work_dir, ["python", f".runtime/{rel}"])
         try:
             return self._run(argv, work_dir, timeout)
         finally:

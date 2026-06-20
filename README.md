@@ -162,12 +162,13 @@ and fluid.
 - Code blocks are **recognised per language** (Python, JS/TS, Ruby, Go, Rust,
   C/C++, Java, PHP, Perl, Lua, R, Julia, Haskell, Bash, SQL, …). Functions split
   across multiple blocks of the same language are run together.
-- By default each agent keeps **one warm container running in the background** and
-  reuses it via `docker exec` (`SANDBOX_REUSE_CONTAINER=true`), so container
-  startup is paid once, not per run. It's torn down when you quit. Set the flag to
-  `false` for a throwaway `docker run --rm` per execution instead. Either way
-  execution is sequential, so containers never pile up, and each agent has its
-  own work directory.
+- By default **one warm container is kept running for the whole session**
+  (`SANDBOX_REUSE_CONTAINER=true`): it mounts the shared agents root once, and
+  every run just `docker exec`s into that agent's subdirectory — so container
+  startup is paid once for the session, not per run. It's torn down when you quit.
+  Set the flag to `false` for a throwaway `docker run --rm` per execution instead.
+  Execution is sequential either way, and each agent still has its own work
+  directory.
 - It's **hardened**: `--network none`, `--cap-drop ALL`,
   `--security-opt no-new-privileges`, read-only root + small tmpfs,
   memory/CPU/PID limits, and a non-root user baked into the image.

@@ -78,8 +78,9 @@ LOG_DIR=logs
 # optimization/math agents). Build the hardened image with `--initiate`.
 SANDBOX_BACKEND=docker
 SANDBOX_IMAGE=recursive-local-swarm-sandbox:latest
-# Keep one warm container per agent and reuse it via `docker exec` instead of
-# spinning up a throwaway container per run (much faster). false = throwaway runs.
+# Keep ONE warm container for the whole session (mounts the agents root, each run
+# execs into that agent's subdir) instead of spinning up a throwaway container per
+# run (much faster). false = throwaway `docker run --rm` per execution.
 SANDBOX_REUSE_CONTAINER=true
 SANDBOX_NETWORK_DEFAULT=none
 SANDBOX_MEMORY_MB=2048
