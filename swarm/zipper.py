@@ -25,7 +25,9 @@ import re
 from .functions import FINISHED_MARKER
 from .runtime import Runtime
 from .substitution import Context, resolve
+from .voting import MALFORMED_REPLY
 
+_RETRY = 2
 _RETAIN = re.compile(r"^\s*RETAIN\s+(.+?)\s*$", re.IGNORECASE)
 # INSERT line N <literal>  -> positional insert into the DOCUMENT at line N.
 _INSERT_POS = re.compile(r"^\s*INSERT\s+line\s+(\d+)\s?(.*)$", re.IGNORECASE)
@@ -126,12 +128,27 @@ def run_zipper(rt: Runtime, final_outputs: list[tuple[str, str]],
     for _ in range(_ZIPPER_MAX_LOOPS):
         reply = rt.model.chat("zipper", messages)
         messages.append({"role": "assistant", "content": reply})
-        doc.apply(reply)
+        applied = doc.apply(reply)
+        # No recognizable RETAIN/INSERT command: re-ask with the malformed reply.
+        tries = 0
+        while applied == 0 and tries < _RETRY:
+            messages.append({"role": "user", "content": MALFORMED_REPLY})
+            reply = rt.model.chat("zipper", messages)
+            messages.append({"role": "assistant", "content": reply})
+            applied = doc.apply(reply)
+            tries += 1
         ctx.document = doc.render()
         finish_prompt = resolve(rt.instr.read("zipper", "finish"), ctx)
         messages.append({"role": "user", "content": finish_prompt})
         verdict = rt.model.chat("zipper", messages)
         messages.append({"role": "assistant", "content": verdict})
+        # Verdict must be CONFIRM or CONTINUE; re-ask if it's neither.
+        tries = 0
+        while _last_word(verdict) is None and tries < _RETRY:
+            messages.append({"role": "user", "content": MALFORMED_REPLY})
+            verdict = rt.model.chat("zipper", messages)
+            messages.append({"role": "assistant", "content": verdict})
+            tries += 1
         if log_path is not None:
             rt.write_transcript(log_path, "zipper", messages)
         if _last_word(verdict) == "CONFIRM":

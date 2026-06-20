@@ -103,9 +103,12 @@ def main(argv: list[str] | None = None) -> int:
         while True:
             try:
                 line = _read_multiline()
-            except (EOFError, KeyboardInterrupt):
+            except EOFError:           # Ctrl-D: quit
                 rt.logbook.chat("\nbye.")
                 return 0
+            except KeyboardInterrupt:  # Ctrl-C at the prompt: ignore, new prompt
+                print()
+                continue
             if not line.strip():
                 continue
             try:

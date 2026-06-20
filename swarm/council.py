@@ -13,6 +13,7 @@ from . import ids
 from .convergence import Member, run_convergence
 from .runtime import Runtime
 from .substitution import Context, resolve
+from .voting import MALFORMED_REPLY
 from .zipper import run_zipper
 
 # AGENT_TYPE: <short task>: <expanded explanation>
@@ -88,10 +89,17 @@ def run_council(rt: Runtime, members: list[Member], inherited: list[dict] | None
             return None
         ctx = Context(instr=rt.instr, agent_type=member.agent_type, task=member.task,
                       task_truncated=member.task_truncated, inherited_goal=inherited_goal)
+        prompt = resolve(">>SPAWNING<<", ctx)
         directive_text = rt.model.chat(
-            member.agent_type,
-            member.messages + [{"role": "user", "content": resolve(">>SPAWNING<<", ctx)}])
+            member.agent_type, member.messages + [{"role": "user", "content": prompt}])
         sub_members = parse_directives(rt, directive_text)
+        tries = 0
+        while not sub_members and tries < 2:
+            directive_text = rt.model.chat(
+                member.agent_type,
+                member.messages + [{"role": "user", "content": MALFORMED_REPLY + "\n" + prompt}])
+            sub_members = parse_directives(rt, directive_text)
+            tries += 1
         if not sub_members:
             return None
         roster = ", ".join(s.agent_type for s in sub_members)

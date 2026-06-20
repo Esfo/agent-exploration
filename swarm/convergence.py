@@ -153,8 +153,8 @@ def _initiation(rt: Runtime, m: Member, goal: str, inherited: list[dict]) -> Non
 def _test_loop(rt: Runtime, m: Member, goal: str, last_reply: str) -> None:
     for _ in range(_TEST_MAX_STEPS):
         ctx = _ctx(rt, m, goal)
-        ans = _ask(rt, m, resolve(rt.instr.read("convergence", "test"), ctx))
-        if _last_word_choice(ans, ("EXIT", "YES")) != "YES":
+        if _required_choice(rt, m, resolve(rt.instr.read("convergence", "test"), ctx),
+                            ("EXIT", "YES")) != "YES":
             return
         code_reply = _ask(rt, m, resolve(rt.instr.read("convergence", "test-confirm"), ctx))
         blocks = functions.extract_code_blocks(code_reply)

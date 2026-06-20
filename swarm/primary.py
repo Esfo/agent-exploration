@@ -26,11 +26,18 @@ from .substitution import Context, resolve
 from .voting import MALFORMED_REPLY
 
 
-def _ends_yes(text: str) -> bool:
-    """Whether the confirm verdict resolves to YES (last YES/NO wins)."""
+def _parse_yes_no(text: str) -> bool | None:
+    """True/False from a confirm verdict (last YES/NO wins), or None if neither
+    token is present."""
     upper = (text or "").upper()
     yes, no = upper.rfind("YES"), upper.rfind("NO")
+    if yes < 0 and no < 0:
+        return None
     return yes > no
+
+
+def _ends_yes(text: str) -> bool:
+    return bool(_parse_yes_no(text))
 
 
 class PrimaryAgent:
@@ -80,10 +87,19 @@ class PrimaryAgent:
     # ----- the hidden confirm check -----
     def _confirm(self) -> bool:
         """Ask the primary, behind the scenes, whether the user has agreed to
-        spawn. The dialogue is invisible and forgotten; only YES/NO is read."""
+        spawn. The dialogue is invisible and forgotten; only YES/NO is read. If
+        the verdict isn't a clear YES/NO, re-ask with the malformed-input reply;
+        an unresolved verdict defaults to NO (don't spawn)."""
         ctx = Context(instr=self.rt.instr, inherited_goal=self.goal)
-        verdict = self._ask_query(resolve(self.rt.instr.read("primary", "confirm"), ctx))
-        return _ends_yes(verdict)
+        prompt = resolve(self.rt.instr.read("primary", "confirm"), ctx)
+        verdict = self._ask_query(prompt)
+        decision = _parse_yes_no(verdict)
+        tries = 0
+        while decision is None and tries < 2:
+            verdict = self._ask_query(MALFORMED_REPLY + "\n" + prompt)
+            decision = _parse_yes_no(verdict)
+            tries += 1
+        return bool(decision)
 
     # ----- spawning -----
     def _spawn(self) -> str:
