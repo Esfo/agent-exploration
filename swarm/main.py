@@ -53,16 +53,24 @@ def _reset_workspace(settings) -> None:
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
 
-    if argv and argv[0] == "--initiate":
-        ok = build_image()
-        return 0 if ok else 1
+    # Flags may appear in any order; everything else is the task text.
+    known = {"--initiate", "--oneprompt"}
+    unknown = [a for a in argv if a.startswith("--") and a not in known]
+    if unknown:
+        print(f"unknown option(s): {' '.join(unknown)}\n"
+              "usage: python -m swarm.main [--initiate] [--oneprompt] [task...]")
+        return 2
+    initiate = "--initiate" in argv
+    oneprompt = "--oneprompt" in argv
+    argv = [a for a in argv if a not in known]   # remaining = task words
 
-    # --oneprompt: skip the chat/confirm dialogue and spawn a swarm immediately.
-    # The task can be given on the command line, or typed once at the prompt.
-    # (To use the conversational chat instead, just run without --oneprompt.)
-    oneprompt = bool(argv) and argv[0] == "--oneprompt"
-    if oneprompt:
-        argv = argv[1:]
+    if initiate:
+        ok = build_image()
+        if not ok:
+            return 1
+        # --initiate on its own just (re)builds and exits.
+        if not oneprompt and not argv:
+            return 0
 
     rt = build_runtime()
     _reset_workspace(rt.settings)        # fresh workspace on every launch
