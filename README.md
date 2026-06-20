@@ -44,10 +44,14 @@ available.
 ## 2. Running it
 
 ```
-python -m swarm.main                 # interactive chat with the primary agent
-python -m swarm.main "build me X"    # one-shot: give the goal up front
-python -m pytest -q                  # offline tests (mock model, no Ollama/Docker)
+python -m swarm.main                       # interactive chat with the primary agent
+python -m swarm.main "build me X"           # one-shot: one planning turn, then exit
+python -m swarm.main --oneprompt "build X"  # skip the chat: spawn a swarm immediately
+python -m pytest -q                         # offline tests (mock model, no Ollama/Docker)
 ```
+
+With `--oneprompt`, the prompt is taken as the goal directly — no questions, no
+confirm step — and the council starts working at once.
 
 **Ctrl-C** cancels a running swarm and drops you back to the prompt; **Ctrl-D**
 (or Ctrl-C at the empty prompt) quits. Warm sandbox containers are cleaned up on

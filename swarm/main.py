@@ -45,6 +45,14 @@ def main(argv: list[str] | None = None) -> int:
         ok = build_image()
         return 0 if ok else 1
 
+    # --oneprompt "task": skip the chat/confirm dialogue and spawn immediately.
+    oneprompt = bool(argv) and argv[0] == "--oneprompt"
+    if oneprompt:
+        argv = argv[1:]
+        if not " ".join(argv).strip():
+            print('usage: python -m swarm.main --oneprompt "your task"')
+            return 2
+
     rt = build_runtime()
     docker_preflight(rt.settings, rt.logbook)
 
@@ -62,6 +70,15 @@ def main(argv: list[str] | None = None) -> int:
         rt.model.warmup("primary")
     except OllamaError as e:
         rt.logbook.chat(f"warning: could not load the model - is Ollama running? ({e})")
+
+    if oneprompt:
+        try:
+            primary.run_once(" ".join(argv))
+            print()
+            return 0
+        finally:
+            rt.executor.shutdown()
+
     rt.logbook.chat("ready - describe your goal. End a line with \\ to continue it "
                     "on the next line. (Ctrl-C cancels a running swarm, Ctrl-D quits)")
 

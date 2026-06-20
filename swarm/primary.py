@@ -113,6 +113,14 @@ class PrimaryAgent:
         return result
 
     # ----- main entry -----
+    def run_once(self, user_text: str) -> str:
+        """Skip the planning/confirm dialogue: treat the prompt as the goal and
+        spawn a council on it immediately. Used by --oneprompt."""
+        self.messages.append({"role": "user", "content": user_text})
+        self.goal = user_text.strip()
+        self._write_log()
+        return self._spawn()
+
     def send(self, user_text: str) -> str:
         """Feed a user message; return the primary's reply, or (once the hidden
         confirm verdict is YES) the reply followed by the swarm's result."""

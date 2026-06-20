@@ -68,3 +68,15 @@ def test_primary_plans_then_confirms_then_spawns(project):
     final = primary.send("yes, go ahead")
     assert "FINISHED OUTPUT" in final
     assert "the built thing" in final
+
+
+def test_run_once_spawns_immediately(project):
+    # --oneprompt path: no planning, no confirm dialogue; spawns right away.
+    state = {"ready": False}
+    rt = make_runtime(project, MockClient(make_script(state)))
+    primary = PrimaryAgent(rt)
+    final = primary.run_once("build me a CSV summariser")
+    assert "FINISHED OUTPUT" in final
+    assert primary.goal == "build me a CSV summariser"
+    # The confirm check was never consulted (state stayed False).
+    assert state["ready"] is False
