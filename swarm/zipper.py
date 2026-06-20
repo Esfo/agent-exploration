@@ -113,8 +113,9 @@ def run_zipper(rt: Runtime, final_outputs: list[tuple[str, str]],
                task_truncated: str = "") -> str:
     """Run the zipper workflow and return the upstream payload (prefixed with
     ``FINISHED OUTPUT``)."""
-    zid = ids.next_id("zipper")
+    zid = f"zipper_{ids.next_num('agent')}"     # numbered with the agents
     log_path = (council_dir / f"{zid}.txt") if council_dir is not None else None
+    rt.logbook.chat(f"{zid} assembling the final output...")
     ctx = Context(instr=rt.instr, task=task, task_truncated=task_truncated,
                   final_outputs=final_outputs)
     messages: list[dict] = list(inherited or [])
@@ -136,6 +137,7 @@ def run_zipper(rt: Runtime, final_outputs: list[tuple[str, str]],
             rt.write_transcript(log_path, f"zipper ({zid})", messages)
         if _last_word(verdict) == "CONFIRM":
             break
+    rt.logbook.chat(f"{zid} finished assembling the final output")
 
     body = doc.render().strip()
     if not body:   # zipper produced nothing usable: fall back to raw outputs
