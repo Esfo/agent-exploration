@@ -147,15 +147,22 @@ def _initiation(rt: Runtime, m: Member, goal: str, inherited: list[dict]) -> Non
     reply = _ask(rt, m, "\n\n".join(s for s in sections if s.strip()))
     m.final_output = functions.extract_finished_output(reply)
     if functions.has_tools(m.agent_type):
-        _test_loop(rt, m, goal, reply)
+        if _test_loop(rt, m, goal):
+            # After running code, let the agent reshape its FINAL OUTPUT to
+            # reflect what the sandbox showed.
+            revised = _ask(rt, m, resolve(rt.instr.read("convergence", "action"), _ctx(rt, m, goal)))
+            m.final_output = functions.extract_finished_output(revised)
 
 
-def _test_loop(rt: Runtime, m: Member, goal: str, last_reply: str) -> None:
+def _test_loop(rt: Runtime, m: Member, goal: str) -> bool:
+    """Run the optional sandbox test loop. Returns True if the agent ran code."""
+    ran = False
     for _ in range(_TEST_MAX_STEPS):
         ctx = _ctx(rt, m, goal)
         if _required_choice(rt, m, resolve(rt.instr.read("convergence", "test"), ctx),
                             ("EXIT", "YES")) != "YES":
-            return
+            return ran
+        ran = True
         code_reply = _ask(rt, m, resolve(rt.instr.read("convergence", "test-confirm"), ctx))
         blocks = functions.extract_code_blocks(code_reply)
         if not blocks:
@@ -173,7 +180,8 @@ def _test_loop(rt: Runtime, m: Member, goal: str, last_reply: str) -> None:
         _ask(rt, m, "Here is the output of running your code:\n>>RETURN_OUTPUT<<"
              .replace(">>RETURN_OUTPUT<<", functions.return_output(ctx)))
         if _last_word_choice(code_reply, ("EXIT",)) == "EXIT":
-            return
+            return ran
+    return ran
 
 
 def _convene_and_vote(rt: Runtime, members: list[Member], goal: str) -> list[dict]:
