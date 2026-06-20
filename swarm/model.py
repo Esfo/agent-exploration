@@ -65,6 +65,15 @@ class Model:
                          options={"num_ctx": 256, "num_predict": 1, "temperature": 0})
         return name
 
+    def chat_stream(self, role: str, messages: list[dict], on_token) -> str:
+        """Like ``chat`` but streams chunks to ``on_token(delta)`` as they
+        generate. Returns the full accumulated text."""
+        self.summarizer.fit(role, messages)
+        resp = self.client.chat_stream(
+            endpoint=self._endpoint(role), model=self._model_name(role),
+            messages=messages, options=self._options(role), on_token=on_token)
+        return (resp.content or "").strip()
+
     def chat(self, role: str, messages: list[dict]) -> str:
         """One chat turn for ``role``. Returns the assistant's text.
 

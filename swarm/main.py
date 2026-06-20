@@ -47,7 +47,13 @@ def main(argv: list[str] | None = None) -> int:
 
     rt = build_runtime()
     docker_preflight(rt.settings, rt.logbook)
-    primary = PrimaryAgent(rt)
+
+    # Stream the primary's visible replies to stdout chunk-by-chunk.
+    def on_token(delta: str) -> None:
+        sys.stdout.write(delta)
+        sys.stdout.flush()
+
+    primary = PrimaryAgent(rt, on_token=on_token)
 
     # Preload the model so the very first message isn't stuck waiting for it.
     model_name = rt.model._model_name("primary")
@@ -56,29 +62,46 @@ def main(argv: list[str] | None = None) -> int:
         rt.model.warmup("primary")
     except OllamaError as e:
         rt.logbook.chat(f"warning: could not load the model — is Ollama running? ({e})")
-    rt.logbook.chat("ready — describe your goal. "
-                    "(Ctrl-C cancels a running swarm, Ctrl-D quits)")
+    rt.logbook.chat("ready — describe your goal. End a line with \\ to continue it "
+                    "on the next line. (Ctrl-C cancels a running swarm, Ctrl-D quits)")
 
     try:
         if argv:
-            print(primary.send(" ".join(argv)))
+            primary.send(" ".join(argv))
+            print()
             return 0
 
         while True:
             try:
-                line = input("\nyou> ")
+                line = _read_multiline()
             except (EOFError, KeyboardInterrupt):
                 rt.logbook.chat("\nbye.")
                 return 0
             if not line.strip():
                 continue
             try:
-                print(primary.send(line))
+                primary.send(line)   # streams to stdout as it generates
+                print()
             except KeyboardInterrupt:
                 # Ctrl-C during a swarm: abort it and return to the prompt.
                 rt.logbook.chat("\n[cancelled] swarm stopped — back to you.")
     finally:
         rt.executor.shutdown()
+
+
+def _read_multiline() -> str:
+    """Read a user message. A line ending in a backslash continues on the next
+    line (terminals can't distinguish Shift+Enter from Enter, so backslash is the
+    portable multi-line marker)."""
+    prompt, parts = "\nyou> ", []
+    while True:
+        seg = input(prompt)
+        if seg.endswith("\\"):
+            parts.append(seg[:-1])
+            prompt = "... "
+            continue
+        parts.append(seg)
+        return "\n".join(parts)
 
 
 if __name__ == "__main__":

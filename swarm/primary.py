@@ -34,8 +34,9 @@ def _ends_yes(text: str) -> bool:
 
 
 class PrimaryAgent:
-    def __init__(self, rt: Runtime):
+    def __init__(self, rt: Runtime, on_token=None):
         self.rt = rt
+        self.on_token = on_token   # if set, visible replies stream chunk-by-chunk
         self.messages: list[dict] = [{
             "role": "system",
             "content": rt.instr.system() + "\n\n" + rt.instr.read("primary", "agent"),
@@ -44,9 +45,12 @@ class PrimaryAgent:
 
     # ----- turns -----
     def _chat(self, user_text: str) -> str:
-        """A visible turn, kept in the primary's history."""
+        """A visible turn, kept in the primary's history (streamed if enabled)."""
         self.messages.append({"role": "user", "content": user_text})
-        reply = self.rt.model.chat("primary", self.messages)
+        if self.on_token is not None:
+            reply = self.rt.model.chat_stream("primary", self.messages, self.on_token)
+        else:
+            reply = self.rt.model.chat("primary", self.messages)
         self.messages.append({"role": "assistant", "content": reply})
         self._write_log()
         return reply
@@ -90,6 +94,8 @@ class PrimaryAgent:
         self._write_log()
         path = self.rt.save_result(self.goal, result)
         self.rt.logbook.chat(f"result saved to {path}")
+        if self.on_token is not None:   # the result wasn't streamed; show it now
+            self.on_token("\n\n" + result + "\n")
         return result
 
     # ----- main entry -----
