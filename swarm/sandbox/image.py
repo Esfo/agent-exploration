@@ -38,6 +38,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ghc \
     && rm -rf /var/lib/apt/lists/*
 
+# Common Python libraries the coding/testing/optimization/math agents reach for.
+# Baked in at build time so they're available even under --network none at runtime.
+RUN pip3 install --no-cache-dir --break-system-packages \
+        numpy \
+        scipy \
+        pandas \
+        sympy \
+        matplotlib \
+        scikit-learn \
+        networkx \
+        requests \
+        pytest \
+        pydantic
+
 # Non-root user (defence in depth; the work dir is bind-mounted at runtime).
 RUN useradd --create-home --uid 10001 agent
 USER agent

@@ -169,8 +169,8 @@ def run_council(rt: Runtime, members: list[Member], inherited: list[dict] | None
         child_count[0] += 1
         child_label = f"{label}.{child_count[0]}"
         roster = ", ".join(s.label for s in sub_members)
-        rt.logbook.chat(f"[{council_id}] {member.label} spawning sub-council "
-                        f"{child_label} ({roster}) for: {member.task[:60]}")
+        rt.logbook.chat(f"[council {child_label}] {member.label} spawning sub-council "
+                        f"({roster}) for: {member.task[:60]}")
         # This agent's councils live beside its chat file, under <agent-id>-councils/.
         sub_dir = council_dir / f"{member.label}-councils" / f"council_{child_label}"
         return run_council(rt, sub_members, list(member.messages), member.task,
