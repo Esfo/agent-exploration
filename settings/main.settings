@@ -9,17 +9,17 @@ OLLAMA_GPU_ENDPOINT=http://localhost:11434
 OLLAMA_CPU_ENDPOINT=http://localhost:11434
 
 # The model every role uses unless its DEFAULT_<ROLE>_MODEL below is set to a real
-# model name. Each per-role line is left as llama3.2:latest, which means
+# model name. Each per-role line is left as gemma4:e4b, which means
 # "fall back to DEFAULT_MODEL" — replace any of them to give that agent its own
 # model. So you only need one model pulled to start.
-DEFAULT_MODEL=llama3.2:latest
-DEFAULT_PRIMARY_MODEL=llama3.2:latest
-DEFAULT_CODE_MODEL=llama3.2:latest
-DEFAULT_MATH_MODEL=llama3.2:latest
-DEFAULT_OPTIMIZATION_MODEL=llama3.2:latest
-DEFAULT_PHILOSOPHER_MODEL=llama3.2:latest
-DEFAULT_TESTER_MODEL=llama3.2:latest
-DEFAULT_ZIPPER_MODEL=llama3.2:latest
+DEFAULT_MODEL=gemma4:e4b
+DEFAULT_PRIMARY_MODEL=gemma4:e4b
+DEFAULT_CODE_MODEL=gemma4:e4b
+DEFAULT_MATH_MODEL=gemma4:e4b
+DEFAULT_OPTIMIZATION_MODEL=gemma4:e4b
+DEFAULT_PHILOSOPHER_MODEL=gemma4:e4b
+DEFAULT_TESTER_MODEL=gemma4:e4b
+DEFAULT_ZIPPER_MODEL=gemma4:e4b
 
 # Context / output / temperature. Per-role NUM_PREDICT / TEMPERATURE override the
 # DEFAULT_* values below; everything else falls back to them.
